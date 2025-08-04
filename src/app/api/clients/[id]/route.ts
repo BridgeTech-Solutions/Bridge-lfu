@@ -5,9 +5,12 @@ import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions'; // Ajustez le chemin si nécessaire
 
 // GET /api/clients/[id] - Récupérer un client par ID
+interface Context {
+  params: { id: string };
+}
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: Context
 ) {
   try {
     const user = await getCurrentUser();
@@ -56,7 +59,7 @@ export async function GET(
 // PUT /api/clients/[id] - Modifier un client
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: Context
 ) {
   try {
     // ✅ CORRECTION : Accédez à params.id directement
@@ -154,7 +157,7 @@ export async function PUT(
 // DELETE /api/clients/[id] - Supprimer un client
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } } // ✅ CORRECTION : Le paramètre est 'id'
+  { params }: Context // ✅ CORRECTION : Le paramètre est 'id'
 ) {
   try {
     // ✅ CORRECTION : Accédez à params.id directement
