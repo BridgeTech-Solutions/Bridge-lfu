@@ -4,12 +4,13 @@ import { profileSchema } from '@/lib/validations';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 
-interface Params {
-  params: { id: string }
-}
+// interface Params {
+//   params: { id: string }
+// }
 
 // PATCH /api/users/[id]/validate - Valider un utilisateur non vérifié (Admin uniquement)
-export async function PATCH(request: NextRequest, { params }: Params) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function PATCH(request: NextRequest, { params }: any) {
   try {
     const user = await getCurrentUser();
     const forwardedFor = request.headers.get('x-forwarded-for');

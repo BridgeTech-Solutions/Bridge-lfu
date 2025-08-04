@@ -5,15 +5,13 @@ import { licenseSchema } from '@/lib/validations';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 
-interface RouteContext {
-  params: {
-    id: string;
-  };
-}
+// interface Params {
+//   params: { id: string }
+// }
 
 // GET /api/licenses/[id] - Récupérer une licence par ID
-export async function GET(request: NextRequest,   context: RouteContext 
-) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function GET(request: NextRequest, { params }: any) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -29,7 +27,7 @@ export async function GET(request: NextRequest,   context: RouteContext
     let query = supabase
       .from('v_licenses_with_client')
       .select('*')
-      .eq('id', context.params.id);
+      .eq('id', params.id);
 
     // Filtrage basé sur le rôle
     if (user.role === 'client' && user.client_id) {
@@ -71,8 +69,8 @@ export async function GET(request: NextRequest,   context: RouteContext
 }
 
 // PUT /api/licenses/[id] - Mettre à jour une licence
-export async function PUT(request: NextRequest,   context: RouteContext
-) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function PUT(request: NextRequest, { params }: any) {
   try {
     const user = await getCurrentUser();
     const forwardedFor = request.headers.get('x-forwarded-for');
@@ -93,7 +91,7 @@ export async function PUT(request: NextRequest,   context: RouteContext
     const { data: existingLicense, error: fetchError } = await supabase
       .from('licenses')
       .select('*')
-      .eq('id', context.params.id)
+      .eq('id', params.id)
       .single();
 
     if (fetchError || !existingLicense) {
@@ -137,7 +135,7 @@ export async function PUT(request: NextRequest,   context: RouteContext
         description: validatedData.description,
         updated_at: new Date().toISOString()
       })
-      .eq('id', context.params.id)
+      .eq('id', params.id)
       .select()
       .single();
 
@@ -180,8 +178,8 @@ export async function PUT(request: NextRequest,   context: RouteContext
 }
 
 // DELETE /api/licenses/[id] - Supprimer une licence
-export async function DELETE(request: NextRequest,   context: RouteContext
-) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function DELETE(request: NextRequest, { params }: any) {
   try {
     const user = await getCurrentUser();
     const forwardedFor = request.headers.get('x-forwarded-for');
@@ -202,7 +200,7 @@ export async function DELETE(request: NextRequest,   context: RouteContext
     const { data: existingLicense, error: fetchError } = await supabase
       .from('licenses')
       .select('*')
-      .eq('id', context.params.id)
+      .eq('id', params.id)
       .single();
 
     if (fetchError || !existingLicense) {
@@ -224,7 +222,7 @@ export async function DELETE(request: NextRequest,   context: RouteContext
     const { error: deleteError } = await supabase
       .from('licenses')
       .delete()
-      .eq('id', context.params.id);
+      .eq('id', params.id);
 
     if (deleteError) {
       console.error('Erreur lors de la suppression de la licence:', deleteError);

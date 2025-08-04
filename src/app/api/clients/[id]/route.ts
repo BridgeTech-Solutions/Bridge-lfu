@@ -5,12 +5,11 @@ import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions'; // Ajustez le chemin si nécessaire
 
 // GET /api/clients/[id] - Récupérer un client par ID
-interface Context {
-  params: { id: string };
-}
+
 export async function GET(
   request: NextRequest,
-  { params }: Context
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  { params }: any
 ) {
   try {
     const user = await getCurrentUser();
@@ -59,7 +58,8 @@ export async function GET(
 // PUT /api/clients/[id] - Modifier un client
 export async function PUT(
   request: NextRequest,
-  { params }: Context
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  { params  } : any
 ) {
   try {
     // ✅ CORRECTION : Accédez à params.id directement
@@ -155,9 +155,8 @@ export async function PUT(
 }
 
 // DELETE /api/clients/[id] - Supprimer un client
-export async function DELETE(
-  request: NextRequest,
-  { params }: Context // ✅ CORRECTION : Le paramètre est 'id'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function DELETE( request: NextRequest,{ params } : any 
 ) {
   try {
     // ✅ CORRECTION : Accédez à params.id directement

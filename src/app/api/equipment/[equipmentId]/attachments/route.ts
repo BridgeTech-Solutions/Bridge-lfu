@@ -4,12 +4,11 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 
-interface Params {
-  params: { id: string }
-}
+
 
 // GET /api/equipment/[id]/attachments - Récupérer les pièces jointes d'un équipement
-export async function GET(request: NextRequest, { params }: Params) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function GET(request: NextRequest, { params } : any) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -76,7 +75,8 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 // POST /api/equipment/[id]/attachments - Ajouter une pièce jointe à un équipement
-export async function POST(request: NextRequest, { params }: Params) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function POST(request: NextRequest, { params }: any) {
   try {
     const user = await getCurrentUser();
     if (!user) {

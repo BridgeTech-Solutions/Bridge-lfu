@@ -5,12 +5,11 @@ import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 
 
-interface EquipmentAttachmentParams {
-  params: { equipmentId: string; id: string }
-}
+
 
 // DELETE /api/equipment/[equipmentId]/attachments/[id] - Supprimer une pièce jointe d'équipement
-export async function DELETE(request: NextRequest, { params }: EquipmentAttachmentParams) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function DELETE(request: NextRequest, { params } : any) {
   try {
     const user = await getCurrentUser();
     if (!user) {

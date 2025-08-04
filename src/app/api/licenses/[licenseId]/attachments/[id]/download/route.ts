@@ -3,11 +3,11 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 
-interface AttachmentParams {
-  params: { licenseId: string; id: string }
-}
-
-export async function GET(request: NextRequest, { params }: AttachmentParams) {
+// interface any {
+//   params: { licenseId: string; id: string }
+// }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function GET(request: NextRequest, { params }: any) {
   try {
     const user = await getCurrentUser();
     if (!user) {

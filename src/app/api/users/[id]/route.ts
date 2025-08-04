@@ -5,12 +5,13 @@ import { profileSchema } from '@/lib/validations';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 
-interface Params {
-  params: { id: string }
-}
+// interface Params {
+//   params: { id: string }
+// }
 
 // GET /api/users/[id] - Récupérer un utilisateur par ID
-export async function GET(request: NextRequest, { params }: Params) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function GET(request: NextRequest, { params }: any) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -68,7 +69,8 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 // PUT /api/users/[id] - Mettre à jour un utilisateur
-export async function PUT(request: NextRequest, { params }: Params) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function PUT(request: NextRequest, { params }: any) {
   try {
     const user = await getCurrentUser();
     const forwardedFor = request.headers.get('x-forwarded-for');
@@ -193,7 +195,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 // DELETE /api/users/[id] - Supprimer un utilisateur
-export async function DELETE(request: NextRequest, { params }: Params) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function DELETE(request: NextRequest, { params }: any) {
   try {
     const user = await getCurrentUser();
     const forwardedFor = request.headers.get('x-forwarded-for');

@@ -5,12 +5,13 @@ import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 
 
-interface AttachmentParams {
-  params: { licenseId: string; id: string }
-}
+// interface any {
+//   params: { licenseId: string; id: string }
+// }
 
 // DELETE /api/licenses/[licenseId]/attachments/[id] - Supprimer une pièce jointe
-export async function DELETE(request: NextRequest, { params }: AttachmentParams) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function DELETE(request: NextRequest, { params }: any) {
   try {
     const user = await getCurrentUser();
     if (!user) {
