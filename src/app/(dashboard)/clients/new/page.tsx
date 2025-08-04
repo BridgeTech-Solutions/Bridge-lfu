@@ -1,3 +1,3 @@
 export default function NewClientPage() {
-  return <div>Modifier le client</div>;
+  return <div>Nouveau le client</div>;
 }
