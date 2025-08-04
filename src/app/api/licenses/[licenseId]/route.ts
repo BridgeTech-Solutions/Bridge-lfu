@@ -5,12 +5,14 @@ import { licenseSchema } from '@/lib/validations';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 
-// interface Params {
-//   params: { id: string }
-// }
+interface RouteContext {
+  params: {
+    id: string;
+  };
+}
 
 // GET /api/licenses/[id] - Récupérer une licence par ID
-export async function GET(request: NextRequest,   context: { params: { id: string } }
+export async function GET(request: NextRequest,   context: RouteContext 
 ) {
   try {
     const user = await getCurrentUser();
@@ -69,7 +71,7 @@ export async function GET(request: NextRequest,   context: { params: { id: strin
 }
 
 // PUT /api/licenses/[id] - Mettre à jour une licence
-export async function PUT(request: NextRequest,   context: { params: { id: string } }
+export async function PUT(request: NextRequest,   context: RouteContext
 ) {
   try {
     const user = await getCurrentUser();
@@ -178,7 +180,7 @@ export async function PUT(request: NextRequest,   context: { params: { id: strin
 }
 
 // DELETE /api/licenses/[id] - Supprimer une licence
-export async function DELETE(request: NextRequest,   context: { params: { id: string } }
+export async function DELETE(request: NextRequest,   context: RouteContext
 ) {
   try {
     const user = await getCurrentUser();
