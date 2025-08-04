@@ -5,12 +5,13 @@ import { licenseSchema } from '@/lib/validations';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 
-interface Params {
-  params: { id: string }
-}
+// interface Params {
+//   params: { id: string }
+// }
 
 // GET /api/licenses/[id] - Récupérer une licence par ID
-export async function GET(request: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }
+) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -68,7 +69,8 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 // PUT /api/licenses/[id] - Mettre à jour une licence
-export async function PUT(request: NextRequest, { params }: Params) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }
+) {
   try {
     const user = await getCurrentUser();
     const forwardedFor = request.headers.get('x-forwarded-for');
@@ -176,7 +178,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 // DELETE /api/licenses/[id] - Supprimer une licence
-export async function DELETE(request: NextRequest, { params }: Params) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }
+) {
   try {
     const user = await getCurrentUser();
     const forwardedFor = request.headers.get('x-forwarded-for');
