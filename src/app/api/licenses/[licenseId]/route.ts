@@ -10,7 +10,7 @@ import { PermissionChecker } from '@/lib/auth/permissions';
 // }
 
 // GET /api/licenses/[id] - Récupérer une licence par ID
-export async function GET(request: NextRequest, { params }: { params: { id: string } }
+export async function GET(request: NextRequest,   context: { params: { id: string } }
 ) {
   try {
     const user = await getCurrentUser();
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     let query = supabase
       .from('v_licenses_with_client')
       .select('*')
-      .eq('id', params.id);
+      .eq('id', context.params.id);
 
     // Filtrage basé sur le rôle
     if (user.role === 'client' && user.client_id) {
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT /api/licenses/[id] - Mettre à jour une licence
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }
+export async function PUT(request: NextRequest,   context: { params: { id: string } }
 ) {
   try {
     const user = await getCurrentUser();
@@ -91,7 +91,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const { data: existingLicense, error: fetchError } = await supabase
       .from('licenses')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', context.params.id)
       .single();
 
     if (fetchError || !existingLicense) {
@@ -135,7 +135,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         description: validatedData.description,
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', context.params.id)
       .select()
       .single();
 
@@ -178,7 +178,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE /api/licenses/[id] - Supprimer une licence
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }
+export async function DELETE(request: NextRequest,   context: { params: { id: string } }
 ) {
   try {
     const user = await getCurrentUser();
@@ -200,7 +200,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const { data: existingLicense, error: fetchError } = await supabase
       .from('licenses')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', context.params.id)
       .single();
 
     if (fetchError || !existingLicense) {
@@ -222,7 +222,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const { error: deleteError } = await supabase
       .from('licenses')
       .delete()
-      .eq('id', params.id);
+      .eq('id', context.params.id);
 
     if (deleteError) {
       console.error('Erreur lors de la suppression de la licence:', deleteError);
