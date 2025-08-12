@@ -55,7 +55,7 @@ export async function DELETE(request: NextRequest, { params }: any) {
 
     // Supprimer le fichier du storage
     const { error: storageError } = await supabase.storage
-      .from('attachments')
+      .from('license-attachments')
       .remove([attachment.file_url]);
 
     if (storageError) {

@@ -78,8 +78,9 @@ export async function GET(request: NextRequest, { params }: any) {
 
 // POST /api/licenses/[id]/attachments - Ajouter une pièce jointe à une licence
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function POST(request: NextRequest, { params }: any) {
-  try {
+export async function POST(request: NextRequest,  context :any) {
+  const { licenseId } = await context.params;
+    try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json(
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest, { params }: any) {
     const { data: license, error: licenseError } = await supabase
       .from('licenses')
       .select('*')
-      .eq('id', params.licenseId)
+      .eq('id',licenseId)
       .single();
 
     if (licenseError || !license) {
@@ -153,12 +154,12 @@ export async function POST(request: NextRequest, { params }: any) {
 
     // Générer un nom de fichier unique
     const fileExtension = file.name.split('.').pop();
-    const fileName = `${params.licenseId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
+    const fileName = `${licenseId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
     const bucketPath = `license-attachments/${fileName}`;
 
     // Upload vers Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('attachments')
+      .from('license-attachments')
       .upload(bucketPath, file, {
         cacheControl: '3600',
         upsert: false
@@ -176,7 +177,7 @@ export async function POST(request: NextRequest, { params }: any) {
     const { data: attachment, error: attachmentError } = await supabase
       .from('license_attachments')
       .insert({
-        license_id: params.licenseId,
+        license_id: licenseId,
         file_name: file.name,
         file_url: uploadData.path,
         file_type: fileType,
@@ -188,7 +189,7 @@ export async function POST(request: NextRequest, { params }: any) {
 
     if (attachmentError) {
       // Supprimer le fichier uploadé en cas d'erreur
-      await supabase.storage.from('attachments').remove([bucketPath]);
+      await supabase.storage.from('license-attachments').remove([bucketPath]);
       
       console.error('Erreur lors de la création de la pièce jointe:', attachmentError);
       return NextResponse.json(

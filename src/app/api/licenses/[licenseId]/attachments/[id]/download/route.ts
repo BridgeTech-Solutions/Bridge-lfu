@@ -6,8 +6,11 @@ import { PermissionChecker } from '@/lib/auth/permissions';
 // interface any {
 //   params: { licenseId: string; id: string }
 // }
+//recuperer une piece jointe
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function GET(request: NextRequest, { params }: any) {
+export async function GET(request: NextRequest, context: { params: Promise<{ licenseId: string; id: string }> }) {
+    const { licenseId, id } = await context.params; // ✅ on attend la Promise
+
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -24,8 +27,8 @@ export async function GET(request: NextRequest, { params }: any) {
     const { data: attachment, error: fetchError } = await supabase
       .from('license_attachments')
       .select('*')
-      .eq('id', params.id)
-      .eq('license_id', params.licenseId)
+      .eq('id', id)
+      .eq('license_id', licenseId)
       .single();
 
     if (fetchError || !attachment) {
@@ -39,7 +42,7 @@ export async function GET(request: NextRequest, { params }: any) {
     const { data: license } = await supabase
       .from('licenses')
       .select('*')
-      .eq('id', params.licenseId)
+      .eq('id', licenseId)
       .single();
 
     if (!license || !checker.can('read', 'licenses', license)) {
@@ -51,7 +54,7 @@ export async function GET(request: NextRequest, { params }: any) {
 
     // Générer une URL de téléchargement signée (valide 1 heure)
     const { data: signedUrl, error: urlError } = await supabase.storage
-      .from('attachments')
+      .from('license-attachments')
       .createSignedUrl(attachment.file_url, 3600, {
         download: attachment.file_name
       });

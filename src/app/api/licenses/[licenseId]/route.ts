@@ -27,12 +27,13 @@ export async function GET(request: NextRequest, { params }: any) {
     let query = supabase
       .from('v_licenses_with_client')
       .select('*')
-      .eq('id', params.id);
+      .eq('id', params.licenseId);
 
     // Filtrage basé sur le rôle
-    if (user.role === 'client' && user.client_id) {
+    if (!checker.can('create', 'licenses') && user.client_id) {
       query = query.eq('client_id', user.client_id);
     }
+
 
     const { data: license, error } = await query.single();
 
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest, { params }: any) {
     return NextResponse.json(license);
 
   } catch (error) {
-    console.error('Erreur API GET /licenses/[id]:', error);
+    console.error('Erreur API GET /licenses/[licenseid]:', error);
     return NextResponse.json(
       { message: 'Erreur interne du serveur' },
       { status: 500 }
@@ -91,7 +92,7 @@ export async function PUT(request: NextRequest, { params }: any) {
     const { data: existingLicense, error: fetchError } = await supabase
       .from('licenses')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', params.licenseId)
       .single();
 
     if (fetchError || !existingLicense) {
@@ -135,7 +136,7 @@ export async function PUT(request: NextRequest, { params }: any) {
         description: validatedData.description,
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', params.licenseId)
       .select()
       .single();
 
@@ -169,7 +170,7 @@ export async function PUT(request: NextRequest, { params }: any) {
       );
     }
 
-    console.error('Erreur API PUT /licenses/[id]:', error);
+    console.error('Erreur API PUT /licenses/[licenseId]:', error);
     return NextResponse.json(
       { message: 'Erreur interne du serveur' },
       { status: 500 }
@@ -200,7 +201,7 @@ export async function DELETE(request: NextRequest, { params }: any) {
     const { data: existingLicense, error: fetchError } = await supabase
       .from('licenses')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', params.licenseId)
       .single();
 
     if (fetchError || !existingLicense) {
@@ -222,7 +223,7 @@ export async function DELETE(request: NextRequest, { params }: any) {
     const { error: deleteError } = await supabase
       .from('licenses')
       .delete()
-      .eq('id', params.id);
+      .eq('id', params.licenseId);
 
     if (deleteError) {
       console.error('Erreur lors de la suppression de la licence:', deleteError);
@@ -246,7 +247,7 @@ export async function DELETE(request: NextRequest, { params }: any) {
     return NextResponse.json({ message: 'Licence supprimée avec succès' });
 
   } catch (error) {
-    console.error('Erreur API DELETE /licenses/[id]:', error);
+    console.error('Erreur API DELETE /licenses/[licenseId]:', error);
     return NextResponse.json(
       { message: 'Erreur interne du serveur' },
       { status: 500 }
