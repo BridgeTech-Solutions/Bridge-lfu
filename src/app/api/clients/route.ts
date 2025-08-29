@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { clientSchema } from '@/lib/validations';
 import { getCurrentUser } from '@/lib/auth/server';
-import { PermissionChecker } from '@/lib/auth/permissions'; // Ajustez le chemin si nécessaire
+import { PermissionChecker } from '@/lib/auth/permissions';
+
 // GET /api/clients - Liste des clients avec pagination et filtres
 export async function GET(request: NextRequest) {
   try {
@@ -16,12 +17,12 @@ export async function GET(request: NextRequest) {
 
     const supabase = createSupabaseServerClient();
     const { searchParams } = new URL(request.url);
-    
+
     // Paramètres de pagination
     const page = parseInt(searchParams.get('page') || '1');
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100);
     const offset = (page - 1) * limit;
-    
+
     // Paramètres de recherche
     const search = searchParams.get('search');
     const sector = searchParams.get('sector');
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       query = query.ilike('name', `%${search}%`);
     }
-    
+
     if (sector) {
       query = query.eq('sector', sector);
     }
@@ -57,13 +58,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
-      data: clients,
-      count,
-      page,
-      totalPages: Math.ceil((count || 0) / limit),
-      hasMore: offset + limit < (count || 0)
-    });
+    // ✅ Ici je renvoie directement un tableau de clients
+    return NextResponse.json(clients || []);
 
   } catch (error) {
     console.error('Erreur API GET /clients:', error);
@@ -76,19 +72,20 @@ export async function GET(request: NextRequest) {
 
 // POST /api/clients - Créer un nouveau client
 export async function POST(request: NextRequest) {
-    
   try {
     const user = await getCurrentUser();
     const forwardedFor = request.headers.get('x-forwarded-for');
     const ipAddress = forwardedFor ? forwardedFor.split(',')[0] : null;
-     const userAgent = request.headers.get('user-agent');
+    const userAgent = request.headers.get('user-agent');
+
     if (!user) {
       return NextResponse.json(
         { message: 'Non authentifié' },
         { status: 401 }
       );
     }
-     const checker = new PermissionChecker(user);
+
+    const checker = new PermissionChecker(user);
 
     // Vérifier les permissions
     if (!checker.can('create', 'clients')) {
@@ -99,24 +96,24 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    
+
     // Validation des données
     const validatedData = clientSchema.parse(body);
 
     const supabase = createSupabaseServerClient();
-    
-    // ✅ MODIFICATION ICI : Mapper les noms de champs vers les noms de colonnes Supabase
+
+    // ✅ Mapper les champs
     const { data: client, error } = await supabase
       .from('clients')
       .insert({
         name: validatedData.name,
         address: validatedData.address,
         city: validatedData.city,
-        postal_code: validatedData.postalCode, 
+        postal_code: validatedData.postalCode,
         country: validatedData.country,
-        contact_email: validatedData.contactEmail, 
-        contact_phone: validatedData.contactPhone, 
-        contact_person: validatedData.contactPerson, 
+        contact_email: validatedData.contactEmail,
+        contact_phone: validatedData.contactPhone,
+        contact_person: validatedData.contactPerson,
         sector: validatedData.sector,
         created_by: user.id,
         created_at: new Date().toISOString(),
@@ -141,7 +138,7 @@ export async function POST(request: NextRequest) {
       record_id: client.id,
       new_values: client,
       ip_address: ipAddress,
-      user_agent: userAgent   
+      user_agent: userAgent
     });
 
     return NextResponse.json(client, { status: 201 });
