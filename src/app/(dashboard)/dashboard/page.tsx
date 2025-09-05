@@ -263,7 +263,7 @@ export default function DashboardPage() {
               value={stats.total_clients}
               icon={Users}
               color="blue"
-              href="/dashboard/clients"
+              href="/clients"
               trend={{ value: 12, isPositive: true }}
             />
           )}
@@ -272,7 +272,7 @@ export default function DashboardPage() {
             value={stats.total_licenses - stats.expired_licenses}
             icon={Shield}
             color="green"
-            href="/dashboard/licenses"
+            href="/licenses"
             subtitle={`${stats.expired_licenses} expirées`}
             trend={{ value: -5, isPositive: false }}
           />
@@ -281,7 +281,7 @@ export default function DashboardPage() {
             value={stats.total_equipment - stats.obsolete_equipment}
             icon={Server}
             color="blue"
-            href="/dashboard/equipment"
+            href="/equipment"
             subtitle={`${stats.obsolete_equipment} obsolètes`}
             trend={{ value: 8, isPositive: true }}
           />
@@ -393,7 +393,7 @@ export default function DashboardPage() {
           )}
         </CardTitle>
         <Link
-          href="/dashboard/notifications"
+          href="/notifications"
           className="text-sm text-blue-600 hover:text-blue-500 font-medium flex items-center"
         >
           Voir tout
@@ -436,7 +436,7 @@ export default function DashboardPage() {
       <CardContent className="space-y-3">
         {stablePermissions.can('create', 'clients') && (
           <Link
-            href="/dashboard/clients/new"
+            href="/clients/new"
             className="flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group"
           >
             <div className="flex items-center">
@@ -451,7 +451,7 @@ export default function DashboardPage() {
         
         {stablePermissions.can('create', 'licenses') && (
           <Link
-            href="/dashboard/licenses/new"
+            href="/licenses/new"
             className="flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
           >
             <div className="flex items-center">
@@ -466,7 +466,7 @@ export default function DashboardPage() {
         
         {stablePermissions.can('create', 'equipment') && (
           <Link
-            href="/dashboard/equipment/new"
+            href="/equipment/new"
             className="flex items-center justify-between p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group"
           >
             <div className="flex items-center">
@@ -481,7 +481,7 @@ export default function DashboardPage() {
         
         {stablePermissions.can('read', 'reports') && (
           <Link
-            href="/dashboard/reports"
+            href="/reports"
             className="flex items-center justify-between p-3 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors group"
           >
             <div className="flex items-center">
