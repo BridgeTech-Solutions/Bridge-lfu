@@ -1,20 +1,21 @@
+// 
 'use client'
 
 import { createBrowserClient } from '@supabase/ssr'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 
-
-import type { 
-  Profile
-} from '@/types'
+import type { Profile } from '@/types'
 import { toast } from 'sonner'
 
-export function useAuth() {
+interface UseAuthOptions {
+  isPublicPage?: boolean
+}
+
+export function useAuth({ isPublicPage = false }: UseAuthOptions = {}) {
   const [user, setUser] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Utilisation de createBrowserClient pour une gestion correcte des cookies
   const supabase = useMemo(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -25,6 +26,7 @@ export function useAuth() {
   useEffect(() => {
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
+      
       if (session?.user) {
         const { data: profile, error } = await supabase
           .from('profiles')
@@ -40,9 +42,9 @@ export function useAuth() {
         }
       } else {
         setUser(null)
-                // Affiche une notification si la page n'est pas en cours de chargement
-        if (!loading) {
-          toast.error("Votre session a expiré. Veuillez vous reconnecter.");
+        if (!loading && !isPublicPage) {
+          toast.error("Votre session a expiré. Veuillez vous reconnecter.")
+          router.push('/login')
         }
       }
       setLoading(false)
@@ -62,24 +64,24 @@ export function useAuth() {
           setUser(profile)
         } else {
           setUser(null)
-          // Affiche une notification lors de la déconnexion
-          toast.error("Votre session a expiré. Veuillez vous reconnecter.");
+          if (!isPublicPage) {
+            toast.error("Votre session a expiré. Veuillez vous reconnecter.")
+            router.push('/login')
+          }
         }
         setLoading(false)
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [supabase, isPublicPage, loading, router])
 
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     })
-    if (error) {
-      throw error
-    }
+    if (error) throw error
     return data
   }
 
@@ -100,17 +102,11 @@ export function useAuth() {
       }
     });
 
-    if (error) {
-      console.error("Erreur lors du signUp :", error);
-      return { data: null, error };
-    }
+    if (error) return { data: null, error }
 
-    const user = data.user;
+    const user = data.user
     if (!user) {
-      return {
-        data: null,
-        error: { message: "Veuillez confirmer votre email pour continuer." }
-      };
+      return { data: null, error: { message: "Veuillez confirmer votre email pour continuer." } }
     }
 
     const { error: notifError } = await supabase
@@ -122,24 +118,18 @@ export function useAuth() {
         message: `${profileData.first_name} ${profileData.last_name} (${email}) attend validation`,
         related_id: user.id,
         related_type: 'user'
-      });
+      })
 
     if (notifError) {
-      console.error("Erreur création de la notification :", notifError);
-      return { data: { ...data, requiresAdminValidation: true }, error: notifError };
+      return { data: { ...data, requiresAdminValidation: true }, error: notifError }
     }
 
-    return {
-      data: { ...data, requiresAdminValidation: true }, 
-      error: null
-    };
-  };
+    return { data: { ...data, requiresAdminValidation: true }, error: null }
+  }
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
-    if (!error) {
-      router.push('/login')
-    }
+    if (!error) router.push('/login')
     return { error }
   }
 
