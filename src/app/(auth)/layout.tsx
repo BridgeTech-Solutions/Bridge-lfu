@@ -10,7 +10,7 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, loading } = useAuth()
+  const { user, loading } = useAuth({ isPublicPage: true })
   const router = useRouter()
 
   useEffect(() => {
