@@ -17,7 +17,7 @@ export default function ResetPasswordPage() {
   const [emailSent, setEmailSent] = useState(false)
   
   const router = useRouter()
-  const { resetPassword } = useAuth()
+  const { resetPassword } = useAuth({ isPublicPage: true })
 
   const {
     register,

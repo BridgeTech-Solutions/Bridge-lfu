@@ -19,7 +19,7 @@ export default function RegisterPage() {
   const [registrationSuccess, setRegistrationSuccess] = useState(false)
   
   const router = useRouter()
-  const { signUp } = useAuth()
+  const { signUp } = useAuth({ isPublicPage: true })
 
   const {
     register,

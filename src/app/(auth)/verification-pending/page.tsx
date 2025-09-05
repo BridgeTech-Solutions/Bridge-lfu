@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 export default function VerificationPendingPage() {
-  const { user, loading, signOut } = useAuth()
+  const { user, loading, signOut } = useAuth({ isPublicPage: true })
   const router = useRouter()
 
   useEffect(() => {
