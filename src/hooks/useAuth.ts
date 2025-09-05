@@ -42,7 +42,7 @@ export function useAuth({ isPublicPage = false }: UseAuthOptions = {}) {
         }
       } else {
         setUser(null)
-        if (!isPublicPage) {
+        if (isPublicPage == false) {
           toast.error("Votre session a expiré. Veuillez vous reconnecter.")
           router.push('/login')
         }
@@ -65,8 +65,8 @@ export function useAuth({ isPublicPage = false }: UseAuthOptions = {}) {
           setUser(profile)
         } else {
           setUser(null)
-          if (!isPublicPage) {
-            toast.error("Votre session a expiré. Veuillez vous reconnecter.")
+          if (isPublicPage == false) {
+            toast.error("Votre session a expiré. Veuillez vous reconnecter boss.")
             router.push('/login')
           }
         }
