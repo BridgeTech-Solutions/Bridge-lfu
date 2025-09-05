@@ -20,7 +20,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo') || '/dashboard'
   
-  const { signIn } = useAuth()
+  const { signIn } = useAuth({ isPublicPage: true })
 
   const {
     register,
