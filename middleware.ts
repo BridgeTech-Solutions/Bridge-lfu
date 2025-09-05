@@ -2,37 +2,20 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  const response = NextResponse.next()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options) {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+        setAll(cookies) {
+          cookies.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
           })
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options) {
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({ name, value: '', ...options })
         },
       },
     }
@@ -44,23 +27,23 @@ export async function middleware(request: NextRequest) {
 
   // Pages publiques (authentification)
   const publicPaths = ['/login', '/register', '/reset-password']
-  const isPublicPath = publicPaths.some(path => 
+  const isPublicPath = publicPaths.some(path =>
     request.nextUrl.pathname.startsWith(path)
   )
 
-  // Redirection si non authentifié et tentative d'accès à une page protégée
+  // Si utilisateur non connecté et page protégée
   if (!user && !isPublicPath && request.nextUrl.pathname !== '/') {
     const redirectUrl = new URL('/login', request.url)
     redirectUrl.searchParams.set('redirectTo', request.nextUrl.pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Redirection si authentifié et tentative d'accès à une page d'auth
+  // Si connecté et page publique -> redirection vers dashboard
   if (user && isPublicPath) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Redirection de la racine vers le dashboard si authentifié
+  // Si connecté et root -> redirection vers dashboard
   if (user && request.nextUrl.pathname === '/') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
