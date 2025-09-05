@@ -42,12 +42,12 @@ export function useAuth({ isPublicPage = false }: UseAuthOptions = {}) {
         }
       } else {
         setUser(null)
+       setLoading(false)
         if (!loading && !isPublicPage) {
           toast.error("Votre session a expiré. Veuillez vous reconnecter.")
           router.push('/login')
         }
       }
-      setLoading(false)
     }
 
     getSession()
