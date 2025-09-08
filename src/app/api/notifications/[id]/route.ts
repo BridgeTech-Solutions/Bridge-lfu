@@ -57,7 +57,7 @@ export async function GET(request: NextRequest,  context :any) {
 
 // PATCH /api/notifications/[id] - Marquer une notification comme lue/non lue
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function PATCH(request: NextRequest, { context }: any) {
+export async function PATCH(request: NextRequest,  context : any) {
   try {
     const user = await getCurrentUser();
     const params = await context.params; // ✅ await nécessaire
@@ -127,7 +127,7 @@ export async function PATCH(request: NextRequest, { context }: any) {
 
 // DELETE /api/notifications/[id] - Supprimer une notification
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function DELETE(request: NextRequest, { context }: any) {
+export async function DELETE(request: NextRequest, context : any) {
   try {
     const user = await getCurrentUser();
     const params = await context.params; // ✅ await nécessaire

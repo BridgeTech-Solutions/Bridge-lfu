@@ -63,6 +63,10 @@ export function useAuth({ isPublicPage = false }: UseAuthOptions = {}) {
             .single()
           
           setUser(profile)
+          // Rediriger l'utilisateur après une confirmation réussie
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+            router.push('/dashboard') 
+          }
         } else {
           setUser(null)
           if (isPublicPage == false) {
