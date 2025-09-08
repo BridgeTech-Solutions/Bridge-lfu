@@ -53,29 +53,61 @@ export function useAuth({ isPublicPage = false }: UseAuthOptions = {}) {
 
     getSession()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
+  //   const { data: { subscription } } = supabase.auth.onAuthStateChange(
+  //     async (event, session) => {
+  //       if (session?.user) {
+  //         const { data: profile } = await supabase
+  //           .from('profiles')
+  //           .select('*')
+  //           .eq('id', session.user.id)
+  //           .single()
           
-          setUser(profile)
-        } else {
-          setUser(null)
-          if (isPublicPage == false) {
-            toast.error("Votre session a expiré. Veuillez vous reconnecter boss.")
-            router.push('/login')
-          }
-        }
-        setLoading(false)
-      }
-    )
+  //         setUser(profile)
+          
+  //       } else {
+  //         setUser(null)
+  //         if (isPublicPage == false) {
+  //           toast.error("Votre session a expiré. Veuillez vous reconnecter boss.")
+  //           router.push('/login')
+  //         }
+  //       }
+  //       setLoading(false)
+  //     }
+  //   )
 
-    return () => subscription.unsubscribe()
-  }, [supabase, isPublicPage, loading, router])
+  //   return () => subscription.unsubscribe()
+  // }, [supabase, isPublicPage, loading, router])
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth Event:', event) // Pour le débogage
+        console.log('Session:', session) // Pour le débogage
+        
+        if (event === 'SIGNED_IN') {
+          if (session?.user) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single()
+            
+            setUser(profile)
+            // Redirection vers le tableau de bord uniquement si l'utilisateur est authentifié
+            router.push('/dashboard') 
+            toast.success('Connexion réussie !')
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null)
+          if (!isPublicPage) {
+            toast.error("Votre session a expiré. Veuillez vous reconnecter.")
+            router.push('/login')
+          }
+        }
+        setLoading(false)
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [supabase, isPublicPage, router]) // Retirer 'loading' des dépendances
 
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
