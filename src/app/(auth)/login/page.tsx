@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState,useEffect  } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -20,7 +20,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo') || '/dashboard'
   
-  const { signIn } = useAuth({ isPublicPage: true })
+  const { signIn, user, loading } = useAuth({ isPublicPage: true })
 
   const {
     register,
@@ -30,30 +30,14 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   })
 
-//   const onSubmit = async (data: LoginInput) => {
-//     setIsLoading(true)
-    
-//     try {
-//     await signIn(data.email, data.password)
-//     toast.success('Connexion réussie')
-//     router.push(redirectTo)
-//     } catch (error: unknown) {
-//     console.error('Erreur de connexion:', error)
-
-//     if (error instanceof Error) {
-//         // TypeScript sait que error a une propriété message
-//         toast.error(
-//         error.message === 'Invalid login credentials'
-//             ? 'Email ou mot de passe incorrect'
-//             : 'Erreur de connexion. Veuillez réessayer.'
-//         )
-//     } else {
-//         // cas où error n'est pas un Error (rare)
-//         toast.error('Erreur inconnue')
-//     }
-//     }
-
-//   }
+  // Nouvelle logique : si l'utilisateur est déjà connecté (par une confirmation d'e-mail), on le redirige.
+  useEffect(() => {
+    if (user && !loading) {
+      toast.success('Connexion réussie !') // Optionnel: pour confirmer visuellement à l'utilisateur
+      router.push(redirectTo)
+    }
+  }, [user, loading, router, redirectTo])
+  
     const onSubmit = async (data: LoginInput) => {
     setIsLoading(true)
     try {

@@ -63,7 +63,6 @@ export function useAuth({ isPublicPage = false }: UseAuthOptions = {}) {
             .single()
           
           setUser(profile)
-          
         } else {
           setUser(null)
           if (isPublicPage == false) {
