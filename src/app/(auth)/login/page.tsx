@@ -11,11 +11,13 @@ import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { loginSchema, LoginInput } from '@/lib/validations'
 import { cn } from '@/lib/utils'
+import { createBrowserClient } from '@supabase/ssr' // Importez Supabase ici
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  
+    const [isProcessingAuth, setIsProcessingAuth] = useState(true) // Nouvel état pour gérer le chargement initial
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo') || '/dashboard'
@@ -29,15 +31,52 @@ export default function LoginPage() {
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   })
+    // Initialisez Supabase directement dans le composant si nécessaire
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
-  // Nouvelle logique : si l'utilisateur est déjà connecté (par une confirmation d'e-mail), on le redirige.
   useEffect(() => {
-    if (user && !loading) {
-      toast.success('Connexion réussie !') // Optionnel: pour confirmer visuellement à l'utilisateur
-      router.push(redirectTo)
+    const handleSupabaseAuth = async () => {
+      // Si l'utilisateur est déjà connecté, on le redirige immédiatement
+      if (user) {
+        toast.success('Connexion réussie !')
+        router.push(redirectTo)
+        return
+      }
+
+      const code = searchParams.get('code')
+
+      if (code) {
+        // Le paramètre 'code' est présent, c'est une redirection de Supabase
+        setIsProcessingAuth(true) // On met en chargement
+        try {
+          // Supabase échange automatiquement le code contre une session
+          // La fonction getSession() met à jour l'état interne de Supabase
+          const { data: { session } } = await supabase.auth.getSession()
+
+          if (session) {
+            toast.success('Votre email a été confirmé ! Redirection en cours...')
+            router.push('/dashboard')
+          } else {
+            // S'il n'y a pas de session, le code est peut-être expiré
+            toast.error("Le lien de confirmation est invalide ou a expiré.")
+            setIsProcessingAuth(false)
+          }
+        } catch (error) {
+          console.error("Erreur lors du traitement de l'authentification:", error)
+          toast.error("Une erreur s'est produite lors de la confirmation.")
+          setIsProcessingAuth(false)
+        }
+      } else {
+        // Pas de code, la page n'est pas une redirection de Supabase.
+        setIsProcessingAuth(false)
+      }
     }
-  }, [user, loading, router, redirectTo])
-  
+
+    handleSupabaseAuth()
+  }, [searchParams, router, user]) 
     const onSubmit = async (data: LoginInput) => {
     setIsLoading(true)
     try {
