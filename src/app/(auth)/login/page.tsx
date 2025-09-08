@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -20,16 +20,8 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo') || '/dashboard'
   
-  const { signIn ,user,loading} = useAuth({ isPublicPage: true })
-  // Gère la redirection en fonction de l'état d'authentification
-  useEffect(() => {
-    // Si l'utilisateur est déjà authentifié et que le chargement initial est terminé
-    if (user && !loading) {
-      toast.success('Connexion réussie ! Redirection vers le tableau de bord.')
-      router.push(redirectTo)
-    }
-  }, [user, loading, router, redirectTo])
-    
+  const { signIn } = useAuth({ isPublicPage: true })
+
   const {
     register,
     handleSubmit,
@@ -38,7 +30,30 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   })
 
+//   const onSubmit = async (data: LoginInput) => {
+//     setIsLoading(true)
+    
+//     try {
+//     await signIn(data.email, data.password)
+//     toast.success('Connexion réussie')
+//     router.push(redirectTo)
+//     } catch (error: unknown) {
+//     console.error('Erreur de connexion:', error)
 
+//     if (error instanceof Error) {
+//         // TypeScript sait que error a une propriété message
+//         toast.error(
+//         error.message === 'Invalid login credentials'
+//             ? 'Email ou mot de passe incorrect'
+//             : 'Erreur de connexion. Veuillez réessayer.'
+//         )
+//     } else {
+//         // cas où error n'est pas un Error (rare)
+//         toast.error('Erreur inconnue')
+//     }
+//     }
+
+//   }
     const onSubmit = async (data: LoginInput) => {
     setIsLoading(true)
     try {
