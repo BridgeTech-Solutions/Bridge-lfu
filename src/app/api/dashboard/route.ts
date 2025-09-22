@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
+import { Database } from '@/types/database';
 
 // GET /api/dashboard - Récupérer les données du tableau de bord
 export async function GET(request: NextRequest) {
@@ -52,10 +53,11 @@ export async function GET(request: NextRequest) {
         supabase.from('licenses').select('status'),
         supabase.from('equipment').select('status')
       ]);
-
+      type LicenseStatusRow = Pick<Database['public']['Tables']['licenses']['Row'], 'status'>
+      type EquipmentStatusRow = Pick<Database['public']['Tables']['equipment']['Row'], 'status'>
       const clientsCount = clientsRes.count || 0;
-      const licenses = licensesRes.data || [];
-      const equipment = equipmentRes.data || [];
+      const licenses = (licensesRes.data ?? []) as LicenseStatusRow[]
+      const equipment = (equipmentRes.data ?? []) as EquipmentStatusRow[]
 
       stats = {
         total_clients: clientsCount,
@@ -79,9 +81,10 @@ export async function GET(request: NextRequest) {
         supabase.from('licenses').select('status').eq('client_id', user.client_id),
         supabase.from('equipment').select('status').eq('client_id', user.client_id)
       ]);
-
-      const licenses = licensesRes.data || [];
-      const equipment = equipmentRes.data || [];
+      type LicenseStatusRow = Pick<Database['public']['Tables']['licenses']['Row'], 'status'>
+      type EquipmentStatusRow = Pick<Database['public']['Tables']['equipment']['Row'], 'status'>
+      const licenses = (licensesRes.data ?? []) as LicenseStatusRow[]
+      const equipment = (equipmentRes.data ?? []) as EquipmentStatusRow[]
 
       stats = {
         total_clients: 1,

@@ -251,59 +251,7 @@ export function useNotificationSettings() {
   }
 }
 
-// Hook pour gérer les filtres de notifications
-// export function useNotificationFilters() {
-//   const [filters, setFilters] = useState<NotificationFilters>({
-//     page: 1,
-//     limit: 20,
-//     is_read: undefined,
-//     type: '',
-//     search: ''
-//   })
 
-//   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-//   const updateFilter = (key: keyof NotificationFilters, value: any) => {
-//     setFilters(prev => ({
-//       ...prev,
-//       [key]: value,
-//       page: key !== 'page' ? 1 : value // Reset page when other filters change
-//     }))
-//   }
-
-//   const resetFilters = () => {
-//     setFilters({
-//       page: 1,
-//       limit: 20,
-//       is_read: undefined,
-//       type: '',
-//       search: ''
-//     })
-//   }
-
-//   const setUnreadOnly = () => {
-//     setFilters(prev => ({
-//       ...prev,
-//       is_read: false,
-//       page: 1
-//     }))
-//   }
-
-//   const setAllNotifications = () => {
-//     setFilters(prev => ({
-//       ...prev,
-//       is_read: undefined,
-//       page: 1
-//     }))
-//   }
-
-//   return {
-//     filters,
-//     updateFilter,
-//     resetFilters,
-//     setUnreadOnly,
-//     setAllNotifications
-//   }
-// }
 // Hook pour gérer les filtres de notifications
 export function useNotificationFilters() {
     const [filters, setFilters] = useState<NotificationFilters>({

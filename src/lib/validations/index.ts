@@ -6,7 +6,7 @@ const phoneSchema = z
   .string()
   .regex(/^(\+237|6)[0-9]{8}$/, 'Numéro de téléphone invalide')
   .optional()
-  .or(z.literal(''));
+  .or(z.literal('')).nullable();
   const passwordSchema = z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères')
 
 // Schéma d'authentification
@@ -46,22 +46,22 @@ export const profileSchema = z.object({
   firstName: z.string().min(2, 'Le prénom doit contenir au moins 2 caractères'),
   lastName: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
   email: emailSchema,
-  company: z.string().optional(),
+  company: z.string().optional().nullable(),
   phone: phoneSchema,
-  role: z.enum(['admin', 'technicien', 'client']).optional()
+  role: z.enum(['admin', 'technicien', 'client']).optional().nullable()
 })
 
 // Schéma client
 export const clientSchema = z.object({
   name: z.string().min(2, 'Le nom du client doit contenir au moins 2 caractères'),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  postalCode: z.string().optional(),
-  country: z.string().default('Cameroun').optional(),
-  contactEmail: emailSchema.optional().or(z.literal('')),
+  address: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  postalCode: z.string().optional().nullable(),
+  country: z.string().default('Cameroun').optional().nullable(),
+  contactEmail: emailSchema.optional().or(z.literal('')).nullable(),
   contactPhone: phoneSchema,
-  contactPerson: z.string().optional(),
-  sector: z.string().optional()
+  contactPerson: z.string().optional().nullable(),
+  sector: z.string().optional().nullable()
 })
 
 // Schéma licence
@@ -94,6 +94,7 @@ export const equipmentSchema = z.object({
   serialNumber: z.string().optional(),
   purchaseDate: z.string().optional(),
   estimatedObsolescenceDate: z.string().optional(),
+  status: z.enum(['actif', 'en_maintenance', 'obsolete', 'bientot_obsolete', 'retire']),
   endOfSale: z.string().optional(),
   cost: z.number().min(0, 'Le coût doit être positif').optional(),
   clientId: z.string().uuid('Client requis'),

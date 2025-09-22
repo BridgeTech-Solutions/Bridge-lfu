@@ -218,7 +218,7 @@ export default function ClientsPage() {
         {/* Tableau des clients */}
         <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg mb-8">
           <CardContent className="p-0">
-            <ClientsTable clients={clients} />x``
+            <ClientsTable clients={clients} />
           </CardContent>
         </Card>
 

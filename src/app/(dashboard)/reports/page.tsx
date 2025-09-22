@@ -6,6 +6,7 @@ import { usePermissions } from '@/lib/auth/permissions'
 import { Download, FileText, Calendar, Filter, RefreshCw, BarChart3, Users, HardDrive, Key, FileSpreadsheet } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { FaRegFilePdf } from "react-icons/fa";
+ import { useSession } from '@/app/context/auth' 
  
 interface ReportData {
   title: string
@@ -50,7 +51,7 @@ interface ReportConfig {
 }
 
 export default function ReportsPage() {
-  const { user } = useAuth()
+  const { user, loading: userLoading } = useSession(); // Utilisez le hook de session
   const permissions = usePermissions(user)
   const [reportConfig, setReportConfig] = useState<ReportConfig>({
     type: 'licenses',

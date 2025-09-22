@@ -18,13 +18,15 @@ import type {
   LicenseWithClientView
 } from '@/types'
 import { useAuth } from './useAuth';
-usePermissions
+
+
 // Hook pour les permissions - STABILISÉ
 import { useSession } from '@/app/context/auth'
 
 export function useAuthPermissions() {
   // Utilisez le hook useSession pour obtenir l'utilisateur et le statut de chargement.
-  const { user, loading } = useSession();
+  
+  const { user, loading } = useAuth()
 
   // Si le contexte est toujours en cours de chargement,
   // ou si aucun utilisateur n'est connecté, retournez les permissions par défaut.
@@ -156,7 +158,9 @@ export function useLicenses(params: PaginationParams & {
   editor?: string;
 }) {
   // Remplacez useCurrentUser par useSession
-  const { user, loading } = useSession()
+  // const { user, loading } = useSession()
+    const { user, loading } = useAuth()
+
   const permissions = useStablePermissions()
   
   const queryKey = [
@@ -212,7 +216,9 @@ const fetchLicenseById = async (
 
 // NOUVEAU : Hook pour récupérer une licence spécifique
 export function useLicense(id: string) {
-  const { user, loading } = useSession() // <--- Remplacer useAuth() par useSession()
+  // const { user, loading } = useSession() // <--- Remplacer useAuth() par useSession()
+    const { user, loading } = useAuth()
+
   const supabase = createSupabaseClient()
 
   return useQuery({
@@ -232,7 +238,8 @@ export function useDashboard() {
   const stablePermissions = useStablePermissions()
   const { canViewAllData, clientAccess } = stablePermissions
 
-  const { user, loading } = useSession() // <--- Ajouter useSession()
+  // const { user, loading } = useSession() // <--- Ajouter useSession()
+  const { user, loading } = useAuth()
 
   const fetchDashboardData = async () => {
     // Récupération des alertes
@@ -342,7 +349,8 @@ export function useLicenseStats() {
   const stablePermissions = useStablePermissions()
   const { canViewAllData, clientAccess } = stablePermissions
 
-  const { user, loading } = useSession() // <--- Ajouter useSession()
+  // const { user, loading } = useSession() // <--- Ajouter useSession()
+  const { user, loading } = useAuth()
 
   const fetchLicenseStats = async () => {
     let licensesQuery = supabase.from('licenses').select('status, expiry_date, client_id, cost')
@@ -437,7 +445,8 @@ export function useEquipmentStats() {
   const stablePermissions = useStablePermissions()
   const { canViewAllData, clientAccess } = stablePermissions
 
-  const { user, loading } = useSession() // <--- Ajouter useSession()
+  // const { user, loading } = useSession() // <--- Ajouter useSession()
+  const { user, loading } = useAuth()
 
   const fetchEquipmentStats = async () => {
     let equipmentQuery = supabase.from('equipment').select('type, status, client_id')
@@ -582,7 +591,8 @@ export function useEquipment(params: PaginationParams & {
   const supabase = createSupabaseClient()
   const permissions = useStablePermissions()
 
-  const { user, loading } = useSession() // <--- Remplacer useAuth() par useSession()
+  // const { user, loading } = useSession() // <--- Remplacer useAuth() par useSession()
+  const { user, loading } = useAuth()
 
   const queryKey = [
     'equipment', 
@@ -649,8 +659,9 @@ const fetchClients = async (
 };
 
 export function useClients(params: PaginationParams & { search?: string; sector?: string }) {
-  const { isAuthenticated } = useAuth();
-    const { user, loading } = useSession()
+  // const { isAuthenticated } = useAuth();
+    // const { user, loading } = useSession()
+  const { user, loading } = useAuth()
 
   return useQuery({
     queryKey: ['clients', params],
@@ -672,7 +683,8 @@ const fetchClientById = async (id: string): Promise<Client> => {
   return response.json();
 };
 export function useClient(id: string) {
-  const { user, loading } = useSession() // <--- Remplacer useAuth() par useSession()
+  // const { user, loading } = useSession() // <--- Remplacer useAuth() par useSession()
+  const { user, loading } = useAuth()
 
   return useQuery({
     queryKey: ['client', id],
@@ -696,12 +708,13 @@ const fetchSectors = async (supabase: ReturnType<typeof createSupabaseClient>): 
 
 export function useSectors() {
   const supabase = createSupabaseClient();
-  const { user, loading } = useSession() // <--- Remplacer useAuth() par useSession()
+  // const { user, loading } = useSession() // <--- Remplacer useAuth() par useSession()
+  const { user, loading } = useAuth()
 
   return useQuery({
     queryKey: ['sectors'],
     queryFn: () => fetchSectors(supabase),
-    // enabled: true, // <--- Ajouter la condition `enabled`
+    enabled: true, // <--- Ajouter la condition `enabled`
   });
 }
 

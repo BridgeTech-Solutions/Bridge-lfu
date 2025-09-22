@@ -51,7 +51,7 @@
 
       // Générer une URL de téléchargement signée (valide 1 heure)
       const { data: signedUrl, error: urlError } = await supabase.storage
-        .from('attachments')
+        .from('equipment-attachments')
         .createSignedUrl(attachment.file_url, 3600, {
           download: attachment.file_name
         });

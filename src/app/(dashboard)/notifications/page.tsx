@@ -27,15 +27,15 @@ import {
   Notification,
   NotificationSettings
 } from '@/hooks/useNotifications'
-// import { useAuth } from '@/hooks/useAuth'
-import { useSession } from '@/app/context/auth' 
+import { useAuth } from '@/hooks/useAuth'
+// import { useSession } from '@/app/context/auth' 
 import { cn } from '@/lib/utils'
 
 
 // Composant principal
 export default function NotificationsPage() {
-  // const { user } = useAuth()
-  const { user, loading: userLoading } = useSession(); // Utilisez le hook de session
+  const { user,loading: userLoading } = useAuth()
+  // const { user, loading: userLoading } = useSession(); // Utilisez le hook de session
 
   
   // États

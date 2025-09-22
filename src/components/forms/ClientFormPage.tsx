@@ -236,7 +236,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                           <Briefcase className="h-4 w-4" />
                           Secteur d&apos;activité
                         </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value ?? undefined}>
                           <FormControl>
                             <SelectTrigger className="bg-white/80">
                               <SelectValue placeholder="Sélectionnez un secteur" />
@@ -269,6 +269,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                             placeholder="Cameroun" 
                             className="bg-white/80"
                             {...field} 
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -305,7 +306,8 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                           <Input 
                             placeholder="Ex: Jean Dupont" 
                             className="bg-white/80"
-                            {...field} 
+                            {...field}
+                            value={field.value ?? ""} 
                           />
                         </FormControl>
                         <FormMessage />
@@ -328,6 +330,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                             placeholder="contact@exemple.com" 
                             className="bg-white/80"
                             {...field} 
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -349,6 +352,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                             placeholder="Ex: +237 6XX XX XX XX" 
                             className="bg-white/80"
                             {...field} 
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormDescription>
@@ -385,6 +389,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                           placeholder="Ex: 123 Rue de la Technologie, Quartier des Affaires"
                           className="bg-white/80 min-h-[100px]"
                           {...field} 
+                          value={field.value ?? ""}
                         />
                       </FormControl>
                       <FormMessage />
@@ -404,6 +409,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                             placeholder="Ex: Douala" 
                             className="bg-white/80"
                             {...field} 
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -422,6 +428,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                             placeholder="Ex: BP 1234" 
                             className="bg-white/80"
                             {...field} 
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />

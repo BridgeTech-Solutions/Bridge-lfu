@@ -10,19 +10,8 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, loading } = useAuth({ isPublicPage: true })
+  const { loading } = useAuth({ isPublicPage: true })
   const router = useRouter()
-
-  useEffect(() => {
-    if (!loading && user) {
-      // Si l'utilisateur est déjà connecté, rediriger vers le dashboard
-      if (user.role === 'unverified') {
-        router.push('/verification-pending')
-      } else {
-        router.push('/dashboard')
-      }
-    }
-  }, [user, loading, router])
 
   if (loading) {
     return (

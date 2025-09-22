@@ -3,15 +3,17 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'; // ✅ Utili
 import { clientSchema } from '@/lib/validations';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions'; // Ajustez le chemin si nécessaire
+import { Client } from '@/types';
+import { TablesUpdate } from '@/types/database';
 
 // GET /api/clients/[id] - Récupérer un client par ID
-
 export async function GET(
   request: NextRequest,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  { params }: any
+   context : any
 ) {
   try {
+    const { id } = await context.params;
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json(
@@ -20,7 +22,7 @@ export async function GET(
       );
     }
     const checker = new PermissionChecker(user);
-    if (!checker.canAccessClient(params.id)) {
+    if (!checker.canAccessClient(id)) {
       return NextResponse.json(
         { message: 'Accès non autorisé' },
         { status: 403 }
@@ -30,7 +32,7 @@ export async function GET(
     const { data: client, error } = await supabase
       .from('clients')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
     if (error) {
       if (error.code === 'PGRST116') {
@@ -59,11 +61,13 @@ export async function GET(
 export async function PUT(
   request: NextRequest,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  { params  } : any
+   context   : any
 ) {
   try {
+        const { id } = await context.params;
+
     // ✅ CORRECTION : Accédez à params.id directement
-    const clientId = params.id;
+    const clientId = id;
     const forwardedFor = request.headers.get('x-forwarded-for');
     const ipAddress = forwardedFor ? forwardedFor.split(',')[0] : null;
      const userAgent = request.headers.get('user-agent');
@@ -102,25 +106,28 @@ export async function PUT(
     }
     const body = await request.json();
     const validatedData = clientSchema.parse(body);
+    // ✅ Alternative: Use type assertion if TablesUpdate doesn't work
+    const updateData = {
+      name: validatedData.name,
+      address: validatedData.address,
+      city: validatedData.city,
+      postal_code: validatedData.postalCode,
+      country: validatedData.country,
+      contact_email: validatedData.contactEmail,
+      contact_phone: validatedData.contactPhone,
+      contact_person: validatedData.contactPerson,
+      sector: validatedData.sector,
+      updated_at: new Date().toISOString()
+    } as const;
     
-    // ✅ CORRECTION : Mappez explicitement les champs en snake_case
+    // Mappez explicitement les champs en snake_case
     const { data: client, error } = await supabase
       .from('clients')
-      .update({
-        name: validatedData.name,
-        address: validatedData.address,
-        city: validatedData.city,
-        postal_code: validatedData.postalCode,
-        country: validatedData.country,
-        contact_email: validatedData.contactEmail,
-        contact_phone: validatedData.contactPhone,
-        contact_person: validatedData.contactPerson,
-        sector: validatedData.sector,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', clientId)
       .select()
       .single();
+      
     if (error) {
       console.error('Erreur lors de la modification du client:', error);
       return NextResponse.json(
@@ -156,11 +163,12 @@ export async function PUT(
 
 // DELETE /api/clients/[id] - Supprimer un client
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function DELETE( request: NextRequest,{ params } : any 
+export async function DELETE( request: NextRequest, context  : any 
 ) {
   try {
-    // ✅ CORRECTION : Accédez à params.id directement
-    const clientId = params.id;
+        const { id } = await context.params;
+
+    const clientId = id;
     const forwardedFor = request.headers.get('x-forwarded-for');
     const ipAddress = forwardedFor ? forwardedFor.split(',')[0] : null;
      const userAgent = request.headers.get('user-agent');

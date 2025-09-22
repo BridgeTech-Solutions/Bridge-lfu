@@ -66,7 +66,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
 // PUT /api/notifications/settings - Mettre à jour les paramètres de notification
 export async function PUT(request: NextRequest) {
   try {
@@ -98,20 +97,58 @@ export async function PUT(request: NextRequest) {
 
     const supabase = createSupabaseServerClient();
 
-    const { data: updatedSettings, error } = await supabase
+    // D'abord, nous essayons de récupérer les paramètres existants pour l'utilisateur
+    const { data: existingSettings, error: fetchError } = await supabase
       .from('notification_settings')
-      .upsert({
-        user_id: user.id,
-        license_alert_days: licenseAlertDays,
-        equipment_alert_days: equipmentAlertDays,
-        email_enabled: emailEnabled,
-        updated_at: new Date().toISOString()
-      })
-      .select()
+      .select('id') // Nous n'avons besoin que de l'ID pour vérifier l'existence
+      .eq('user_id', user.id)
       .single();
 
-    if (error) {
-      console.error('Erreur lors de la mise à jour des paramètres:', error);
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      // Gérer les erreurs de récupération (sauf "pas de résultat")
+      console.error('Erreur lors de la vérification des paramètres existants:', fetchError);
+      return NextResponse.json(
+        { message: 'Erreur lors de la mise à jour des paramètres' },
+        { status: 500 }
+      );
+    }
+
+    let updatedSettings;
+    let updateError;
+
+    if (existingSettings) {
+      // Si les paramètres existent, nous les mettons à jour
+      const { data, error } = await supabase
+        .from('notification_settings')
+        .update({
+          license_alert_days: licenseAlertDays,
+          equipment_alert_days: equipmentAlertDays,
+          email_enabled: emailEnabled,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .select()
+        .single();
+      updatedSettings = data;
+      updateError = error;
+    } else {
+      // Si les paramètres n'existent pas, nous en créons de nouveaux
+      const { data, error } = await supabase
+        .from('notification_settings')
+        .insert({
+          user_id: user.id,
+          license_alert_days: licenseAlertDays,
+          equipment_alert_days: equipmentAlertDays,
+          email_enabled: emailEnabled,
+        })
+        .select()
+        .single();
+      updatedSettings = data;
+      updateError = error;
+    }
+
+    if (updateError) {
+      console.error('Erreur lors de la mise à jour des paramètres:', updateError);
       return NextResponse.json(
         { message: 'Erreur lors de la mise à jour des paramètres' },
         { status: 500 }

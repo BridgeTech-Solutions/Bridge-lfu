@@ -28,7 +28,7 @@ export async function GET(request: NextRequest,  context :any) {
       .from('notifications')
       .select('*')
       .eq('id', id)
-      .eq('user_id', id)
+      .eq('user_id', user.id)
       .single();
 
     if (error) {
@@ -87,7 +87,7 @@ export async function PATCH(request: NextRequest,  context : any) {
       .from('notifications')
       .select('*')
       .eq('id', id)
-      .eq('user_id', id)
+      .eq('user_id', user.id)
       .single();
 
     if (fetchError || !existingNotification) {
@@ -102,7 +102,7 @@ export async function PATCH(request: NextRequest,  context : any) {
       .from('notifications')
       .update({ is_read: isRead })
       .eq('id', id)
-      .eq('user_id', id)
+      .eq('user_id', user.id)
       .select()
       .single();
 
@@ -147,7 +147,7 @@ export async function DELETE(request: NextRequest, context : any) {
       .from('notifications')
       .select('*')
       .eq('id', id)
-      .eq('user_id', id)
+      .eq('user_id', user.id)
       .single();
 
     if (fetchError || !existingNotification) {
@@ -162,7 +162,7 @@ export async function DELETE(request: NextRequest, context : any) {
       .from('notifications')
       .delete()
       .eq('id', id)
-      .eq('user_id', id);
+      .eq('user_id', user.id);
 
     if (deleteError) {
       console.error('Erreur lors de la suppression de la notification:', deleteError);

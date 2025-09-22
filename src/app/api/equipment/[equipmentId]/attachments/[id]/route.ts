@@ -4,9 +4,6 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 
-
-
-
 // DELETE /api/equipment/[equipmentId]/attachments/[id] - Supprimer une pièce jointe d'équipement
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function DELETE(request: NextRequest, { params } : any) {
@@ -53,7 +50,7 @@ export async function DELETE(request: NextRequest, { params } : any) {
 
     // Supprimer le fichier du storage
     const { error: storageError } = await supabase.storage
-      .from('attachments')
+      .from('equipment-attachments')
       .remove([attachment.file_url]);
 
     if (storageError) {

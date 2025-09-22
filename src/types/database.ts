@@ -7,7 +7,7 @@
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -55,6 +55,50 @@ export type Database = {
           {
             foreignKeyName: "activity_logs_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_settings: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_public: boolean | null
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_settings_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -323,7 +367,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           editor: string | null
-          expiry_date: string| null
+          expiry_date: string
           id: string
           license_key: string | null
           name: string
@@ -513,6 +557,45 @@ export type Database = {
           },
         ]
       }
+      user_preferences: {
+        Row: {
+          created_at: string | null
+          email_notifications: boolean | null
+          id: string
+          items_per_page: number | null
+          language: string | null
+          push_notifications: boolean | null
+          sms_notifications: boolean | null
+          theme: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          items_per_page?: number | null
+          language?: string | null
+          push_notifications?: boolean | null
+          sms_notifications?: boolean | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          items_per_page?: number | null
+          language?: string | null
+          push_notifications?: boolean | null
+          sms_notifications?: boolean | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       v_client_dashboard: {
@@ -643,10 +726,10 @@ export type Database = {
     Functions: {
       calculate_equipment_status: {
         Args: {
-          current_status: Database["public"]["Enums"]["equipment_status"]
-          estimated_obsolescence_date?: string
-          end_of_sale?: string
           actual_obsolescence_date?: string
+          current_status: Database["public"]["Enums"]["equipment_status"]
+          end_of_sale?: string
+          estimated_obsolescence_date?: string
         }
         Returns: Database["public"]["Enums"]["equipment_status"]
       }
@@ -656,99 +739,103 @@ export type Database = {
       }
       create_notification: {
         Args: {
-          p_user_id: string
-          p_type: Database["public"]["Enums"]["notification_type"]
-          p_title: string
           p_message: string
           p_related_id?: string
           p_related_type?: string
+          p_title: string
+          p_type: Database["public"]["Enums"]["notification_type"]
+          p_user_id: string
         }
         Returns: string
       }
       get_client_equipment_report: {
         Args: { client_uuid: string }
         Returns: {
-          equipment_name: string
-          type: Database["public"]["Enums"]["equipment_type"]
           brand: string
-          model: string
-          status: Database["public"]["Enums"]["equipment_status"]
-          obsolescence_date: string
-          end_of_sale: string
-          days_until_obsolescence: number
           days_until_end_of_sale: number
+          days_until_obsolescence: number
+          end_of_sale: string
+          equipment_name: string
+          model: string
+          obsolescence_date: string
+          status: Database["public"]["Enums"]["equipment_status"]
+          type: Database["public"]["Enums"]["equipment_type"]
         }[]
       }
       get_client_licenses_report: {
         Args: { client_uuid: string }
         Returns: {
-          license_name: string
-          editor: string
-          expiry_date: string
-          status: Database["public"]["Enums"]["license_status"]
           cost: number
           days_until_expiry: number
+          editor: string
+          expiry_date: string
+          license_name: string
+          status: Database["public"]["Enums"]["license_status"]
         }[]
       }
       get_equipment_end_of_sale_alerts: {
         Args: { alert_days?: number }
         Returns: {
+          alert_level: string
+          brand: string
+          client_name: string
+          days_until_end_of_sale: number
+          end_of_sale: string
           equipment_id: string
           equipment_name: string
-          client_name: string
-          brand: string
           model: string
-          end_of_sale: string
-          days_until_end_of_sale: number
-          alert_level: string
         }[]
       }
       get_equipment_status_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
-          status: Database["public"]["Enums"]["equipment_status"]
           count: number
           percentage: number
+          status: Database["public"]["Enums"]["equipment_status"]
         }[]
       }
       get_expired_licenses_report: {
         Args: Record<PropertyKey, never>
         Returns: {
-          license_name: string
           client_name: string
-          expiry_date: string
-          days_expired: number
           cost: number
+          days_expired: number
+          expiry_date: string
+          license_name: string
         }[]
       }
       get_license_duration_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
           avg_duration_days: number
-          min_duration_days: number
           max_duration_days: number
+          min_duration_days: number
           total_licenses_with_duration: number
         }[]
       }
       get_obsolete_equipment_report: {
         Args: Record<PropertyKey, never>
         Returns: {
-          equipment_name: string
-          client_name: string
-          type: Database["public"]["Enums"]["equipment_type"]
           brand: string
+          client_name: string
+          days_obsolete: number
+          equipment_name: string
           model: string
           obsolescence_date: string
-          days_obsolete: number
+          type: Database["public"]["Enums"]["equipment_type"]
         }[]
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       refresh_all_equipment_status: {
         Args: Record<PropertyKey, never>
         Returns: {
           equipment_id: string
           equipment_name: string
-          old_status: Database["public"]["Enums"]["equipment_status"]
           new_status: Database["public"]["Enums"]["equipment_status"]
+          old_status: Database["public"]["Enums"]["equipment_status"]
           updated: boolean
         }[]
       }
@@ -768,7 +855,11 @@ export type Database = {
         | "imprimante"
         | "autre"
       license_status: "active" | "expired" | "about_to_expire" | "cancelled"
-      notification_type: "license_expiry" | "equipment_obsolescence" | "general" | "new_unverified_user"
+      notification_type:
+        | "license_expiry"
+        | "equipment_obsolescence"
+        | "general"
+        | "new_unverified_user"
       user_role: "admin" | "technicien" | "client" | "unverified"
     }
     CompositeTypes: {
@@ -916,10 +1007,10 @@ export const Constants = {
       notification_type: [
         "license_expiry",
         "equipment_obsolescence",
-        "new_unverified_user",
         "general",
+        "new_unverified_user",
       ],
-      user_role: ["admin", "technicien", "client","unverified"],
+      user_role: ["admin", "technicien", "client", "unverified"],
     },
   },
 } as const

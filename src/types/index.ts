@@ -1,3 +1,4 @@
+//src/types/index
 import { Database } from './database'
 
 // Types de base exportés depuis la database
@@ -14,19 +15,19 @@ export type Equipment = Tables<'equipment'>
 export type Notification = Tables<'notifications'>
 export type NotificationSettings = Tables<'notification_settings'>
 export type ActivityLog = Tables<'activity_logs'>
-
+export type AppSetting = Tables<'app_settings'>
 // Types pour les insertions
 export type ProfileInsert = TablesInsert<'profiles'>
 export type ClientInsert = TablesInsert<'clients'>
 export type LicenseInsert = TablesInsert<'licenses'>
 export type EquipmentInsert = TablesInsert<'equipment'>
-
+export type AppSettingInsert = TablesInsert<'app_settings'>
 // Types pour les mises à jour
 export type ProfileUpdate = TablesUpdate<'profiles'>
 export type ClientUpdate = TablesUpdate<'clients'>
 export type LicenseUpdate = TablesUpdate<'licenses'>
 export type EquipmentUpdate = TablesUpdate<'equipment'>
-
+export type AppSettingUpdate = TablesUpdate<'app_settings'>
 // Types d'énumérations
 export type UserRole = Enums<'user_role'>
 export type EquipmentStatus = Enums<'equipment_status'>
@@ -160,6 +161,8 @@ export interface LicenseFormData {
 }
 
 export interface EquipmentFormData {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  status: any
   name: string
   type: EquipmentType
   brand?: string

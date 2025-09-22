@@ -67,12 +67,12 @@
   const bottomNavItems = [
     {
       name: 'Aide',
-      href: '/dashboard/help',
+      href: '/help',
       icon: HelpCircle,
     },
     {
       name: 'Paramètres',
-      href: '/dashboard/settings',
+      href: '/settings',
       icon: Settings,
     },
   ]

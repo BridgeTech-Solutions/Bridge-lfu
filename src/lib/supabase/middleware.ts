@@ -39,7 +39,8 @@ export async function middleware(request: NextRequest) {
     '/error',
     '/register',
     '/reset-password',
-    '/verification-pending'
+    '/verification-pending',
+    '/api/auth'
   ];
 
   const currentPath = request.nextUrl.pathname;

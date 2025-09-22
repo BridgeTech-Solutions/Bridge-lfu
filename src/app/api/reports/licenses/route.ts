@@ -3,6 +3,9 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 import PDFDocument from 'pdfkit';
+import path from 'path';
+import fs from 'fs';
+
 // On importe le type LicenseWithClientView qui correspond à la vue de la base de données.
 import { LicenseWithClientView, LicenseStatus } from '@/types'; 
 
@@ -19,6 +22,33 @@ interface LicenseReportData {
   version: string | null;
   created_at: string;
 }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function cleanCost(value: any): number {
+  if (!value) return 0;
+
+  const cleaned = String(value)
+    .normalize("NFKC")
+    .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '') // supprime espaces spéciaux & caractères invisibles
+    .replace(/[^0-9.,]/g, '')                    // garde uniquement chiffres, point et virgule
+    .replace(',', '.');                          // convertit virgule → point
+
+  return parseFloat(cleaned) || 0;
+}
+
+
+// Charger la police en dehors de la fonction principale pour éviter de le faire à chaque requête.
+// La police sera chargée une fois au démarrage du serveur.
+//
+// SOLUTION : Déplacer le fichier de police dans un dossier accessible par le serveur,
+// par exemple 'src/lib/fonts', pour que 'fs.readFileSync' puisse y accéder de manière fiable.
+const fontPath = path.join(process.cwd(), 'src', 'lib', 'fonts', 'Roboto-Regular.ttf');
+let fontBuffer: Buffer;
+try {
+  fontBuffer = fs.readFileSync(fontPath);
+} catch (err) {
+  console.error("Erreur de chargement de la police: Le fichier 'Roboto-Regular.ttf' n'a pas été trouvé. Assurez-vous de l'avoir déplacé dans le dossier 'src/lib/fonts'.", err);
+}
+
 
 // GET /api/reports/licenses - Génération de rapport des licences
 export async function GET(request: NextRequest) {
@@ -49,24 +79,24 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('date_from');
     const dateTo = searchParams.get('date_to');
 
-    // On utilise la vue 'v_licenses_with_client' comme prévu.
+    const validation = validateRequestParams(searchParams);
+    if (!validation.isValid) {
+      return NextResponse.json({ errors: validation.errors }, { status: 400 });
+    }
+
     let query = supabase.from('v_licenses_with_client').select('*');
 
-    // Filtrage par permissions
     if (!checker.canViewAllData() && user.client_id) {
       query = query.eq('client_id', user.client_id);
     } else if (clientId) {
       query = query.eq('client_id', clientId);
     }
 
-    // Définir les statuts de licence valides pour le filtrage
     const validStatuses = ['active', 'expired', 'about_to_expire', 'cancelled'];
-
-    // Filtrage par statut, en validant le statut
     if (status && validStatuses.includes(status)) {
       query = query.eq('status', status as LicenseStatus);
     }
-    // Filtrage par dates
+
     if (dateFrom) {
       query = query.gte('expiry_date', dateFrom);
     }
@@ -74,7 +104,6 @@ export async function GET(request: NextRequest) {
       query = query.lte('expiry_date', dateTo);
     }
 
-    // Sort the licenses by expiry date.
     const { data: licenses, error } = await query.order('expiry_date', { 
       ascending: true, 
       nullsFirst: false 
@@ -88,34 +117,36 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Correction : On caste les données en tant que LicenseWithClientView[] pour résoudre l'erreur de type.
     const typedLicenses = (licenses || []) as LicenseWithClientView[];
 
-    // Now, we can safely map the data because 'licenses' contains all the required fields.
     const reportData: LicenseReportData[] = typedLicenses?.map(license => {
       const daysUntilExpiry = license.expiry_date
         ? Math.ceil((new Date(license.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
         : 0;
+
+      // Amélioration de la correction pour s'assurer que le coût est un nombre.
+      // On retire d'abord toutes les espaces, puis on retire tous les caractères non-numériques (sauf le point).
+      const costAsNumber = parseFloat(String(license.cost).replace(/\s/g, '').replace(/[^0-9.]/g, ''));
 
       return {
         name: license.name || '',
         editor: license.editor || '',
         client_name: license.client_name || '',
         expiry_date: license.expiry_date || '',
-        status: license.status || 'active', // Default to 'active' if null
-        cost: license.cost || 0,
+        status: license.status || 'active',
+        cost: costAsNumber || 0, // Utilisez la valeur convertie
         version: license.version || '',
         created_at: license.created_at || '',
         days_until_expiry: daysUntilExpiry
       };
     }) || [];
 
-    // Génération selon le format demandé
     switch (format) {
       case 'csv':
         return generateCSVReport(reportData);
       case 'pdf':
-        return await generatePDFReport(reportData, {
+        // J'ai mis à jour cette ligne pour inclure le buffer de la police.
+        return await generatePDFReport(reportData, fontBuffer, {
           title: 'Rapport des Licences',
           user: user.first_name || user.email,
           filters: { clientId, status, dateFrom, dateTo }
@@ -138,19 +169,58 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Fonction pour générer un rapport CSV
+// function generateCSVReport(data: LicenseReportData[]): NextResponse {
+//   const csvHeaders = [
+//     'Nom de la licence',
+//     'Éditeur',
+//     'Client',
+//     'Date d\'expiration',
+//     'Statut',
+//     'Coût',
+//     'Jours jusqu\'à expiration',
+//     'Version',
+//     'Date de création'
+//   ];
+
+//   const csvRows = data.map(item => [
+//     item.name,
+//     item.editor,
+//     item.client_name,
+//     item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('fr-FR') : '',
+//     item.status,
+//     item.cost?.toString() || '0',
+//     item.days_until_expiry?.toString() || '0',
+//     item.version || '',
+//     item.created_at ? new Date(item.created_at).toLocaleDateString('fr-FR') : ''
+//   ]);
+
+//   const csvContent = [csvHeaders, ...csvRows]
+//     .map(row => row.map(field => `"${field}"`).join(','))
+//     .join('\n');
+
+//   const filename = `rapport_licences_${new Date().toISOString().split('T')[0]}.csv`;
+
+//   return new NextResponse(csvContent, {
+//     headers: {
+//       'Content-Type': 'text/csv; charset=utf-8',
+//       'Content-Disposition': `attachment; filename="${filename}"`
+//     }
+//   });
+// }
 function generateCSVReport(data: LicenseReportData[]): NextResponse {
+  // Définir le BOM pour un encodage UTF-8 correct dans Excel
+  const BOM = '\uFEFF'; 
+  const DELIMITER = ';';
+
   const csvHeaders = [
     'Nom de la licence',
     'Éditeur',
     'Client',
-    'Type de licence',
-    'Version',
-    'Nombre de sièges',
     'Date d\'expiration',
     'Statut',
-    'Coût (XAF)',
+    'Coût',
     'Jours jusqu\'à expiration',
+    'Version',
     'Date de création'
   ];
 
@@ -158,40 +228,49 @@ function generateCSVReport(data: LicenseReportData[]): NextResponse {
     item.name,
     item.editor,
     item.client_name,
-    item.version || '',
     item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('fr-FR') : '',
     item.status,
-    item.cost?.toString() || '0',
+    // Le coût est converti en chaîne pour le CSV, et la virgule est remplacée par un point-virgule pour éviter les erreurs de format.
+    item.cost?.toString().replace('.', ',') || '0', 
     item.days_until_expiry?.toString() || '0',
+    item.version || '',
     item.created_at ? new Date(item.created_at).toLocaleDateString('fr-FR') : ''
   ]);
 
+  // Joindre les lignes et les champs avec le nouveau délimiteur
   const csvContent = [csvHeaders, ...csvRows]
-    .map(row => row.map(field => `"${field}"`).join(','))
+    .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(DELIMITER))
     .join('\n');
 
   const filename = `rapport_licences_${new Date().toISOString().split('T')[0]}.csv`;
 
-  return new NextResponse(csvContent, {
+  // Préfixer le contenu avec le BOM et renvoyer le tout
+  return new NextResponse(BOM + csvContent, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': `attachment; filename="${filename}"`
     }
   });
 }
-
-// Fonction pour générer un rapport PDF
 async function generatePDFReport(
   data: LicenseReportData[], 
+  fontBuffer: Buffer,
   options: {
     title: string;
     user: string;
     filters: Record<string, string | null>;
   }
 ): Promise<NextResponse> {
-    // const PDFDocument = (await import('pdfkit')).default;
+  // AJOUT : Vérification que le buffer de police a été chargé
+  if (!fontBuffer) {
+    return NextResponse.json(
+      { message: 'Erreur serveur: La police personnalisée n\'a pas pu être chargée. Assurez-vous que le fichier est dans le bon dossier.' },
+      { status: 500 }
+    );
+  }
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    // La solution : passer le buffer de la police directement dans les options du constructeur.
     const doc = new PDFDocument({
       size: 'A4',
       margin: 50,
@@ -202,6 +281,9 @@ async function generatePDFReport(
         Creator: 'Application de Gestion IT'
       }
     });
+    // ✅ Enregistrer la police
+    doc.registerFont('Roboto', fontBuffer);
+    doc.font('Roboto'); 
 
     const chunks: Buffer[] = [];
     
@@ -216,6 +298,10 @@ async function generatePDFReport(
           'Content-Disposition': `attachment; filename="${filename}"`
         }
       }));
+    });
+
+    doc.on('error', (err) => {
+      reject(err);
     });
 
     // Configuration des couleurs
@@ -292,7 +378,6 @@ async function generatePDFReport(
     const columnWidths = [120, 80, 100, 80, 60, 80];
     let currentX = 50;
 
-    // Dessiner les en-têtes
     doc.fontSize(8).fillColor(colors.text);
     tableHeaders.forEach((header, index) => {
       doc.rect(currentX, tableTop, columnWidths[index], 20)
@@ -312,7 +397,7 @@ async function generatePDFReport(
     doc.fontSize(7);
 
     data.forEach((license, index) => {
-      if (currentY > 750) { // Nouvelle page si nécessaire
+      if (currentY > 750) {
         doc.addPage();
         currentY = 50;
       }
@@ -320,7 +405,6 @@ async function generatePDFReport(
       currentX = 50;
       const rowHeight = 18;
 
-      // Couleur de fond alternée
       if (index % 2 === 0) {
         doc.rect(50, currentY, 520, rowHeight).fillAndStroke('#f8fafc', '#e2e8f0');
       }
@@ -335,13 +419,12 @@ async function generatePDFReport(
       ];
 
       rowData.forEach((cellData, colIndex) => {
-        // Couleur du texte selon le statut
         let textColor = colors.text;
-        if (colIndex === 4) { // Colonne statut
+        if (colIndex === 4) {
           textColor = getStatusColor(license.status);
-        } else if (colIndex === 3 && license.days_until_expiry < 0) { // Date expirée
+        } else if (colIndex === 3 && license.days_until_expiry < 0) {
           textColor = colors.danger;
-        } else if (colIndex === 3 && license.days_until_expiry <= 30) { // Expire bientôt
+        } else if (colIndex === 3 && license.days_until_expiry <= 30) {
           textColor = colors.warning;
         }
 
@@ -370,7 +453,8 @@ async function generatePDFReport(
         { align: 'center' }
       );
     }
-
+    
+    // Fermer le document pour déclencher les événements 'data' et 'end'
     doc.end();
   });
 }
@@ -378,36 +462,36 @@ async function generatePDFReport(
 // Fonctions utilitaires
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XAF',
+    style: 'decimal',
     minimumFractionDigits: 0
-  }).format(amount);
+  })
+    .format(amount)
+    .replace(/[\u00A0\u202F]/g, ' ')  // transforme les espaces insécables en espaces normaux
+    + ' FCFA';
 }
+
+
 
 function getStatusColor(status: string): string {
   const statusColors: Record<string, string> = {
-    'actif': '#059669',
     'active': '#059669',
-    'expiré': '#dc2626',
     'expired': '#dc2626',
-    'about_to_expire': '#d97706'
+    'about_to_expire': '#d97706',
+    'cancelled': '#64748b'
   };
   return statusColors[status] || '#374151';
 }
 
-// Validation des paramètres
 function validateRequestParams(searchParams: URLSearchParams): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
   const format = searchParams.get('format');
   const dateFrom = searchParams.get('date_from');
   const dateTo = searchParams.get('date_to');
 
-  // Validation du format
   if (format && !['json', 'csv', 'pdf'].includes(format)) {
     errors.push('Format non supporté. Formats acceptés: json, csv, pdf');
   }
 
-  // Validation des dates
   if (dateFrom && isNaN(Date.parse(dateFrom))) {
     errors.push('Format de date_from invalide (format attendu: YYYY-MM-DD)');
   }
@@ -423,21 +507,5 @@ function validateRequestParams(searchParams: URLSearchParams): { isValid: boolea
   return {
     isValid: errors.length === 0,
     errors
-  };
-}
-
-// Fonction pour obtenir les métadonnées du rapport
-function getReportMetadata(data: LicenseReportData[], filters: Record<string, string | null>) {
-  const now = new Date();
-  
-  return {
-    total_licenses: data.length,
-    total_cost: data.reduce((sum, license) => sum + (license.cost || 0), 0),
-    expired_count: data.filter(l => l.days_until_expiry < 0).length,
-    expiring_soon_count: data.filter(l => l.days_until_expiry >= 0 && l.days_until_expiry <= 30).length,
-    active_count: data.filter(l => l.status === 'active').length,
-    filters_applied: filters,
-    generated_at: now.toISOString(),
-    generated_by: 'Système de Gestion IT'
   };
 }

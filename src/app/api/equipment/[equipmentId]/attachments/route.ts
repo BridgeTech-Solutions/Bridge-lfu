@@ -156,7 +156,7 @@ export async function POST(request: NextRequest, { params }: any) {
 
     // Upload vers Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('attachments')
+      .from('equipment-attachments')
       .upload(bucketPath, file, {
         cacheControl: '3600',
         upsert: false
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest, { params }: any) {
 
     if (attachmentError) {
       // Supprimer le fichier uploadé en cas d'erreur
-      await supabase.storage.from('attachments').remove([bucketPath]);
+      await supabase.storage.from('equipment-attachments').remove([bucketPath]);
       
       console.error('Erreur lors de la création de la pièce jointe:', attachmentError);
       return NextResponse.json(
