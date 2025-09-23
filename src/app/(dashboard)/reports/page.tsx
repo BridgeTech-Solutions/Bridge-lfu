@@ -51,7 +51,7 @@ interface ReportConfig {
 }
 
 export default function ReportsPage() {
-  const { user, loading: userLoading } = useSession(); // Utilisez le hook de session
+  const { user, loading: userLoading } = useAuth(); // Utilisez le hook de session
   const permissions = usePermissions(user)
   const [reportConfig, setReportConfig] = useState<ReportConfig>({
     type: 'licenses',
