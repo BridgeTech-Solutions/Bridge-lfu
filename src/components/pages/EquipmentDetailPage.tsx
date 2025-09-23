@@ -284,7 +284,7 @@ export default function EquipmentDetailPage({ equipmentId }: EquipmentDetailPage
                   <label className="text-sm font-medium text-gray-500">Statut</label>
                   <div className="text-sm">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    <Badge variant={statusInfo.variant as any} className="flex items-center gap-1 w-fit">
+                    <Badge variant={statusInfo.variant as any} className="flex items-center gap-1 w-fit text-white">
                       <StatusIcon className="h-3 w-3" />
                       {statusInfo.label}
                     </Badge>
@@ -327,7 +327,7 @@ export default function EquipmentDetailPage({ equipmentId }: EquipmentDetailPage
                     <label className="text-sm font-medium text-gray-500">Coût</label>
                     <p className="text-sm flex items-center gap-1">
                       <DollarSign className="h-3 w-3" />
-                      {equipment.cost}€
+                      {equipment.cost}FCFA
                     </p>
                   </div>
                 )}

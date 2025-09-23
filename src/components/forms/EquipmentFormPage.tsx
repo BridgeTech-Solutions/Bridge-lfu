@@ -128,13 +128,13 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
         type: equipment.type || 'autre',
         brand: equipment.brand || '',
         model: equipment.model || '',
-        serialNumber: equipment.serial_number || '',
-        purchaseDate: equipment.purchase_date || '',
-        estimatedObsolescenceDate: equipment.estimated_obsolescence_date || '',
-        endOfSale: equipment.end_of_sale || '',
-        warrantyEndDate: equipment.warranty_end_date || '',
-        cost: equipment.cost?.toString() || '',
-        clientId: equipment.client_id || '',
+        serial_number: equipment.serial_number || '',
+        purchase_date: equipment.purchase_date || '',
+        estimated_obsolescence_date: equipment.estimated_obsolescence_date || '',
+        end_of_sale: equipment.end_of_sale || '',
+        warranty_end_date: equipment.warranty_end_date || '',
+        cost: equipment.cost || '',
+        client_id: equipment.client_id || '',
         location: equipment.location || '',
         description: equipment.description || '',
         status: equipment.status || 'actif',
@@ -144,23 +144,25 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
 
   const onSubmit = async (data: EquipmentFormData) => {
     setSubmitError(null)
-    
+      console.log('Données du formulaire:', data); // Debug
+
     const formData = {
       name: data.name,
       type: data.type,
       brand: data.brand,
       model: data.model,
-      serial_number: data.serialNumber,
-      purchase_date: data.purchaseDate || undefined,
-      estimated_obsolescence_date: data.estimatedObsolescenceDate || undefined,
-      end_of_sale: data.endOfSale || undefined,
-      warranty_end_date: data.warrantyEndDate || undefined,
+      serial_number: data.serial_number,
+      purchase_date: data.purchase_date || undefined,
+      estimated_obsolescence_date: data.estimated_obsolescence_date || undefined,
+      end_of_sale: data.end_of_sale || undefined,
+      warranty_end_date: data.warranty_end_date || undefined,
       cost: data.cost,
-      client_id: data.clientId,
+      client_id: data.client_id,
       location: data.location,
       description: data.description,
-      status: data.status,
+      status: data.status || 'actif',  // assure que ce champ est envoyé
     }
+  console.log('Données envoyées à l\'API:', formData); // Debug
 
     if (isEditing) {
       equipmentActions.updateEquipment({ id: equipmentId, data: formData })
@@ -273,7 +275,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                     <Label htmlFor="serial_number">Numéro de série</Label>
                     <Input
                       id="serial_number"
-                      {...register('serialNumber')}
+                      {...register('serial_number')}
                       placeholder="Numéro de série"
                     />
                   </div>
@@ -333,7 +335,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                     <Input
                       id="purchase_date"
                       type="date"
-                      {...register('purchaseDate')}
+                      {...register('purchase_date')}
                     />
                   </div>
 
@@ -342,7 +344,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                     <Input
                       id="warranty_end_date"
                       type="date"
-                      {...register('warrantyEndDate')}
+                      {...register('warranty_end_date')}
                     />
                   </div>
 
@@ -351,7 +353,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                     <Input
                       id="estimated_obsolescence_date"
                       type="date"
-                      {...register('estimatedObsolescenceDate')}
+                      {...register('estimated_obsolescence_date')}
                     />
                   </div>
 
@@ -360,7 +362,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                     <Input
                       id="end_of_sale"
                       type="date"
-                      {...register('endOfSale')}
+                      {...register('end_of_sale')}
                     />
                   </div>
                 </div>
@@ -377,8 +379,8 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
               </CardHeader>
               <CardContent>
                 <Select
-                  value={watch('clientId')}
-                  onValueChange={(value) => setValue('clientId', value)}
+                  value={watch('client_id')}
+                  onValueChange={(value) => setValue('client_id', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner un client" />
@@ -392,8 +394,8 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.clientId && (
-                  <p className="text-sm text-red-600 mt-1">{errors.clientId.message}</p>
+                {errors.client_id && (
+                  <p className="text-sm text-red-600 mt-1">{errors.client_id.message}</p>
                 )}
               </CardContent>
             </Card>
@@ -405,13 +407,16 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
               </CardHeader>
               <CardContent>
                 <div>
-                  <Label htmlFor="cost">Coût (€)</Label>
+                  <Label htmlFor="cost">Coût (FCFA)</Label>
                   <Input
                     id="cost"
                     type="number"
                     step="0.01"
                     min="0"
-                    {...register('cost')}
+                    {...register("cost", { 
+                      valueAsNumber: true,
+                      setValueAs: (value) => value === "" ? undefined : Number(value)
+                    })}
                     placeholder="0.00"
                   />
                 </div>

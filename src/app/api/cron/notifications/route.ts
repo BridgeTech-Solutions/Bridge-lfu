@@ -15,7 +15,6 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       )
     }
-
     console.log('Démarrage du job CRON de notifications...')
 
     // 1. Générer les nouvelles alertes

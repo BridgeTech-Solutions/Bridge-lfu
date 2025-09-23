@@ -1,4 +1,3 @@
-// app/api/settings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
@@ -6,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 import { AppSetting } from '@/types'; // Importez le type AppSetting
 import { Json } from '@/types/database';
+import { encrypt } from '@/lib/utils/crypto'; // Import de la fonction de chiffrement
 
 // GET /api/settings - Récupérer les paramètres de l'application
 export async function GET(request: NextRequest) {
@@ -54,7 +54,8 @@ export async function GET(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const settingsObject = (settings || []).reduce((acc: Record<string, any>, setting: AppSetting) => {
       acc[setting.key] = {
-        value: setting.value,
+        // Sécurité: Si c'est le mot de passe SMTP, masquez la valeur
+        value: setting.key === 'smtp_password' ? '********' : setting.value,
         category: setting.category,
         description: setting.description,
         isPublic: setting.is_public,
@@ -114,10 +115,16 @@ export async function PUT(request: NextRequest) {
     const updatedSettings = [];
 
     for (const [key, value] of Object.entries(settings)) {
+      let finalValue = value;
+      // Chiffrez le mot de passe SMTP si c'est la clé
+      if (key === 'smtp_password' && value) {
+        finalValue = encrypt(value as string);
+      }
+
       const { data: updatedSetting, error } = await supabaseAdmin
         .from('app_settings')
         .update({
-          value: value as Json,
+          value: finalValue as Json,
           updated_at: new Date().toISOString()
         })
         .eq('key', key)
@@ -184,12 +191,19 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    let finalValue = value;
+    // Chiffrez le mot de passe SMTP si c'est la clé
+    if (key === 'smtp_password' && value) {
+      finalValue = encrypt(value as string);
+    }
+
 
     const { data: newSetting, error } = await supabaseAdmin
       .from('app_settings')
       .insert({
         key,
-        value,
+        value: finalValue,
         category,
         description: description || null,
         is_public: isPublic || false,

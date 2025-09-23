@@ -1,5 +1,5 @@
-// lib/jobs/notificationEmailJob.ts
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+// lib/jobs/notificationEmailJob.ts - VERSION CORRIGÉE
+import { createSupabaseServiceRoleClient as createSupabaseServerClient } from '@/lib/supabase/service-role'
 import { emailService } from '@/lib/email/service'
 
 interface NotificationWithUser {
@@ -13,9 +13,12 @@ interface NotificationWithUser {
   is_read: boolean
   email_sent: boolean
   created_at: string
-  user_email: string
-  user_name: string
-  email_enabled: boolean
+  profiles: {
+    id: string
+    email: string
+    first_name: string | null
+    last_name: string | null
+  }
 }
 
 export class NotificationEmailJob {
@@ -38,25 +41,23 @@ export class NotificationEmailJob {
     try {
       const supabase = createSupabaseServerClient()
 
-      // Récupérer toutes les notifications non envoyées par email
-      // avec les informations utilisateur et paramètres email
+      console.log('Recherche des notifications non envoyées...')
+
+      // Récupérer les notifications non envoyées avec les profils utilisateur
       const { data: notifications, error } = await supabase
         .from('notifications')
         .select(`
           *,
           profiles!inner(
+            id,
             email,
             first_name,
             last_name
-          ),
-          notification_settings!inner(
-            email_enabled
           )
         `)
         .eq('email_sent', false)
-        .eq('notification_settings.email_enabled', true)
         .order('created_at', { ascending: true })
-        .limit(50) // Traiter maximum 50 emails par fois
+        .limit(50)
 
       if (error) {
         console.error('Erreur lors de la récupération des notifications:', error)
@@ -64,46 +65,75 @@ export class NotificationEmailJob {
       }
 
       if (!notifications || notifications.length === 0) {
-        console.log('Aucune notification à traiter')
+        console.log('Aucune notification non envoyée trouvée')
         return stats
       }
 
       console.log(`Traitement de ${notifications.length} notifications`)
 
       // Traiter chaque notification
-      for (const notif of notifications) {
+      for (const notif of notifications as NotificationWithUser[]) {
         stats.processed++
 
         try {
-          // Construire le nom complet de l'utilisateur
-          const profile = Array.isArray(notif.profiles) ? notif.profiles[0] : notif.profiles
-          const settings = Array.isArray(notif.notification_settings) 
-            ? notif.notification_settings[0] 
-            : notif.notification_settings
+          console.log(`Traitement notification ${notif.id} pour utilisateur ${notif.user_id}`)
 
+          // Vérifier les paramètres de notification de l'utilisateur
+          // eslint-disable-next-line prefer-const
+          let { data: settings, error: settingsError } = await supabase
+            .from('notification_settings')
+            .select('email_enabled')
+            .eq('user_id', notif.user_id)
+            .single()
+
+          // Si pas de paramètres trouvés, créer des paramètres par défaut
+          if (settingsError || !settings) {
+            console.log(`Création de paramètres par défaut pour utilisateur ${notif.user_id}`)
+            
+            const { data: newSettings, error: createError } = await supabase
+              .from('notification_settings')
+              .insert({
+                user_id: notif.user_id,
+                license_alert_days: [7, 30],
+                equipment_alert_days: [30, 90],
+                email_enabled: true
+              })
+              .select('email_enabled')
+              .single()
+
+            if (createError) {
+              console.error(`Erreur création paramètres pour ${notif.user_id}:`, createError)
+              stats.failed++
+              continue
+            }
+
+            settings = newSettings
+          }
+
+          // Si les emails sont désactivés pour cet utilisateur
           if (!settings?.email_enabled) {
+            console.log(`Emails désactivés pour utilisateur ${notif.user_id}, notification ${notif.id} ignorée`)
             stats.skipped++
+            
+            // Marquer comme "traité" même si pas envoyé pour éviter de le reprocesser
+            await supabase
+              .from('notifications')
+              .update({ email_sent: true })
+              .eq('id', notif.id)
+            
             continue
           }
 
+          const profile = notif.profiles
           const userName = profile.first_name && profile.last_name
             ? `${profile.first_name} ${profile.last_name}`
             : profile.first_name || 'Utilisateur'
 
+          console.log(`Envoi email à ${profile.email} pour notification ${notif.id}`)
+
           // Envoyer l'email
           const emailSent = await emailService.sendNotificationEmail(
-            {
-              id: notif.id,
-              user_id: notif.user_id,
-              type: notif.type,
-              title: notif.title,
-              message: notif.message,
-              related_id: notif.related_id,
-              related_type: notif.related_type,
-              is_read: notif.is_read,
-              email_sent: notif.email_sent,
-              created_at: notif.created_at
-            },
+            notif,
             profile.email,
             userName
           )
@@ -116,7 +146,7 @@ export class NotificationEmailJob {
               .eq('id', notif.id)
 
             stats.sent++
-            console.log(`Email envoyé pour notification ${notif.id}`)
+            console.log(`Email envoyé avec succès pour notification ${notif.id}`)
           } else {
             stats.failed++
             console.log(`Échec envoi email pour notification ${notif.id}`)
@@ -137,11 +167,10 @@ export class NotificationEmailJob {
       this.isRunning = false
     }
 
-    console.log('Job terminé:', stats)
+    console.log('Job terminé avec les statistiques:', stats)
     return stats
   }
 
-  // Méthode pour créer et envoyer immédiatement une notification
   static async createAndSendNotification(
     userId: string,
     type: 'license_expiry' | 'equipment_obsolescence' | 'general' | 'new_unverified_user',
@@ -153,7 +182,6 @@ export class NotificationEmailJob {
     try {
       const supabase = createSupabaseServerClient()
 
-      // Créer la notification
       const { data: notification, error: createError } = await supabase
         .from('notifications')
         .insert({
@@ -172,19 +200,33 @@ export class NotificationEmailJob {
         return null
       }
 
-      // Vérifier si l'utilisateur a activé les emails
-      const { data: userSettings, error: settingsError } = await supabase
+      // Vérifier les paramètres de notification
+      // eslint-disable-next-line prefer-const
+      let { data: userSettings, error: settingsError } = await supabase
         .from('notification_settings')
         .select('email_enabled')
         .eq('user_id', userId)
         .single()
 
-      if (settingsError || !userSettings?.email_enabled) {
+      // Créer des paramètres par défaut si inexistants
+      if (settingsError || !userSettings) {
+        const { data: newSettings } = await supabase
+          .from('notification_settings')
+          .insert({
+            user_id: userId,
+            email_enabled: true
+          })
+          .select('email_enabled')
+          .single()
+        
+        userSettings = newSettings
+      }
+
+      if (!userSettings?.email_enabled) {
         console.log(`Emails désactivés pour l'utilisateur ${userId}`)
         return notification.id
       }
 
-      // Récupérer les infos utilisateur
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('email, first_name, last_name')
@@ -196,7 +238,6 @@ export class NotificationEmailJob {
         return notification.id
       }
 
-      // Envoyer l'email immédiatement
       const userName = profile.first_name && profile.last_name
         ? `${profile.first_name} ${profile.last_name}`
         : profile.first_name || 'Utilisateur'
@@ -208,7 +249,6 @@ export class NotificationEmailJob {
       )
 
       if (emailSent) {
-        // Marquer comme envoyé
         await supabase
           .from('notifications')
           .update({ email_sent: true })
@@ -228,7 +268,7 @@ export class NotificationEmailJob {
   }
 }
 
-// Fonction utilitaire pour déclencher le job
 export async function triggerNotificationEmailJob() {
   return await NotificationEmailJob.processUnsentEmails()
 }
+

@@ -111,7 +111,7 @@ export async function PUT(request: NextRequest, context: any) {
     const validatedData = equipmentSchema.parse(body);
 
     // Vérifier que le client existe et que l'utilisateur y a accès
-    if (!checker.canAccessClient(validatedData.clientId)) {
+    if (!checker.canAccessClient(validatedData.client_id)) {
       return NextResponse.json(
         { message: 'Accès non autorisé à ce client' },
         { status: 403 }
@@ -123,12 +123,12 @@ export async function PUT(request: NextRequest, context: any) {
       .from('equipment')
       .update({
         name: validatedData.name,
-        serial_number: validatedData.serialNumber,
-        purchase_date: validatedData.purchaseDate,
-        warranty_end_date: validatedData.warrantyEndDate,
+        serial_number: validatedData.serial_number,
+        purchase_date: validatedData.purchase_date,
+        warranty_end_date: validatedData.warranty_end_date,
         status: validatedData.status,
         type: validatedData.type,
-        client_id: validatedData.clientId,
+        client_id: validatedData.client_id,
         description: validatedData.description,
         updated_at: new Date().toISOString()
       })

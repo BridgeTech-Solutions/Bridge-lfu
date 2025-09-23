@@ -1,11 +1,14 @@
-//src//lib/supabase/middlware
+// src/lib/supabase/middleware.ts
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  const currentPath = request.nextUrl.pathname
+
+  // 1️⃣ Ignorer toutes les routes API
+  if (currentPath.startsWith('/api')) {
+    return NextResponse.next()
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,12 +20,6 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
         },
       },
     }
@@ -32,26 +29,23 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Définir les chemins publics qui ne nécessitent pas d'authentification
+  // 2️⃣ Définir les chemins publics pour le frontend
   const publicPaths = [
     '/login',
-    '/auth',
-    '/error',
     '/register',
     '/reset-password',
     '/verification-pending',
-    '/api'
-  ];
+    '/error',
+  ]
 
-  const currentPath = request.nextUrl.pathname;
-  const isPublicPath = publicPaths.some(path => currentPath.startsWith(path));
+  const isPublicPath = publicPaths.some(path => currentPath.startsWith(path))
 
-  // Si l'utilisateur n'est pas connecté et que le chemin n'est pas public, rediriger vers la page de connexion
+  // 3️⃣ Rediriger si non connecté et chemin privé
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  return supabaseResponse
+  return NextResponse.next()
 }

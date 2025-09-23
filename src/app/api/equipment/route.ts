@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { equipmentSchema } from '@/lib/validations';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
+import { ZodError } from 'zod';
+
 
 // GET /api/equipment - Liste des équipements avec pagination et filtres
 export async function GET(request: NextRequest) {
@@ -125,14 +127,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    
+        console.log('Corps de la requête:', body); // Debug
+
     // Validation des données
     const validatedData = equipmentSchema.parse(body);
+    console.log('Données validées:', validatedData); // Debug
 
     const supabase = createSupabaseServerClient();
     
     // Vérifier que le client existe et que l'utilisateur y a accès
-    if (!checker.canAccessClient(validatedData.clientId)) {
+    if (!checker.canAccessClient(validatedData.client_id)) {
       return NextResponse.json(
         { message: 'Accès non autorisé à ce client' },
         { status: 403 }
@@ -147,15 +151,15 @@ export async function POST(request: NextRequest) {
         type: validatedData.type,
         brand: validatedData.brand,
         model: validatedData.model,
-        serial_number: validatedData.serialNumber,
-        purchase_date: validatedData.purchaseDate,
-        estimated_obsolescence_date: validatedData.estimatedObsolescenceDate,
-        end_of_sale: validatedData.endOfSale,
+        serial_number: validatedData.serial_number,
+        purchase_date: validatedData.purchase_date,
+        estimated_obsolescence_date: validatedData.estimated_obsolescence_date,
+        end_of_sale: validatedData.end_of_sale,
         cost: validatedData.cost,
-        client_id: validatedData.clientId,
+        client_id: validatedData.client_id,
         location: validatedData.location,
         description: validatedData.description,
-        warranty_end_date: validatedData.warrantyEndDate,
+        warranty_end_date: validatedData.warranty_end_date,
         created_by: user.id
       })
       .select()
@@ -181,8 +185,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Créer une notification si l'équipement est bientôt obsolète
-    if (validatedData.estimatedObsolescenceDate) {
-      const obsolescenceDate = new Date(validatedData.estimatedObsolescenceDate);
+    if (validatedData.estimated_obsolescence_date) {
+      const obsolescenceDate = new Date(validatedData.estimated_obsolescence_date);
       const daysUntilObsolescence = Math.ceil((obsolescenceDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       
       if (daysUntilObsolescence <= 90 && daysUntilObsolescence > 0) {
@@ -200,7 +204,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(equipment, { status: 201 });
 
   } catch (error) {
-    if (error instanceof Error && error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       return NextResponse.json(
         { message: 'Données invalides', errors: error },
         { status: 400 }

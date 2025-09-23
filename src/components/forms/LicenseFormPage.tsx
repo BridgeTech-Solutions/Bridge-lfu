@@ -422,7 +422,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                   name="cost"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Coût (€)</FormLabel>
+                      <FormLabel>Coût (FCFA)</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />

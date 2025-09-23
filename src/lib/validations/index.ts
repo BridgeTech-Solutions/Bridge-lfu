@@ -8,6 +8,14 @@ const phoneSchema = z
   .optional()
   .or(z.literal('')).nullable();
   const passwordSchema = z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères')
+  const equipmentTypeEnum = z.enum(["pc","serveur","routeur","switch","imprimante","autre"], 
+    { message: "Le type d'équipement est requis et doit être valide" }
+  )
+
+  const equipmentStatusEnum = z.enum(
+    ["actif","en_maintenance","obsolete","bientot_obsolete","retire"],
+    { message: "Le statut de l'équipement est requis et doit être valide" }
+  )
 
 // Schéma d'authentification
 export const loginSchema = z.object({
@@ -87,26 +95,34 @@ export const licenseSchema = z.object({
 
 // Schéma équipement
 export const equipmentSchema = z.object({
-  name: z.string().min(2, 'Le nom de l\'équipement doit contenir au moins 2 caractères'),
-  type: z.enum(['pc', 'serveur', 'routeur', 'switch', 'imprimante', 'autre']),
+  name: z.string().min(2, "Nom requis"),
+  type: equipmentTypeEnum,
   brand: z.string().optional(),
   model: z.string().optional(),
-  serialNumber: z.string().optional(),
-  purchaseDate: z.string().optional(),
-  estimatedObsolescenceDate: z.string().optional(),
-  status: z.enum(['actif', 'en_maintenance', 'obsolete', 'bientot_obsolete', 'retire']),
-  endOfSale: z.string().optional(),
-  cost: z.number().min(0, 'Le coût doit être positif').optional(),
-  clientId: z.string().uuid('Client requis'),
+  serial_number: z.string().optional(),
+  purchase_date: z.string().optional(),
+  estimated_obsolescence_date: z.string().optional(),
+  end_of_sale: z.string().optional(),
+  // cost: z.number().min(0, 'Le coût doit être positif').optional(),
+  status: equipmentStatusEnum.default("actif").optional(),
+  cost: z
+  .number()
+  .min(0, 'Le coût doit être positif')
+  .optional()
+  .refine((val) => val === undefined || !Number.isNaN(val), {
+    message: 'Le coût doit être un nombre valide',
+  }),
+
+  client_id: z.string().uuid("Client requis"),
   location: z.string().optional(),
   description: z.string().optional(),
-  warrantyEndDate: z.string().optional()
+  warranty_end_date: z.string().optional()
 }).refine(data => {
   // Vérification des dates cohérentes
-  const purchaseDate = data.purchaseDate ? new Date(data.purchaseDate) : null
-  const obsolescenceDate = data.estimatedObsolescenceDate ? new Date(data.estimatedObsolescenceDate) : null
-  const endOfSaleDate = data.endOfSale ? new Date(data.endOfSale) : null
-  const warrantyDate = data.warrantyEndDate ? new Date(data.warrantyEndDate) : null
+  const purchaseDate = data.purchase_date ? new Date(data.purchase_date) : null
+  const obsolescenceDate = data.estimated_obsolescence_date ? new Date(data.estimated_obsolescence_date) : null
+  const endOfSaleDate = data.end_of_sale ? new Date(data.end_of_sale) : null
+  const warrantyDate = data.warranty_end_date ? new Date(data.warranty_end_date) : null
 
   // La date d'obsolescence doit être après la date d'achat
   if (purchaseDate && obsolescenceDate && obsolescenceDate < purchaseDate) {

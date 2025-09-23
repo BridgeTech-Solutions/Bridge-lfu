@@ -512,7 +512,7 @@ export default function EquipmentPage() {
                         <Badge 
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           variant={statusDisplay.color as any}
-                          className="flex items-center w-fit"
+                          className="flex items-center w-fit text-white"
                         >
                           <StatusIcon className="h-3 w-3 mr-1" />
                           {statusDisplay.label}

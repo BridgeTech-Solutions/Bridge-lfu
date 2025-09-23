@@ -1,9 +1,9 @@
-// app/api/settings/[key]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
+import { encrypt } from '@/lib/utils/crypto'; // Assurez-vous d'avoir bien importé cette fonction
 
 // GET /api/settings/[key] - Récupérer un paramètre spécifique
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,6 +49,11 @@ export async function GET(request: NextRequest, context: any) {
         { message: 'Erreur lors de la récupération du paramètre' },
         { status: 500 }
       );
+    }
+
+    // Sécurité: Ne jamais renvoyer le mot de passe SMTP en texte clair
+    if (key === 'smtp_password') {
+      setting.value = '********';
     }
 
     return NextResponse.json(setting);
@@ -113,10 +118,16 @@ export async function PUT(request: NextRequest, context: any) {
       );
     }
 
+    // Sécurité: Chiffrer le mot de passe avant de l'enregistrer
+    let finalValue = value;
+    if (key === 'smtp_password' && value) {
+      finalValue = encrypt(value);
+    }
+
     // Mettre à jour
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {
-      value,
+      value: finalValue, // Utiliser la valeur chiffrée
       updated_at: new Date().toISOString()
     };
 
@@ -158,6 +169,11 @@ export async function PUT(request: NextRequest, context: any) {
       ip_address: ipAddress,
       user_agent: userAgent
     });
+
+    // Masquer le mot de passe dans la réponse de succès
+    if (key === 'smtp_password') {
+      updatedSetting.value = '********';
+    }
 
     return NextResponse.json(updatedSetting);
 

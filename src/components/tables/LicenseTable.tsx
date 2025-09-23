@@ -1,9 +1,18 @@
-// components/tables/LicenseTable.tsx
 'use client';
 
 import { Badge } from '@/components/ui/badge';
 import { useStablePermissions } from '@/hooks';
-import { MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react';
+import { 
+  MoreHorizontal, 
+  Eye, 
+  Edit, 
+  Trash2,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  Clock,
+  Server // Use a generic icon for unknown status
+} from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Button } from '../ui/button';
 import {
@@ -23,48 +32,19 @@ interface LicenseTableProps {
   onDelete?: (id: string) => void;
 }
 
-const getStatusBadgeVariant = (status: string | null) => {
+// Nouvelle fonction pour gérer l'affichage du statut
+const getStatusDisplay = (status: string | null) => {
   switch (status) {
     case 'active':
-      return 'default'; // ou votre variant pour success
+      return { icon: CheckCircle, color: 'success', label: 'Active' };
     case 'expired':
-      return 'destructive';
+      return { icon: XCircle, color: 'destructive', label: 'Expirée' };
     case 'about_to_expire':
-      return 'secondary'; // ou votre variant pour warning
+      return { icon: AlertTriangle, color: 'warning', label: 'Bientôt expirée' };
     case 'cancelled':
-      return 'outline';
+      return { icon: Clock, color: 'secondary', label: 'Annulée' };
     default:
-      return 'outline';
-  }
-};
-
-const getStatusIcon = (status: string | null) => {
-  switch (status) {
-    case 'active':
-      return '🟢';
-    case 'expired':
-      return '🔴';
-    case 'about_to_expire':
-      return '🟡';
-    case 'cancelled':
-      return '⚫';
-    default:
-      return '⚪';
-  }
-};
-
-const getStatusLabel = (status: string | null) => {
-  switch (status) {
-    case 'active':
-      return 'Active';
-    case 'expired':
-      return 'Expirée';
-    case 'about_to_expire':
-      return 'Bientôt expirée';
-    case 'cancelled':
-      return 'Annulée';
-    default:
-      return 'Inconnu';
+      return { icon: Server, color: 'default', label: 'Inconnu' };
   }
 };
 
@@ -108,110 +88,119 @@ export function LicenseTable({ licenses, onView, onEdit, onDelete }: LicenseTabl
           </TableRow>
         </TableHeader>
         <TableBody>
-          {licenses.map((license) => (
-            <TableRow key={license.id}>
-              <TableCell className="font-medium">
-                <div>
-                  <div className="font-medium">{license.name}</div>
-                  {license.description && (
-                    <div className="text-sm text-gray-500 truncate max-w-xs">
-                      {license.description}
-                    </div>
-                  )}
-                </div>
-              </TableCell>
-              
-              {permissions.canViewAllData && (
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-xs font-medium text-blue-700">
-                      {license.client_name?.charAt(0)?.toUpperCase() || '?'}
-                    </div>
-                    <span className="text-sm">{license.client_name || '-'}</span>
+          {licenses.map((license) => {
+            const statusDisplay = getStatusDisplay(license.status);
+            const StatusIcon = statusDisplay.icon;
+
+            return (
+              <TableRow key={license.id}>
+                <TableCell className="font-medium">
+                  <div>
+                    <div className="font-medium">{license.name}</div>
+                    {license.description && (
+                      <div className="text-sm text-gray-500 truncate max-w-xs">
+                        {license.description}
+                      </div>
+                    )}
                   </div>
                 </TableCell>
-              )}
-              
-              <TableCell>{license.editor || '-'}</TableCell>
-              <TableCell>
-                <span className="text-sm font-mono">
-                  {license.version || '-'}
-                </span>
-              </TableCell>
-              
-              <TableCell>
-                <div>
-                  <div className="text-sm">{formatDate(license.expiry_date)}</div>
-                  {license.expiry_date && (
-                    <div className="text-xs text-gray-500">
-                      {(() => {
-                        const days = Math.ceil((new Date(license.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                        if (days < 0) return `Expirée depuis ${Math.abs(days)} jours`;
-                        if (days === 0) return 'Expire aujourd\'hui';
-                        if (days === 1) return 'Expire demain';
-                        if (days <= 50) return `Expire dans ${days} jours`;
-                        return '';
-                      })()}
+                
+                {permissions.canViewAllData && (
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-xs font-medium text-blue-700">
+                        {license.client_name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                      <span className="text-sm">{license.client_name || '-'}</span>
                     </div>
-                  )}
-                </div>
-              </TableCell>
-              
-              <TableCell>
-                <span className="font-medium">
-                  {formatCurrency(license.cost)}
-                </span>
-              </TableCell>
-              
-              <TableCell>
-                <Badge variant={getStatusBadgeVariant(license.status)} className="flex items-center gap-1 w-fit">
-                  <span>{getStatusIcon(license.status)}</span>
-                  {getStatusLabel(license.status)}
-                </Badge>
-              </TableCell>
-              
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Ouvrir le menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    
-                    {onView && (
-                      <DropdownMenuItem onClick={() => onView(license.id!)}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        Voir les détails
-                      </DropdownMenuItem>
+                  </TableCell>
+                )}
+                
+                <TableCell>{license.editor || '-'}</TableCell>
+                <TableCell>
+                  <span className="text-sm font-mono">
+                    {license.version || '-'}
+                  </span>
+                </TableCell>
+                
+                <TableCell>
+                  <div>
+                    <div className="text-sm">{formatDate(license.expiry_date)}</div>
+                    {license.expiry_date && (
+                      <div className="text-xs text-gray-500">
+                        {(() => {
+                          const days = Math.ceil((new Date(license.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                          if (days < 0) return `Expirée depuis ${Math.abs(days)} jours`;
+                          if (days === 0) return 'Expire aujourd\'hui';
+                          if (days === 1) return 'Expire demain';
+                          if (days <= 50) return `Expire dans ${days} jours`;
+                          return '';
+                        })()}
+                      </div>
                     )}
-                    
-                    {permissions.can('update', 'licenses') && onEdit && (
-                      <DropdownMenuItem onClick={() => onEdit(license.id!)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Modifier
-                      </DropdownMenuItem>
-                    )}
-                    
-                    {permissions.can('delete', 'licenses') && onDelete && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-red-600 focus:text-red-600 focus:bg-red-50"
-                          onClick={() => onDelete(license.id!)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Supprimer
+                  </div>
+                </TableCell>
+                
+                <TableCell>
+                  <span className="font-medium">
+                    {formatCurrency(license.cost)}
+                  </span>
+                </TableCell>
+                
+                <TableCell>
+                  <Badge 
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    variant={statusDisplay.color as any} 
+                    className="flex items-center w-fit text-white"
+                  >
+                    <StatusIcon className="h-3 w-3 mr-1" />
+                    {statusDisplay.label}
+                  </Badge>
+                </TableCell>
+                
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Ouvrir le menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      
+                      {onView && (
+                        <DropdownMenuItem onClick={() => onView(license.id!)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Voir les détails
                         </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
+                      )}
+                      
+                      {permissions.can('update', 'licenses') && onEdit && (
+                        <DropdownMenuItem onClick={() => onEdit(license.id!)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Modifier
+                        </DropdownMenuItem>
+                      )}
+                      
+                      {permissions.can('delete', 'licenses') && onDelete && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                            onClick={() => onDelete(license.id!)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

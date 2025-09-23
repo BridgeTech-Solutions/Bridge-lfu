@@ -1,10 +1,10 @@
 // lib/notifications/triggers.ts
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServiceRoleClient as createSupabaseServerClient } from '@/lib/supabase/service-role'
 import { NotificationEmailJob } from '@/lib/jobs/notificationEmailJob'
 import { Client } from '@/types'
 
 export class NotificationTriggers {
-  
+
   // Créer une notification avec envoi d'email optionnel
   static async createNotification(
     userId: string,
@@ -15,17 +15,15 @@ export class NotificationTriggers {
     relatedType?: string,
     sendEmailImmediately = false
   ): Promise<string | null> {
-    
+
     if (sendEmailImmediately) {
-      // Utiliser le job pour créer et envoyer immédiatement
       return await NotificationEmailJob.createAndSendNotification(
         userId, type, title, message, relatedId, relatedType
       )
     } else {
-      // Créer seulement la notification (email sera traité par le job périodique)
       try {
         const supabase = createSupabaseServerClient()
-        
+
         const { data: notification, error } = await supabase
           .from('notifications')
           .insert({
@@ -57,54 +55,44 @@ export class NotificationTriggers {
     try {
       const supabase = createSupabaseServerClient()
 
-      // Récupérer toutes les licences qui expirent dans les prochains jours
-      // selon les paramètres de notification de chaque utilisateur
-      const { data: alertsToSend, error } = await supabase
+      // Récupérer toutes les licences qui expirent dans les prochains 90 jours
+      const { data: licenses, error } = await supabase
         .from('licenses')
         .select(`
           id,
           name,
           expiry_date,
           client_id,
-          clients!inner (
-            name
-          ),
-          profiles!inner (
-            id,
-            email,
-            first_name,
-            last_name,
-            notification_settings!inner (
-              license_alert_days,
-              email_enabled
-            )
-          )
+          clients!inner(name),
+          profiles!inner(id, email, first_name, last_name)
         `)
         .gte('expiry_date', new Date().toISOString().split('T')[0])
         .lte('expiry_date', new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
 
-      if (error || !alertsToSend) {
+      if (error || !licenses) {
         console.error('Erreur récupération licences:', error)
         return
       }
 
-      for (const license of alertsToSend) {
+      for (const license of licenses) {
         const expiryDate = new Date(license.expiry_date)
         const daysUntilExpiry = Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-          const clients = license.clients as Client[] | Client
-
-        // Vérifier si cette licence correspond aux jours d'alerte configurés
+        const clients = license.clients as Client[] | Client
         const profile = Array.isArray(license.profiles) ? license.profiles[0] : license.profiles
-        const settings = Array.isArray(profile.notification_settings) 
 
-          ?  profile.notification_settings[0] 
-          :  profile.notification_settings
+        // Récupérer explicitement les paramètres de notification pour ce profil
+        const { data: settingsData } = await supabase
+          .from('notification_settings')
+          .select('*')
+          .eq('user_id', profile.id)
+          .single()
 
-        if (!settings || !settings.license_alert_days?.includes(daysUntilExpiry)) {
-          continue
-        }
+        if (!settingsData) continue
+        const settings = settingsData
 
-        // Vérifier qu'une alerte n'a pas déjà été envoyée récemment
+        if (!settings.license_alert_days?.includes(daysUntilExpiry)) continue
+
+        // Vérifier qu'une alerte n'a pas déjà été envoyée dans les dernières 24h
         const { data: existingAlert } = await supabase
           .from('notifications')
           .select('id')
@@ -114,9 +102,7 @@ export class NotificationTriggers {
           .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
           .single()
 
-        if (existingAlert) {
-          continue // Alerte déjà envoyée dans les dernières 24h
-        }
+        if (existingAlert) continue
 
         const clientName = Array.isArray(clients) ? clients[0].name : clients.name
         const title = `Licence "${license.name}" expire bientôt`
@@ -142,7 +128,7 @@ export class NotificationTriggers {
     try {
       const supabase = createSupabaseServerClient()
 
-      const { data: alertsToSend, error } = await supabase
+      const { data: equipments, error } = await supabase
         .from('equipment')
         .select(`
           id,
@@ -150,41 +136,35 @@ export class NotificationTriggers {
           estimated_obsolescence_date,
           end_of_sale,
           client_id,
-          clients!inner (
-            name
-          ),
-          profiles!inner (
-            id,
-            email,
-            first_name,
-            last_name,
-            notification_settings!inner (
-              equipment_alert_days,
-              email_enabled
-            )
-          )
+          clients!inner(name),
+          profiles!inner(id, email, first_name, last_name)
         `)
         .or('estimated_obsolescence_date.gte.' + new Date().toISOString().split('T')[0] + ',end_of_sale.gte.' + new Date().toISOString().split('T')[0])
 
-      if (error || !alertsToSend) {
+      if (error || !equipments) {
         console.error('Erreur récupération équipements:', error)
         return
       }
 
-      for (const equipment of alertsToSend) {
+      for (const equipment of equipments) {
         const profile = Array.isArray(equipment.profiles) ? equipment.profiles[0] : equipment.profiles
-        const settings = Array.isArray(profile.notification_settings) 
-          ? profile.notification_settings[0] 
-          : profile.notification_settings
-          const clients = equipment.clients as Client[] | Client
+        const clients = equipment.clients as Client[] | Client
 
-        if (!settings) continue
+        // Récupérer explicitement les paramètres de notification
+        const { data: settingsData } = await supabase
+          .from('notification_settings')
+          .select('*')
+          .eq('user_id', profile.id)
+          .single()
 
-        // Vérifier obsolescence estimée
+        if (!settingsData) continue
+        const settings = settingsData
+
+        // Obsolescence estimée
         if (equipment.estimated_obsolescence_date) {
           const obsolescenceDate = new Date(equipment.estimated_obsolescence_date)
           const daysUntilObsolescence = Math.ceil((obsolescenceDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-          
+
           if (settings.equipment_alert_days?.includes(daysUntilObsolescence)) {
             const { data: existingAlert } = await supabase
               .from('notifications')
@@ -212,11 +192,11 @@ export class NotificationTriggers {
           }
         }
 
-        // Vérifier fin de commercialisation
+        // Fin de commercialisation
         if (equipment.end_of_sale) {
           const endOfSaleDate = new Date(equipment.end_of_sale)
           const daysUntilEndOfSale = Math.ceil((endOfSaleDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-          
+
           if (settings.equipment_alert_days?.includes(daysUntilEndOfSale)) {
             const { data: existingAlert } = await supabase
               .from('notifications')
@@ -224,7 +204,6 @@ export class NotificationTriggers {
               .eq('user_id', profile.id)
               .eq('type', 'equipment_obsolescence')
               .eq('related_id', equipment.id)
-              .eq('message', `%fin de commercialisation%`)
               .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
               .single()
 

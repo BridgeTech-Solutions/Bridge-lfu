@@ -1,7 +1,8 @@
 // lib/email/service.ts
 import nodemailer from 'nodemailer'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServiceRoleClient  as createSupabaseServerClient } from '@/lib/supabase/service-role'
 import type { Notification } from '@/hooks/useNotifications'
+import { decrypt } from '@/lib/utils/crypto'; // Importer la fonction de déchiffrement
 
 interface EmailConfig {
   host: string
@@ -44,6 +45,10 @@ export class EmailService {
         return acc
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }, {} as Record<string, any>)
+      // Vérifier si le mot de passe est chiffré et le déchiffrer
+      const smtpPassword = config.smtp_password.includes(':') 
+        ? decrypt(config.smtp_password) 
+        : config.smtp_password;
 
       this.isEnabled = config.smtp_enabled === true
 
@@ -58,7 +63,7 @@ export class EmailService {
         secure: parseInt(config.smtp_port) === 465,
         auth: {
           user: config.smtp_user,
-          pass: config.smtp_password,
+          pass: smtpPassword,
         }
       }
 

@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       .from('profiles')
       .select('*')
       .eq('id', authData.user.id)
-      .single<Database['public']['Tables']['profiles']['Row']>()
+      .single()
 
     if (profileError) {
       return NextResponse.json(
