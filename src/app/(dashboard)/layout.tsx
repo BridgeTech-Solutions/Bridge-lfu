@@ -39,22 +39,24 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar />
-      
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-            <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="py-6">
-            {children}
-          </div>
-        </main>
-                </QueryClientProvider>
+      <div className="flex h-screen bg-gray-50">
+        {/* Sidebar */}
+        <Sidebar />
+        
+        {/* Main content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+
+          <main className="flex-1 overflow-y-auto">
+            <div className="py-6">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+  </QueryClientProvider>
+
   )
 }

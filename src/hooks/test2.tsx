@@ -277,21 +277,25 @@ export function useNotifications(filters: NotificationFilters) {
 }
 
 export function useNotificationStats() {
-  const { data, isLoading, error, refetch } = useQuery<NotificationStats>({
+  const { data, isLoading, error } = useQuery<NotificationStats>({
     queryKey: ['notification-stats'],
     queryFn: notificationAPI.getNotificationStats,
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,
     retry: 2,
+    // L'option 'onError' a été retirée
   });
 
+  // Gérer l'erreur ici ou dans le composant qui appelle ce hook
   if (error) {
     console.error('Erreur lors du chargement des statistiques:', error);
+    // Optionnel : afficher un toast ou un message d'erreur
+    // toast.error('Erreur lors du chargement des statistiques');
   }
 
-  // CORRECTION : Ajoutez 'refetch' à l'objet retourné
-  return { data, isLoading, error, refetch };
+  return { data, isLoading, error };
 }
+
 export function useNotificationSettings() {
   const queryClient = useQueryClient()
 

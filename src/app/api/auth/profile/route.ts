@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { profileSchema } from '@/lib/validations'
 import { z } from 'zod'
-import { Database } from '@/types/database'
 
 export async function GET(request: NextRequest) {
   try {
