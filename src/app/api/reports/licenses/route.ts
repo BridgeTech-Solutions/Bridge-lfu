@@ -169,44 +169,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// function generateCSVReport(data: LicenseReportData[]): NextResponse {
-//   const csvHeaders = [
-//     'Nom de la licence',
-//     'Éditeur',
-//     'Client',
-//     'Date d\'expiration',
-//     'Statut',
-//     'Coût',
-//     'Jours jusqu\'à expiration',
-//     'Version',
-//     'Date de création'
-//   ];
-
-//   const csvRows = data.map(item => [
-//     item.name,
-//     item.editor,
-//     item.client_name,
-//     item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('fr-FR') : '',
-//     item.status,
-//     item.cost?.toString() || '0',
-//     item.days_until_expiry?.toString() || '0',
-//     item.version || '',
-//     item.created_at ? new Date(item.created_at).toLocaleDateString('fr-FR') : ''
-//   ]);
-
-//   const csvContent = [csvHeaders, ...csvRows]
-//     .map(row => row.map(field => `"${field}"`).join(','))
-//     .join('\n');
-
-//   const filename = `rapport_licences_${new Date().toISOString().split('T')[0]}.csv`;
-
-//   return new NextResponse(csvContent, {
-//     headers: {
-//       'Content-Type': 'text/csv; charset=utf-8',
-//       'Content-Disposition': `attachment; filename="${filename}"`
-//     }
-//   });
-// }
 function generateCSVReport(data: LicenseReportData[]): NextResponse {
   // Définir le BOM pour un encodage UTF-8 correct dans Excel
   const BOM = '\uFEFF'; 
@@ -272,6 +234,7 @@ async function generatePDFReport(
   return new Promise((resolve, reject) => {
     // La solution : passer le buffer de la police directement dans les options du constructeur.
     const doc = new PDFDocument({
+      font: fontBuffer as unknown as string, 
       size: 'A4',
       margin: 50,
       info: {
@@ -281,9 +244,6 @@ async function generatePDFReport(
         Creator: 'Application de Gestion IT'
       }
     });
-    // ✅ Enregistrer la police
-    doc.registerFont('Roboto', fontBuffer);
-    doc.font('Roboto'); 
 
     const chunks: Buffer[] = [];
     
@@ -458,7 +418,6 @@ async function generatePDFReport(
     doc.end();
   });
 }
-
 // Fonctions utilitaires
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('fr-FR', {

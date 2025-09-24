@@ -277,6 +277,7 @@ async function generatePDFReport(
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
+      font: fontBuffer as unknown as string, 
       size: 'A4',
       margin: 50,
       info: {
@@ -286,10 +287,7 @@ async function generatePDFReport(
         Creator: 'Application de Gestion IT'
       }
     });
-  // ✅ Enregistrer la police
-  doc.registerFont('Roboto', fontBuffer);
-  doc.font('Roboto'); 
-  
+
     const chunks: Buffer[] = [];
     doc.on('data', (chunk) => chunks.push(chunk));
     doc.on('end', () => {

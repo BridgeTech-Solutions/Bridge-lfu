@@ -214,10 +214,6 @@ export default function DashboardPage() {
 
 // }, [])
 
-  // Les données ne vont plus disparaître !
-  console.log('Dashboard stats:', stats);
-  console.log('Equipment stats:', equipmentStats);
-  console.log('License stats:', licenseStats);
 
   // Affichage conditionnel plus stable
   const showCharts = useMemo(() => 
