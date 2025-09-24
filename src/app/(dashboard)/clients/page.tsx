@@ -32,18 +32,7 @@ export default function ClientsPage() {
 
   const { data: sectors, isLoading: isLoadingSectors, isError: isErrorSectors } = useSectors();
 
-  // if (isLoading || isLoadingSectors) {
-  //   return (
-  //     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
-  //       <div className="flex justify-center items-center h-screen">
-  //         <div className="text-center space-y-4">
-  //           <Spinner size="lg" className="mx-auto" />
-  //           <p className="text-slate-600 font-medium">Chargement des clients...</p>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+
   if (isLoading || isLoadingSectors) {
     return (
       <div className="min-h-screen p-6">

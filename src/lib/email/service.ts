@@ -85,7 +85,7 @@ export class EmailService {
     switch (notification.type) {
       case 'license_expiry':
         return {
-          subject: `🔔 Alerte: Expiration de licence - ${notification.title}`,
+          subject: `🔔 Bridge LFU - Alerte: Expiration de licence - ${notification.title}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
@@ -137,7 +137,7 @@ export class EmailService {
 
       case 'equipment_obsolescence':
         return {
-          subject: `🔔 Alerte: Obsolescence d'équipement - ${notification.title}`,
+          subject: `🔔 Bridge LFU - Alerte: Obsolescence d'équipement - ${notification.title}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
@@ -189,7 +189,7 @@ export class EmailService {
 
       case 'general':
         return {
-          subject: `🔔 Notification - ${notification.title}`,
+          subject: `🔔 Bridge LFU - Notification - ${notification.title}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
@@ -233,7 +233,7 @@ export class EmailService {
 
       default:
         return {
-          subject: `🔔 Notification - ${notification.title}`,
+          subject: `🔔 Bridge LFU - Notification - ${notification.title}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2>${notification.title}</h2>

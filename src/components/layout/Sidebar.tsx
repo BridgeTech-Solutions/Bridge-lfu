@@ -102,8 +102,22 @@
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const canAccessRoute = (item: any) => {
       if (!item.permissions) return true
-      return permissions.can(item.permissions.action, item.permissions.resource)
+
+      // on force true pour l'affichage de la route
+      // même si la permission est conditionnelle
+      const { action, resource } = item.permissions
+      return permissions.can(action, resource) || hasConditionalPermission(resource)
     }
+
+    // petit helper pour "forcer" l'accès au lien dans le menu
+    const hasConditionalPermission = (resource: string) => {
+      // un client a toujours accès aux liens "reports" et "notifications"
+      if (permissions.getPermissions().clientAccess && ['reports', 'notifications'].includes(resource)) {
+        return true
+      }
+      return false
+    }
+
 
     return (
       <div className={cn(

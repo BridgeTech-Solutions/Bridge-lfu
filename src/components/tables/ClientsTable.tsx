@@ -188,7 +188,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
                 </div>
               </TableCell>
               
-              {can('update', 'clients') && (
+              
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -230,7 +230,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
-              )}
+              
             </TableRow>
           ))}
         </TableBody>
