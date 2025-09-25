@@ -61,6 +61,16 @@ export default function ReportsPage() {
     dateFrom: '',
     dateTo: ''
   })
+    // Auto-remplir le client_id pour les clients
+    useEffect(() => {
+      if (user && !permissions.canViewAllData() && user.client_id) {
+        setReportConfig(prev => ({
+          ...prev,
+          clientId: user.client_id ?? ''
+        }));
+      }
+    }, [user, permissions]);
+
   const [isGenerating, setIsGenerating] = useState(false)
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [lastGeneratedConfig, setLastGeneratedConfig] = useState<ReportConfig | null>(null)
@@ -101,10 +111,16 @@ export default function ReportsPage() {
   }
 
   const generateReport = async (configOverride?: Partial<ReportConfig>) => {
-    if (!permissions.can('read', 'reports')) {
-      alert('Permissions insuffisantes pour générer des rapports')
-      return
+    const canGenerate = permissions.can('read', 'reports', { 
+        client_id: reportConfig.clientId || user?.client_id 
+    });
+    
+    if (!canGenerate) {
+        alert('Permissions insuffisantes pour générer des rapports');
+        return;
     }
+
+
 
     const config = { ...reportConfig, ...configOverride }
     setIsGenerating(true)
@@ -215,18 +231,6 @@ export default function ReportsPage() {
     setReportData(null)
     setLastGeneratedConfig(null)
   }
-
-  // if (!permissions.canExportReports()) {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center">
-  //       <div className="text-center">
-  //         <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-  //         <h3 className="text-lg font-medium text-gray-900 mb-2">Accès refusé</h3>
-  //         <p className="text-gray-600">Vous n&apos;avez pas les permissions nécessaires pour accéder aux rapports.</p>
-  //       </div>
-  //     </div>
-  //   )
-  // }
 
   return (
     <div className="space-y-8 p-6">

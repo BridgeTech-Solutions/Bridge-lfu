@@ -51,17 +51,32 @@ export async function GET(request: NextRequest) {
 
     const checker = new PermissionChecker(user);
     
-    if (!checker.can('read', 'reports')) {
-      return NextResponse.json(
-        { message: 'Permissions insuffisantes' },
-        { status: 403 }
-      );
-    }
+    // if (!checker.can('read', 'reports')) {
+    //   return NextResponse.json(
+    //     { message: 'Permissions insuffisantes' },
+    //     { status: 403 }
+    //   );
+    // }
 
     const supabase = createSupabaseServerClient();
     const { searchParams } = new URL(request.url);
     
     const clientId = searchParams.get('client_id');
+
+    if (!checker.canViewAllData()) {
+      // utilisateur 'client' : forcer client_id coté serveur
+      if (clientId && clientId !== user.client_id) {
+        return NextResponse.json({ message: 'Vous ne pouvez pas accéder aux rapports d\'un autre client' }, { status: 403 });
+      }
+    }
+
+    const canAccessReports = checker.can('read', 'reports', { client_id: user.client_id });
+    if (!canAccessReports) {
+      return NextResponse.json(
+        { message: 'Permissions insuffisantes pour accéder aux rapports' },
+        { status: 403 }
+      );
+    }
     const status = searchParams.get('status');
     const type = searchParams.get('type');
     const format = searchParams.get('format') || 'json';
