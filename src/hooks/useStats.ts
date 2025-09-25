@@ -77,6 +77,8 @@ export function useEquipmentStats() {
     enabled: !!user && !authLoading,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     retry: (failureCount, error) => {
       // Ne pas retry sur les erreurs 401/403
       if (error instanceof Error && error.message.includes('401')) return false
@@ -125,6 +127,8 @@ export function useLicenseStats() {
     enabled: !!user && !authLoading,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     retry: (failureCount, error) => {
       // Ne pas retry sur les erreurs 401/403
       if (error instanceof Error && error.message.includes('401')) return false

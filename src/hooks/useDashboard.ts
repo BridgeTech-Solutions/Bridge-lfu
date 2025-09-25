@@ -53,7 +53,6 @@ export function useDashboard() {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       
-      // Gestion spécifique des erreurs d'autorisation
       if (response.status === 401) {
         throw new Error('Session expirée. Veuillez vous reconnecter.')
       }
@@ -66,12 +65,10 @@ export function useDashboard() {
 
     const data = await response.json()
     
-    // Validation des données reçues
     if (!data.stats) {
       throw new Error('Données de statistiques manquantes')
     }
 
-    // Filtrer et valider les alertes
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const validAlerts = (data.alerts || []).filter((alert: any) => 
       alert && 
@@ -96,6 +93,16 @@ export function useDashboard() {
     }
   }
 
+  // QueryKey stable pour éviter les re-renders inutiles
+  const stableQueryKey = useMemo(() => [
+    'dashboardData',
+    user?.id,
+    permissions.canViewAllData ? 'all' : 'limited',
+    Array.isArray(permissions.clientAccess) 
+    ? permissions.clientAccess.join(',') 
+    : permissions.clientAccess || 'none'
+    ], [user?.id, permissions.canViewAllData, permissions.clientAccess])
+
   // Configuration de la query
   const {
     data,
@@ -106,19 +113,15 @@ export function useDashboard() {
     isRefetching,
     dataUpdatedAt
   } = useQuery({
-    queryKey: [
-      'dashboardData', 
-      user?.id, 
-      permissions.canViewAllData, 
-      permissions.clientAccess
-    ],
+    queryKey: stableQueryKey ,
     queryFn: fetchDashboardData,
     enabled: !!user && !authLoading,
     // staleTime: 2 * 60 * 1000, // 2 minutes - données du dashboard peuvent être un peu anciennes
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
+    refetchOnMount: false,
     retry: (failureCount, error) => {
       // Ne pas retry sur les erreurs d'autorisation
       if (error instanceof Error) {
@@ -168,13 +171,24 @@ export function useDashboard() {
 
   // Fonction de rafraîchissement intelligent
   const smartRefetch = async () => {
-    // Invalider aussi les caches liés
+    // Ne rafraîchir que si les données sont vraiment anciennes
+    const now = Date.now()
+    const dataAge = now - (dataUpdatedAt || 0)
+    const fiveMinutes = 5 * 60 * 1000
+
+    if (dataAge < fiveMinutes) {
+      console.log('Données encore fraîches, pas de rechargement nécessaire')
+      return { data }
+    }
+
+    // Invalider les caches liés seulement si nécessaire
     queryClient.invalidateQueries({ queryKey: ['equipmentStats'] })
     queryClient.invalidateQueries({ queryKey: ['licenseStats'] })
     queryClient.invalidateQueries({ queryKey: ['systemMetrics'] })
     
     return refetch()
   }
+
 
   return {
     // Données principales
