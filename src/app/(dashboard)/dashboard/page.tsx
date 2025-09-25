@@ -1,6 +1,21 @@
+// Mise à jour de votre Dashboard existant
 'use client'
 
-import { useDashboard, useAuthPermissions, useEquipmentStats, useLicenseStats, useStablePermissions } from '@/hooks'
+import { 
+  useEquipmentStats, 
+  useLicenseStats, 
+  useStatsAlerts 
+} from '@/hooks/useStats'
+import { 
+  useAuthPermissions, 
+  useStablePermissions,
+} from '@/hooks/index'
+import { 
+  useDashboard, 
+
+} from '@/hooks/useDashboard'
+
+
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -19,14 +34,14 @@ import {
   Clock,
   Activity,
   DollarSign,
-  Zap
+  Zap,
+  Bell
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts'
 import { useEffect, useMemo } from 'react'
-
-
+// ... autres imports
 
 interface StatCardProps {
   title: string
@@ -40,7 +55,6 @@ interface StatCardProps {
   href?: string
   subtitle?: string
 }
-
 function StatCard({ title, value, icon: Icon, color, trend, href, subtitle }: StatCardProps) {
   const colorClasses = {
     blue: 'bg-blue-50 text-blue-600 border-blue-200',
@@ -198,37 +212,66 @@ function ChartCard({ title, children, className = "" }: { title: string; childre
     </Card>
   )
 }
-
-// Dans votre composant Dashboard
 export default function DashboardPage() {
-  // Utilisation des hooks stabilisés
-  const { stats, alerts, loading, error } = useDashboard()
-  const { stats: equipmentStats, loading: equipmentLoading } = useEquipmentStats()
-  const { stats: licenseStats, loading: licenseLoading } = useLicenseStats()
-    const { refetch } = useDashboard();
+  // Hooks existants
+  const { stats, loading, error } = useDashboard()
+  
+  // NOUVEAUX hooks pour les statistiques
+  const { stats: equipmentStats, loading: equipmentLoading, error: equipmentError } = useEquipmentStats()
+  const { stats: licenseStats, loading: licenseLoading, error: licenseError } = useLicenseStats()
+  const statsAlerts = useStatsAlerts() // Alertes intelligentes
 
-  // Alternative : Utiliser le hook de permissions stabilisé
+  const operationalLicenseCount = useMemo(() => {
+    if (!licenseStats || !licenseStats.by_status) return 0;
+    
+    // 1. Compte des licences strictement ACTIVES
+    const actives = licenseStats.by_status.active || 0;
+    
+    // 2. Compte des licences qui fonctionnent mais qui BIENTÔT EXPIRENT
+    const aboutToExpire = licenseStats.by_status.about_to_expire || 0;
+    
+    // Le compte opérationnel est la somme des deux
+    return actives + aboutToExpire;
+
+  }, [licenseStats]);
+  const operationalEquipmentCount = useMemo(() => {
+    if (!equipmentStats || !equipmentStats.by_status) return 0;
+    
+    // 1. Compte des équipements strictement ACTIFS
+    const actifs = equipmentStats.by_status.actif || 0;
+    
+    // 2. Compte des équipements qui fonctionnent mais ont un AVERTISSEMENT
+    const bientotObsolete = equipmentStats.by_status.bientot_obsolete || 0;
+    
+    // Le compte opérationnel est la somme des deux
+    return actifs + bientotObsolete;
+
+  }, [equipmentStats]);
+  // Permissions stabilisées
   const stablePermissions = useStablePermissions()
-// useEffect(() => {
-//     refetch()
 
-// }, [])
-
-
-  // Affichage conditionnel plus stable
-  const showCharts = useMemo(() => 
-    !loading && !equipmentLoading && !licenseLoading, 
-    [loading, equipmentLoading, licenseLoading]
-  )
-
-  if (error) {
+  // Gestion des erreurs améliorée
+  if (error || equipmentError || licenseError) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Alert variant="destructive">
           <AlertDescription>
-            Erreur lors du chargement du tableau de bord: {error}
+            Erreur lors du chargement: {error || equipmentError || licenseError}
           </AlertDescription>
         </Alert>
+      </div>
+    )
+  }
+
+  // État de chargement global
+  const isLoading = loading || equipmentLoading || licenseLoading 
+
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-center min-h-96">
+          <LoadingSpinner size="lg" />
+        </div>
       </div>
     )
   }
@@ -243,335 +286,318 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="flex items-center justify-center min-h-96">
-          <LoadingSpinner size="lg" />
-        </div>
-      )}
-
-      {/* Stats Grid - STABILISÉ */}
-      {!loading && stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stablePermissions.canViewAllData && (
-            <StatCard
-              title="Total Clients"
-              value={stats.total_clients}
-              icon={Users}
-              color="blue"
-              href="/clients"
-              trend={{ value: 12, isPositive: true }}
-            />
-          )}
+      {/* Stats Grid - AMÉLIORÉ avec les nouvelles données */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stablePermissions.canViewAllData && (
           <StatCard
-            title="Licences Actives"
-            value={stats.total_licenses - stats.expired_licenses}
-            icon={Shield}
-            color="green"
-            href="/licenses"
-            subtitle={`${stats.expired_licenses} expirées`}
-            trend={{ value: -5, isPositive: false }}
-          />
-          <StatCard
-            title="Équipements Actifs"
-            value={stats.total_equipment - stats.obsolete_equipment}
-            icon={Server}
+            title="Total Clients"
+            value={stats?.total_clients || 0}
+            icon={Users}
             color="blue"
-            href="/equipment"
-            subtitle={`${stats.obsolete_equipment} obsolètes`}
-            trend={{ value: 8, isPositive: true }}
+            href="/clients"
+            // trend={{ value: 12, isPositive: true }}
           />
-          <StatCard
-            title="Alertes Critiques"
-            value={stats.expired_licenses + stats.obsolete_equipment}
-            icon={AlertTriangle}
-            color="red"
-            subtitle="Nécessitent une action"
-            trend={{ value: -15, isPositive: true }}
-          />
-        </div>
-      )}
+        )}
+        <StatCard
+          title="Licences Actives"
+          value={(operationalLicenseCount)}
+          icon={Shield}
+          color="green"
+          href="/licenses"
+          subtitle={`${licenseStats?.by_status.expired || 0} expirées`}
+          // trend={{ value: -5, isPositive: false }}
+        />
+        <StatCard
+          title="Équipements Actifs"
+          value={(operationalEquipmentCount)}
+          icon={Server}
+          color="blue"
+          href="/equipment"
+          subtitle={`${equipmentStats?.by_status.obsolete || 0} obsolètes`}
+          // trend={{ value: 8, isPositive: true }}
+        />
+        <StatCard
+          title="Alertes Critiques"
+          value={statsAlerts.criticalCount}
+          icon={AlertTriangle}
+          color="red"
+          subtitle={`${statsAlerts.warningCount} avertissements`}
+          // trend={{ value: -15, isPositive: true }}
+        />
+      </div>
 
-      {/* Charts Section - STABILISÉ */}
-      {showCharts && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Equipment Chart */}
-          {equipmentStats && equipmentStats.chartData.types.length > 0 && (
-            <ChartCard title="Répartition des Équipements par Type">
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={equipmentStats.chartData.types}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percentage }) => `${name} (${percentage}%)`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {equipmentStats.chartData.types.map((_, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          )}
+      {/* Section graphiques - OPTIMISÉE */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Équipements - Utilise les nouvelles données */}
+        {/*  eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain */}
+        {equipmentStats?.chart_data?.types?.length! > 0 && (
+          <ChartCard title="Répartition des Équipements par Type">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={equipmentStats?.chart_data.types}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percentage }) => `${name} (${percentage}%)`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {equipmentStats?.chart_data.types.map((_, index: number) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        )}
 
-          {/* License Status Chart */}
-          {licenseStats && licenseStats.chartData.statuses.length > 0 && (
-            <ChartCard title="Statut des Licences">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={licenseStats.chartData.statuses}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#0088FE" />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          )}
+        {/* Licences - Utilise les nouvelles données */}
+        {/*  eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain */}
+        {licenseStats?.chart_data.statuses.length! > 0 && (
+          <ChartCard title="Statut des Licences">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={licenseStats?.chart_data.statuses}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#0088FE" />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        )}
 
-          {/* Equipment Status Chart */}
-          {equipmentStats && equipmentStats.chartData.statuses.length > 0 && (
-            <ChartCard title="Statut des Équipements">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={equipmentStats.chartData.statuses}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#00C49F" />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          )}
-
-          {/* License Expiry Trend */}
-          {licenseStats && licenseStats.chartData.expiry && licenseStats.chartData.expiry.length > 0 && (
-            <ChartCard title="Évolution des Expirations de Licences">
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={licenseStats.chartData.expiry}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="count" 
-                    stroke="#FF8042" 
-                    strokeWidth={2}
-                    name="Expirations"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          )}
-        </div>
-      )}
-
-      {/* Reste du composant... */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-  {/* Alerts - STABILISÉ */}
-  <div className="lg:col-span-2">
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg font-semibold text-gray-900">
-          Alertes Récentes
-          {alerts.length > 0 && (
-            <Badge variant="destructive" className="ml-2">
-              {alerts.length}
-            </Badge>
-          )}
-        </CardTitle>
-        <Link
-          href="/notifications"
-          className="text-sm text-blue-600 hover:text-blue-500 font-medium flex items-center"
-        >
-          Voir tout
-          <ArrowRight className="h-4 w-4 ml-1" />
-        </Link>
-      </CardHeader>
-      <CardContent className="p-0">
-        {alerts.length > 0 ? (
-          <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
-            {alerts
-              .filter((alert) => alert.item_name) // Filtrage stabilisé
-              .slice(0, 8)
-              .map((alert, index) => (
-                <AlertItem 
-                  key={`alert-${alert.id}-${index}`} // Clé plus stable
-                  alert={alert} 
+        {/* Nouveau graphique - Évolution des expirations */}
+        {licenseStats?.chart_data.expiry && licenseStats.chart_data.expiry.length > 0 && (
+          <ChartCard title="Expirations à venir (6 mois)">
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={licenseStats.chart_data.expiry}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="count" 
+                  stroke="#FF8042" 
+                  strokeWidth={2}
+                  name="Expirations"
                 />
-              ))}
-          </div>
-        ) : (
-          <div className="p-6 text-center text-gray-500">
-            <CheckCircle className="h-12 w-12 mx-auto text-green-300 mb-4" />
-            <p className="text-lg font-medium text-gray-900 mb-2">Tout va bien !</p>
-            <p>Aucune alerte critique à signaler</p>
-          </div>
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
         )}
-      </CardContent>
-    </Card>
-  </div>
 
-  {/* Quick Actions & Stats - STABILISÉ */}
-  <div className="space-y-6">
-    {/* Quick Actions - Mémoïsé */}
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold text-gray-900">
-          Actions Rapides
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {stablePermissions.can('create', 'clients') && (
-          <Link
-            href="/clients/new"
-            className="flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group"
-          >
-            <div className="flex items-center">
-              <Users className="h-5 w-5 text-blue-600 mr-3" />
-              <span className="text-sm font-medium text-blue-900">
-                Nouveau Client
-              </span>
-            </div>
-            <ArrowRight className="h-4 w-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
-          </Link>
+        {/* Statuts des équipements */}
+        {/*  eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain */}
+        {equipmentStats?.chart_data.statuses.length! > 0 && (
+          <ChartCard title="Statut des Équipements">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={equipmentStats?.chart_data.statuses}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#00C49F" />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
         )}
-        
-        {stablePermissions.can('create', 'licenses') && (
-          <Link
-            href="/licenses/new"
-            className="flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
-          >
-            <div className="flex items-center">
-              <Shield className="h-5 w-5 text-green-600 mr-3" />
-              <span className="text-sm font-medium text-green-900">
-                Nouvelle Licence
-              </span>
-            </div>
-            <ArrowRight className="h-4 w-4 text-green-600 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        )}
-        
-        {stablePermissions.can('create', 'equipment') && (
-          <Link
-            href="/equipment/new"
-            className="flex items-center justify-between p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group"
-          >
-            <div className="flex items-center">
-              <Server className="h-5 w-5 text-purple-600 mr-3" />
-              <span className="text-sm font-medium text-purple-900">
-                Nouvel Équipement
-              </span>
-            </div>
-            <ArrowRight className="h-4 w-4 text-purple-600 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        )}
-        
-        {stablePermissions.can('read', 'reports') && (
-          <Link
-            href="/reports"
-            className="flex items-center justify-between p-3 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors group"
-          >
-            <div className="flex items-center">
-              <Calendar className="h-5 w-5 text-orange-600 mr-3" />
-              <span className="text-sm font-medium text-orange-900">
-                Générer un Rapport
-              </span>
-            </div>
-            <ArrowRight className="h-4 w-4 text-orange-600 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        )}
-      </CardContent>
-    </Card>
+      </div>
 
-    {/* Performance Metrics for Admins - STABILISÉ */}
-    {stablePermissions.canViewAllData && stats && (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
-            <Activity className="h-5 w-5 mr-2 text-blue-600" />
-            Métriques Système
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Uptime</span>
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              99.9%
-            </Badge>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Utilisateurs actifs</span>
-            <Badge variant="secondary">
-              {Math.floor(Math.random() * 50) + 10}
-            </Badge>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Temps de réponse</span>
-            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-              &lt; 200ms
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
-    )}
+      {/* Section inférieure */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Alertes - AMÉLIORÉ avec les nouvelles alertes */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-semibold text-gray-900">
+                Alertes Récentes
+                {( statsAlerts.totalCount > 0) && (
+                  <Badge variant="destructive" className="ml-2">
+                    { statsAlerts.totalCount}
+                  </Badge>
+                )}
+              </CardTitle>
+              <Link
+                href="/notifications"
+                className="text-sm text-blue-600 hover:text-blue-500 font-medium flex items-center"
+              >
+                Voir tout
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Link>
+            </CardHeader>
+            <CardContent className="p-0">
+              {(statsAlerts.alerts.length > 0) ? (
+                <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+                  {/* Alertes critiques en premier */}
+                  {statsAlerts.alerts.map((alert, index) => (
+                    <div key={`stats-alert-${index}`} className="p-4 hover:bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`p-2 rounded-lg ${
+                            alert.level === 'danger' ? 'bg-red-50' : 'bg-yellow-50'
+                          }`}>
+                            {alert.type === 'equipment' ? (
+                              <Server className={`h-4 w-4 ${
+                                alert.level === 'danger' ? 'text-red-600' : 'text-yellow-600'
+                              }`} />
+                            ) : (
+                              <Shield className={`h-4 w-4 ${
+                                alert.level === 'danger' ? 'text-red-600' : 'text-yellow-600'
+                              }`} />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{alert.message}</p>
+                            <p className="text-xs text-gray-500">Alerte système</p>
+                          </div>
+                        </div>
+                        <Badge variant={alert.level === 'danger' ? 'destructive' : 'warning'}>
+                          {alert.level === 'danger' ? 'Critique' : 'Attention'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+              
+                </div>
+              ) : (
+                <div className="p-6 text-center text-gray-500">
+                  <CheckCircle className="h-12 w-12 mx-auto text-green-300 mb-4" />
+                  <p className="text-lg font-medium text-gray-900 mb-2">Tout va bien !</p>
+                  <p>Aucune alerte critique à signaler</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-    {/* Quick Stats for Clients - STABILISÉ */}
-    {!stablePermissions.canViewAllData && stats && (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900">
-            Mes Données
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-            <div className="flex items-center">
-              <Shield className="h-5 w-5 text-blue-600 mr-3" />
-              <span className="text-sm font-medium text-blue-900">Licences</span>
-            </div>
-            <Badge variant="secondary">{stats.total_licenses}</Badge>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-            <div className="flex items-center">
-              <Server className="h-5 w-5 text-purple-600 mr-3" />
-              <span className="text-sm font-medium text-purple-900">Équipements</span>
-            </div>
-            <Badge variant="secondary">{stats.total_equipment}</Badge>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-            <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 text-orange-600 mr-3" />
-              <span className="text-sm font-medium text-orange-900">Alertes</span>
-            </div>
-            <Badge variant={alerts.length > 0 ? "destructive" : "secondary"}>
-              {alerts.length}
-            </Badge>
-          </div>
-          {licenseStats && (
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <div className="flex items-center">
-                <DollarSign className="h-5 w-5 text-green-600 mr-3" />
-                <span className="text-sm font-medium text-green-900">Valeur totale</span>
-              </div>
-              <Badge variant="secondary">
-                {licenseStats.totalValue.toLocaleString()} FCFA
-              </Badge>
-            </div>
+        {/* Actions rapides et métriques */}
+        <div className="space-y-6">
+          {/* Actions rapides - INCHANGÉ */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900">
+                Actions Rapides
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {stablePermissions.can('create', 'clients') && (
+                <Link
+                  href="/clients/new"
+                  className="flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group"
+                >
+                  <div className="flex items-center">
+                    <Users className="h-5 w-5 text-blue-600 mr-3" />
+                    <span className="text-sm font-medium text-blue-900">
+                      Nouveau Client
+                    </span>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              )}
+              
+              {stablePermissions.can('create', 'licenses') && (
+                <Link
+                  href="/licenses/new"
+                  className="flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
+                >
+                  <div className="flex items-center">
+                    <Shield className="h-5 w-5 text-green-600 mr-3" />
+                    <span className="text-sm font-medium text-green-900">
+                      Nouvelle Licence
+                    </span>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-green-600 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              )}
+              
+              {stablePermissions.can('create', 'equipment') && (
+                <Link
+                  href="/equipment/new"
+                  className="flex items-center justify-between p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group"
+                >
+                  <div className="flex items-center">
+                    <Server className="h-5 w-5 text-purple-600 mr-3" />
+                    <span className="text-sm font-medium text-purple-900">
+                      Nouvel Équipement
+                    </span>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-purple-600 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              )}
+              
+              {stablePermissions.can('read', 'reports') && (
+                <Link
+                  href="/reports"
+                  className="flex items-center justify-between p-3 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors group"
+                >
+                  <div className="flex items-center">
+                    <Calendar className="h-5 w-5 text-orange-600 mr-3" />
+                    <span className="text-sm font-medium text-orange-900">
+                      Générer un Rapport
+                    </span>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-orange-600 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              )}              
+            </CardContent>
+          </Card>
+
+
+
+          {/* Section client - AMÉLIORÉE avec valeur des licences */}
+          {!stablePermissions.canViewAllData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Mes Données
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center">
+                    <Shield className="h-5 w-5 text-blue-600 mr-3" />
+                    <span className="text-sm font-medium text-blue-900">Licences</span>
+                  </div>
+                  <Badge variant="secondary">{licenseStats?.total || 0}</Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                  <div className="flex items-center">
+                    <Server className="h-5 w-5 text-purple-600 mr-3" />
+                    <span className="text-sm font-medium text-purple-900">Équipements</span>
+                  </div>
+                  <Badge variant="secondary">{equipmentStats?.total || 0}</Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                  <div className="flex items-center">
+                    <AlertTriangle className="h-5 w-5 text-orange-600 mr-3" />
+                    <span className="text-sm font-medium text-orange-900">Alertes</span>
+                  </div>
+                  <Badge variant={statsAlerts.totalCount > 0 ? "destructive" : "secondary"}>
+                    {statsAlerts.totalCount}
+                  </Badge>
+                </div>
+                {licenseStats && (
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center">
+                      <DollarSign className="h-5 w-5 text-green-600 mr-3" />
+                      <span className="text-sm font-medium text-green-900">Valeur totale</span>
+                    </div>
+                    <Badge variant="secondary">
+                      {licenseStats.total_value.toLocaleString()} FCFA
+                    </Badge>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
-    )}
-  </div>
-</div>
+        </div>
+      </div>
     </div>
   )
 }

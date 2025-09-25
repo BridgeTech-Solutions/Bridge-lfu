@@ -1,12 +1,35 @@
-
-// app/api/dashboard/route.ts
+// app/api/dashboard/route.ts - Version optimisée
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 import { Database } from '@/types/database';
 
-// GET /api/dashboard - Récupérer les données du tableau de bord
+type LicenseStatusRow = Pick<Database['public']['Tables']['licenses']['Row'], 'status'>
+type EquipmentStatusRow = Pick<Database['public']['Tables']['equipment']['Row'], 'status'>
+
+interface DashboardStats {
+  total_clients: number
+  total_licenses: number
+  total_equipment: number
+  expired_licenses: number
+  about_to_expire_licenses: number
+  obsolete_equipment: number
+  soon_obsolete_equipment: number
+}
+
+interface DashboardAlert {
+  id: string
+  item_name: string
+  client_name?: string
+  type: string
+  alert_type: string
+  alert_level: string
+  alert_date: string
+  status: string
+  client_id?: string
+}
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -20,20 +43,19 @@ export async function GET(request: NextRequest) {
     const supabase = createSupabaseServerClient();
     const checker = new PermissionChecker(user);
 
-    // Déterminer la vue à utiliser selon les permissions
+    // === RÉCUPÉRATION DES ALERTES ===
     const alertsView = checker.canViewAllData() ? 'v_dashboard_alerts' : 'v_client_dashboard';
-    
     let alertsQuery = supabase.from(alertsView).select('*');
 
-    // Filtrer par client si l'utilisateur est un client
+    // Filtrer par client si nécessaire
     if (!checker.canViewAllData() && user.client_id) {
       alertsQuery = alertsQuery.eq('client_id', user.client_id);
     }
 
-    // Récupérer les alertes (limitées aux 10 plus urgentes)
-    const { data: alerts, error: alertsError } = await alertsQuery
+    // Récupérer les alertes (limitées aux 15 plus urgentes)
+    const { data: rawAlerts, error: alertsError } = await alertsQuery
       .order('alert_date', { ascending: true })
-      .limit(10);
+      .limit(15);
 
     if (alertsError) {
       console.error('Erreur lors de la récupération des alertes:', alertsError);
@@ -43,31 +65,67 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Récupérer les statistiques selon les permissions
-    let stats;
-    
+    // Validation et nettoyage des alertes
+    const alerts: DashboardAlert[] = (rawAlerts || [])
+      .filter(alert => 
+        alert && 
+        alert.id && 
+        alert.item_name && 
+        alert.alert_type && 
+        alert.alert_level && 
+        alert.status
+      )
+      .map(alert => ({
+        id: alert.id,
+        item_name: alert.item_name,
+        client_name: alert.client_name || undefined,
+        type: alert.type || 'unknown',
+        alert_type: alert.alert_type,
+        alert_level: alert.alert_level,
+        alert_date: alert.alert_date,
+        status: alert.status,
+        client_id: alert.client_id || undefined
+      }));
+
+    // === RÉCUPÉRATION DES STATISTIQUES ===
+    let stats: DashboardStats;
+
     if (checker.canViewAllData()) {
       // Statistiques globales pour admin/technicien
-      const [clientsRes, licensesRes, equipmentRes] = await Promise.all([
-        supabase.from('clients').select('*', { count: 'exact', head: true }),
-        supabase.from('licenses').select('status'),
-        supabase.from('equipment').select('status')
-      ]);
-      type LicenseStatusRow = Pick<Database['public']['Tables']['licenses']['Row'], 'status'>
-      type EquipmentStatusRow = Pick<Database['public']['Tables']['equipment']['Row'], 'status'>
-      const clientsCount = clientsRes.count || 0;
-      const licenses = (licensesRes.data ?? []) as LicenseStatusRow[]
-      const equipment = (equipmentRes.data ?? []) as EquipmentStatusRow[]
+      try {
+        const [clientsRes, licensesRes, equipmentRes] = await Promise.allSettled([
+          supabase.from('clients').select('*', { count: 'exact', head: true }),
+          supabase.from('licenses').select('status'),
+          supabase.from('equipment').select('status')
+        ]);
 
-      stats = {
-        total_clients: clientsCount,
-        total_licenses: licenses.length,
-        total_equipment: equipment.length,
-        expired_licenses: licenses.filter(l => l.status === 'expired').length,
-        about_to_expire_licenses: licenses.filter(l => l.status === 'about_to_expire').length,
-        obsolete_equipment: equipment.filter(e => e.status === 'obsolete').length,
-        soon_obsolete_equipment: equipment.filter(e => e.status === 'bientot_obsolete').length
-      };
+        // Gestion des résultats avec fallback
+        const clientsCount = clientsRes.status === 'fulfilled' ? (clientsRes.value.count || 0) : 0;
+        const licenses = (licensesRes.status === 'fulfilled' ? licensesRes.value.data : []) as LicenseStatusRow[] || [];
+        const equipment = (equipmentRes.status === 'fulfilled' ? equipmentRes.value.data : []) as EquipmentStatusRow[] || [];
+
+        stats = {
+          total_clients: clientsCount,
+          total_licenses: licenses.length,
+          total_equipment: equipment.length,
+          expired_licenses: licenses.filter(l => l.status === 'expired').length,
+          about_to_expire_licenses: licenses.filter(l => l.status === 'about_to_expire').length,
+          obsolete_equipment: equipment.filter(e => e.status === 'obsolete').length,
+          soon_obsolete_equipment: equipment.filter(e => e.status === 'bientot_obsolete').length
+        };
+      } catch (error) {
+        console.error('Erreur lors de la récupération des statistiques globales:', error);
+        // Statistiques par défaut en cas d'erreur
+        stats = {
+          total_clients: 0,
+          total_licenses: 0,
+          total_equipment: 0,
+          expired_licenses: 0,
+          about_to_expire_licenses: 0,
+          obsolete_equipment: 0,
+          soon_obsolete_equipment: 0
+        };
+      }
     } else {
       // Statistiques limitées au client connecté
       if (!user.client_id) {
@@ -77,35 +135,120 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const [licensesRes, equipmentRes] = await Promise.all([
-        supabase.from('licenses').select('status').eq('client_id', user.client_id),
-        supabase.from('equipment').select('status').eq('client_id', user.client_id)
-      ]);
-      type LicenseStatusRow = Pick<Database['public']['Tables']['licenses']['Row'], 'status'>
-      type EquipmentStatusRow = Pick<Database['public']['Tables']['equipment']['Row'], 'status'>
-      const licenses = (licensesRes.data ?? []) as LicenseStatusRow[]
-      const equipment = (equipmentRes.data ?? []) as EquipmentStatusRow[]
+      try {
+        const [licensesRes, equipmentRes] = await Promise.allSettled([
+          supabase.from('licenses').select('status').eq('client_id', user.client_id),
+          supabase.from('equipment').select('status').eq('client_id', user.client_id)
+        ]);
 
-      stats = {
-        total_clients: 1,
-        total_licenses: licenses.length,
-        total_equipment: equipment.length,
-        expired_licenses: licenses.filter(l => l.status === 'expired').length,
-        about_to_expire_licenses: licenses.filter(l => l.status === 'about_to_expire').length,
-        obsolete_equipment: equipment.filter(e => e.status === 'obsolete').length,
-        soon_obsolete_equipment: equipment.filter(e => e.status === 'bientot_obsolete').length
-      };
+        // Gestion des résultats avec fallback
+        const licenses = (licensesRes.status === 'fulfilled' ? licensesRes.value.data : []) as LicenseStatusRow[] || [];
+        const equipment = (equipmentRes.status === 'fulfilled' ? equipmentRes.value.data : []) as EquipmentStatusRow[] || [];
+
+        stats = {
+          total_clients: 1, // Le client ne voit que son propre compte
+          total_licenses: licenses.length,
+          total_equipment: equipment.length,
+          expired_licenses: licenses.filter(l => l.status === 'expired').length,
+          about_to_expire_licenses: licenses.filter(l => l.status === 'about_to_expire').length,
+          obsolete_equipment: equipment.filter(e => e.status === 'obsolete').length,
+          soon_obsolete_equipment: equipment.filter(e => e.status === 'bientot_obsolete').length
+        };
+      } catch (error) {
+        console.error('Erreur lors de la récupération des statistiques client:', error);
+        // Statistiques par défaut en cas d'erreur
+        stats = {
+          total_clients: 1,
+          total_licenses: 0,
+          total_equipment: 0,
+          expired_licenses: 0,
+          about_to_expire_licenses: 0,
+          obsolete_equipment: 0,
+          soon_obsolete_equipment: 0
+        };
+      }
     }
 
-    return NextResponse.json({
+    // === ENRICHISSEMENT DES DONNÉES ===
+    const enrichedResponse = {
       stats,
-      alerts: alerts || []
+      alerts,
+      metadata: {
+        alerts_count: alerts.length,
+        critical_alerts: alerts.filter(a => a.alert_level === 'expired' || a.alert_level === 'urgent').length,
+        warning_alerts: alerts.filter(a => a.alert_level === 'warning').length,
+        user_role: user.role,
+        can_view_all_data: checker.canViewAllData(),
+        client_id: user.client_id,
+        last_updated: new Date().toISOString()
+      }
+    };
+
+    // === HEADERS DE CACHE ===
+    const headers = new Headers();
+    headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    headers.set('Pragma', 'no-cache');
+    headers.set('Expires', '0');
+
+    return NextResponse.json(enrichedResponse, { headers });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error : any) {
+    console.error('Erreur API GET /dashboard:', error);
+    
+    // Retourner une réponse d'erreur structurée
+    const errorResponse = {
+      message: 'Erreur interne du serveur',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      timestamp: new Date().toISOString()
+    };
+
+    return NextResponse.json(errorResponse, { status: 500 });
+  }
+}
+
+// Optionnel : Endpoint POST pour forcer le rafraîchissement des statistiques
+export async function POST(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { message: 'Non authentifié' },
+        { status: 401 }
+      );
+    }
+
+    const checker = new PermissionChecker(user);
+    
+    // Seuls les admins peuvent forcer le rafraîchissement
+    if (!checker.can('manage', 'system_settings')) {
+      return NextResponse.json(
+        { message: 'Accès non autorisé' },
+        { status: 403 }
+      );
+    }
+
+    const supabase = createSupabaseServerClient();
+
+    // Forcer la mise à jour des statuts
+    const { data: licenseUpdates } = await supabase.rpc('refresh_all_license_status');
+    const { data: equipmentUpdates } = await supabase.rpc('refresh_all_equipment_status');
+
+    return NextResponse.json({
+      message: 'Rafraîchissement effectué avec succès',
+      updates: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        licenses: licenseUpdates?.filter((update: { updated: any; }) => update.updated).length || 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        equipment: equipmentUpdates?.filter((update: { updated: any; }) => update.updated).length || 0
+      },
+      timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error('Erreur API GET /dashboard:', error);
+    console.error('Erreur API POST /dashboard:', error);
     return NextResponse.json(
-      { message: 'Erreur interne du serveur' },
+      { message: 'Erreur lors du rafraîchissement' },
       { status: 500 }
     );
   }
