@@ -1,6 +1,7 @@
+// app/licenses/[id]/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, 
@@ -30,23 +31,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { toast } from 'sonner';
-import {  useStablePermissions, useLicense } from '@/hooks'
+import { toast } from 'sonner'
+import { useStablePermissions } from '@/hooks'
 import { useAuth } from '@/hooks/useAuth'
-
+import { useLicense, useLicenseAttachments, useLicenseActions, useAttachmentActions } from '@/hooks/useLicenses'
 import type { LicenseStatus } from '@/types'
-
-interface LicenseAttachment {
-  id: string
-  file_name: string
-  file_type: string
-  file_size: number
-  created_at: string
-  uploaded_by_profile?: {
-    first_name: string
-    last_name: string
-  }
-}
 
 export default function LicenseDetailPage() {
   const params = useParams()
@@ -54,43 +43,36 @@ export default function LicenseDetailPage() {
   const { user } = useAuth()
   const permissions = useStablePermissions()
 
-  const [attachments, setAttachments] = useState<LicenseAttachment[]>([])
-  const [attachmentsLoading, setAttachmentsLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
-  const [uploadLoading, setUploadLoading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileType, setFileType] = useState('other')
 
-  // Utilisation du hook useLicense avec React Query
+  const licenseId = params.id as string
+
+  // Utilisation des nouveaux hooks
   const { 
     data: license, 
     isLoading: licenseLoading, 
     isError: licenseError, 
     error 
-  } = useLicense(params.id as string)
+  } = useLicense(licenseId)
 
-  // Charger les pièces jointes séparément
-  useEffect(() => {
-    const fetchAttachments = async () => {
-      if (!params.id) return
-      
-      try {
-        setAttachmentsLoading(true)
-        const attachmentsResponse = await fetch(`/api/licenses/${params.id}/attachments`)
-        if (attachmentsResponse.ok) {
-          const attachmentsData = await attachmentsResponse.json()
-          setAttachments(attachmentsData)
-        }
-      } catch (error) {
-        console.error('Erreur lors du chargement des pièces jointes:', error)
-      } finally {
-        setAttachmentsLoading(false)
-      }
-    }
+  const { 
+    data: attachments = [],
+    isLoading: attachmentsLoading,
+    refetch: refetchAttachments
+  } = useLicenseAttachments(licenseId)
 
-    fetchAttachments()
-  }, [params.id])
+  const { deleteLicense, isDeleting } = useLicenseActions()
+
+  const { 
+    uploadAttachment, 
+    deleteAttachment, 
+    downloadAttachment,
+    isUploading,
+    isDownloading
+  } = useAttachmentActions(licenseId)
 
   // Gestionnaires d'événements
   const handleEdit = () => {
@@ -99,18 +81,10 @@ export default function LicenseDetailPage() {
 
   const handleDelete = async () => {
     try {
-      const response = await fetch(`/api/licenses/${params.id}`, {
-        method: 'DELETE'
-      })
-
-      if (!response.ok) {
-        throw new Error('Erreur lors de la suppression')
-      }
-
-      toast.success('Licence supprimée avec succès')
+      await deleteLicense(licenseId)
       router.push('/licenses')
     } catch (error) {
-      toast.error('Impossible de supprimer la licence')
+      // L'erreur est déjà gérée par le hook
     } finally {
       setDeleteDialogOpen(false)
     }
@@ -120,65 +94,30 @@ export default function LicenseDetailPage() {
     if (!selectedFile) return
 
     try {
-      setUploadLoading(true)
-
-      const formData = new FormData()
-      formData.append('file', selectedFile)
-      formData.append('file_type', fileType)
-
-      const response = await fetch(`/api/licenses/${params.id}/attachments`, {
-        method: 'POST',
-        body: formData
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Erreur lors de l\'upload')
-      }
-
-      const newAttachment = await response.json()
-      setAttachments(prev => [newAttachment, ...prev])
-
-      toast.success('Fichier ajouté avec succès')
+      await uploadAttachment({ file: selectedFile, fileType })
       setUploadDialogOpen(false)
       setSelectedFile(null)
       setFileType('other')
+      refetchAttachments()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'upload')
-    } finally {
-      setUploadLoading(false)
+      // L'erreur est déjà gérée par le hook
     }
   }
 
   const handleFileDownload = async (attachmentId: string) => {
     try {
-      const response = await fetch(`/api/licenses/${params.id}/attachments/${attachmentId}/download`)
-      
-      if (!response.ok) {
-        throw new Error('Erreur lors du téléchargement')
-      }
-
-      const { download_url } = await response.json()
-      window.open(download_url, '_blank')
+      await downloadAttachment(attachmentId)
     } catch (error) {
-      toast.error('Impossible de télécharger le fichier')
+      // L'erreur est déjà gérée par le hook
     }
   }
 
   const handleDeleteAttachment = async (attachmentId: string) => {
     try {
-      const response = await fetch(`/api/licenses/${params.id}/attachments/${attachmentId}`, {
-        method: 'DELETE'
-      })
-
-      if (!response.ok) {
-        throw new Error('Erreur lors de la suppression')
-      }
-
-      setAttachments(prev => prev.filter(a => a.id !== attachmentId))
-      toast.success('Fichier supprimé avec succès')
+      await deleteAttachment(attachmentId)
+      refetchAttachments()
     } catch (error) {
-      toast.error('Impossible de supprimer le fichier')
+      // L'erreur est déjà gérée par le hook
     }
   }
 
@@ -301,15 +240,15 @@ export default function LicenseDetailPage() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => router.back()}
-          className="hover:bg-slate-100"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour
-        </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => router.back()}
+            className="hover:bg-slate-100"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour
+          </Button>
           <div>
             <h1 className="text-3xl font-bold">{license.name}</h1>
             <p className="text-gray-600">
@@ -328,7 +267,11 @@ export default function LicenseDetailPage() {
             </Button>
           )}
           {permissions.can('delete', 'licenses') && (
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(true)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(true)}
+              disabled={isDeleting}
+            >
               <Trash2 className="w-4 h-4 mr-2" />
               Supprimer
             </Button>
@@ -418,7 +361,12 @@ export default function LicenseDetailPage() {
                 )}
               </CardTitle>
               {permissions.can('update', 'licenses') && (
-                <Button variant="outline" size="sm" onClick={() => setUploadDialogOpen(true)}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setUploadDialogOpen(true)}
+                  disabled={isUploading}
+                >
                   <Upload className="w-4 h-4 mr-2" />
                   Ajouter un fichier
                 </Button>
@@ -474,6 +422,7 @@ export default function LicenseDetailPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleFileDownload(attachment.id)}
+                              disabled={isDownloading}
                             >
                               <Download className="w-4 h-4" />
                             </Button>
@@ -614,7 +563,12 @@ export default function LicenseDetailPage() {
               )}
               
               {permissions.can('update', 'licenses') && (
-                <Button variant="outline" className="w-full justify-start" onClick={() => setUploadDialogOpen(true)}>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start" 
+                  onClick={() => setUploadDialogOpen(true)}
+                  disabled={isUploading}
+                >
                   <Upload className="w-4 h-4 mr-2" />
                   Ajouter un fichier
                 </Button>
@@ -630,6 +584,7 @@ export default function LicenseDetailPage() {
                   variant="outline" 
                   className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50" 
                   onClick={() => setDeleteDialogOpen(true)}
+                  disabled={isDeleting}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Supprimer
@@ -653,8 +608,12 @@ export default function LicenseDetailPage() {
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Supprimer
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Suppression...' : 'Supprimer'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -705,11 +664,18 @@ export default function LicenseDetailPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUploadDialogOpen(false)} disabled={uploadLoading}>
+            <Button 
+              variant="outline" 
+              onClick={() => setUploadDialogOpen(false)} 
+              disabled={isUploading}
+            >
               Annuler
             </Button>
-            <Button onClick={handleFileUpload} disabled={!selectedFile || uploadLoading}>
-              {uploadLoading ? (
+            <Button 
+              onClick={handleFileUpload} 
+              disabled={!selectedFile || isUploading}
+            >
+              {isUploading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                   Upload...

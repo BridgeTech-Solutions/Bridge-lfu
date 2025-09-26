@@ -1,6 +1,7 @@
+// app/licenses/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Plus, Filter, Download, Calendar, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -9,17 +10,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PaginationWithLogic, PaginationInfo } from '@/components/ui/pagination'
-import { toast } from 'sonner';
+import { toast } from 'sonner'
 import { 
-  useStablePermissions, 
-  useLicenses, 
-  useLicenseStats, 
+  useStablePermissions,
   useClients, 
   usePagination, 
   useDebounce 
 } from '@/hooks'
+import { useLicenses } from '@/hooks/useLicenses' // Nouveau hook
 import type { LicenseStatus } from '@/types'
-import { LicenseTable } from '@/components/tables/LicenseTable';
+import { LicenseTable } from '@/components/tables/LicenseTable'
 
 export default function LicensesPage() {
   const router = useRouter()
@@ -36,13 +36,16 @@ export default function LicensesPage() {
   const debouncedSearch = useDebounce(search, 500)
   const debouncedEditorFilter = useDebounce(editorFilter, 500)
 
-  // Utilisation des hooks de données avec React Query
+  // Utilisation du nouveau hook useLicenses
   const { 
     licenses, 
     loading: isLicensesLoading, 
     error: licensesError, 
+    stats,
     pagination,
-    refetch: refetchLicenses 
+    refetch: refetchLicenses,
+    deleteLicense,
+    isDeleting
   } = useLicenses({
     page,
     limit,
@@ -50,7 +53,7 @@ export default function LicensesPage() {
     status: statusFilter === 'all' ? undefined : statusFilter,
     clientId: clientFilter === 'all' ? undefined : clientFilter,
     editor: debouncedEditorFilter
-  });
+  })
   
   const { 
     data: clientsData, 
@@ -60,14 +63,7 @@ export default function LicensesPage() {
     limit: 999, // On charge tous les clients pour les filtres
     search: '',
     sector: ''
-  });
-
-  const { 
-    stats, 
-    loading: isStatsLoading, 
-    error: statsError, 
-    refetch: refetchStats 
-  } = useLicenseStats();
+  })
 
   // Gestion de l'export
   const handleExport = async () => {
@@ -77,67 +73,72 @@ export default function LicensesPage() {
         status: statusFilter,
         clientId: clientFilter,
         editor: debouncedEditorFilter
-      });
+      })
       
-      const response = await fetch(`/api/licenses/export?${params}`);
+      const response = await fetch(`/api/licenses/export?${params}`)
       
       if (!response.ok) {
-        throw new Error("Erreur lors de l'exportation des données.");
+        throw new Error("Erreur lors de l'exportation des données.")
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `licenses-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.style.display = 'none'
+      a.href = url
+      a.download = `licenses-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
       
-      toast.success("Le fichier a été téléchargé avec succès.");
+      toast.success("Le fichier a été téléchargé avec succès.")
     } catch (error) {
-      console.error(error);
-      toast.error("Impossible d'exporter les données.");
+      console.error(error)
+      toast.error("Impossible d'exporter les données.")
     }
-  };
+  }
 
   // Gestionnaires d'événements du tableau
-  const handleEdit = (id: string) => router.push(`/licenses/${id}/edit`);
-  const handleDelete = (id: string) => toast.error("La suppression n'est pas encore implémentée.");
-  const handleView = (id: string) => router.push(`/licenses/${id}`);
+  const handleEdit = (id: string) => router.push(`/licenses/${id}/edit`)
+  const handleView = (id: string) => router.push(`/licenses/${id}`)
+  
+  const handleDelete = async (id: string) => {
+    const license = licenses.find(l => l.id === id)
+    if (!license) return
+
+    if (confirm(`Êtes-vous sûr de vouloir supprimer la licence "${license.name}" ? Cette action est irréversible.`)) {
+      try {
+        await deleteLicense(id)
+      } catch (error) {
+        // L'erreur est déjà gérée par le hook
+      }
+    }
+  }
 
   // Données traitées
-  const clients = clientsData?.data || [];
-  const totalLicenses = pagination?.count || 0;
-  const statsData = stats || { 
-    total: 0, 
-    byStatus: {}, 
-    totalValue: 0, 
-    monthlyExpiry: [], 
-    chartData: { statuses: [], expiry: [] } 
-  };
+  const clients = clientsData?.data || []
+  const totalLicenses = pagination?.count || 0
 
   // Gestion des changements de filtres avec retour à la page 1
   const handleSearchChange = (value: string) => {
-    setSearch(value);
-    goToPage(1);
-  };
+    setSearch(value)
+    goToPage(1)
+  }
 
   const handleStatusFilterChange = (value: LicenseStatus | 'all') => {
-    setStatusFilter(value);
-    goToPage(1);
-  };
+    setStatusFilter(value)
+    goToPage(1)
+  }
 
   const handleClientFilterChange = (value: string) => {
-    setClientFilter(value);
-    goToPage(1);
-  };
+    setClientFilter(value)
+    goToPage(1)
+  }
 
   const handleEditorFilterChange = (value: string) => {
-    setEditorFilter(value);
-    goToPage(1);
-  };
+    setEditorFilter(value)
+    goToPage(1)
+  }
 
   // Affichage du loading global
   if (isLicensesLoading && page === 1) {
@@ -184,7 +185,7 @@ export default function LicensesPage() {
           </CardContent>
         </Card>
       </div>
-    );
+    )
   }
 
   // Affichage en cas d'erreur
@@ -209,7 +210,7 @@ export default function LicensesPage() {
           </Button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -244,11 +245,7 @@ export default function LicensesPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total</p>
                 <div className="text-3xl font-bold">
-                  {isStatsLoading ? (
-                    <div className="h-8 w-12 bg-gray-200 animate-pulse rounded"></div>
-                  ) : (
-                    statsData.total
-                  )}
+                  {stats.total}
                 </div>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -264,11 +261,7 @@ export default function LicensesPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Actives</p>
                 <p className="text-3xl font-bold text-green-600">
-                  {isStatsLoading ? (
-                    <div className="h-8 w-12 bg-gray-200 animate-pulse rounded"></div>
-                  ) : (
-                    statsData.byStatus.active || 0
-                  )}
+                  {stats.active}
                 </p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -284,11 +277,7 @@ export default function LicensesPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Bientôt expirées</p>
                 <div className="text-3xl font-bold text-orange-600">
-                  {isStatsLoading ? (
-                    <div className="h-8 w-12 bg-gray-200 animate-pulse rounded"></div>
-                  ) : (
-                    statsData.byStatus.about_to_expire || 0
-                  )}
+                  {stats.aboutToExpire}
                 </div>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -304,11 +293,7 @@ export default function LicensesPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Expirées</p>
                 <div className="text-3xl font-bold text-red-600">
-                  {isStatsLoading ? (
-                    <div className="h-8 w-12 bg-gray-200 animate-pulse rounded"></div>
-                  ) : (
-                    statsData.byStatus.expired || 0
-                  )}
+                  {stats.expired}
                 </div>
               </div>
               <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
@@ -420,7 +405,7 @@ export default function LicensesPage() {
           )}
 
           {/* Pagination */}
-          {totalLicenses > limit && (
+          {totalLicenses > limit && pagination && (
             <div className="flex items-center justify-between mt-6">
               <PaginationInfo
                 currentPage={page}
@@ -429,7 +414,7 @@ export default function LicensesPage() {
               />
               <PaginationWithLogic
                 currentPage={page}
-                totalPages={Math.ceil(totalLicenses / limit)}
+                totalPages={pagination.totalPages}
                 onPageChange={goToPage}
               />
             </div>
@@ -437,5 +422,5 @@ export default function LicensesPage() {
         </CardContent>
       </Card>
     </div>
-  );
-}  
+  )
+}
