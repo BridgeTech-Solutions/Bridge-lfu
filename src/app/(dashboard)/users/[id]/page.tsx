@@ -1,3 +1,4 @@
+// app/users/[id]/page.tsx
 'use client'
 
 import { useState } from 'react'
@@ -12,8 +13,9 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthPermissions } from '@/hooks'
+import { useUser, useUserActivity, useUserActions, type UserFormData, type UserWithClient } from '@/hooks/useUsers'
 import { 
   ArrowLeft, 
   Edit, 
@@ -29,63 +31,7 @@ import {
   Activity,
   AlertCircle
 } from 'lucide-react'
-import type { Profile, UserRole, Client } from '@/types'
-
-interface UserWithClient extends Profile {
-  clients?: Pick<Client, 'id' | 'name'>
-}
-
-interface UserFormData {
-  firstName: string
-  lastName: string
-  email: string
-  phone?: string
-  company?: string
-  role: UserRole
-  clientId?: string
-}
-
-// Fonction pour récupérer un utilisateur
-const fetchUser = async (id: string): Promise<UserWithClient> => {
-  const response = await fetch(`/api/users/${id}`)
-  
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Erreur lors de la récupération de l\'utilisateur')
-  }
-
-  return response.json()
-}
-
-// Fonction pour mettre à jour un utilisateur
-const updateUser = async (id: string, data: UserFormData): Promise<UserWithClient> => {
-  const response = await fetch(`/api/users/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Erreur lors de la mise à jour de l\'utilisateur')
-  }
-
-  return response.json()
-}
-
-// Fonction pour récupérer les logs d'activité d'un utilisateur
-const fetchUserActivity = async (userId: string) => {
-  const response = await fetch(`/api/users/${userId}/activity`)
-  
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Erreur lors de la récupération des logs')
-  }
-
-  const result = await response.json()
-  return result.data || []   // 🔥 renvoie toujours un tableau
-}
-
+import type { UserRole, Client } from '@/types'
 
 // Composant pour le formulaire d'édition
 function EditUserForm({ 
@@ -103,12 +49,12 @@ function EditUserForm({
     email: user.email,
     phone: user.phone || '',
     company: user.company || '',
-    role: user.role ?? 'unverified', // ⬅️ Change this line
+    role: user.role ?? 'unverified',
     clientId: user.client_id || ''
   })
 
-  const queryClient = useQueryClient()
   const permissions = useAuthPermissions()
+  const { updateUser, isUpdating } = useUserActions()
 
   // Récupérer la liste des clients
   const { data: clientsData } = useQuery({
@@ -120,27 +66,20 @@ function EditUserForm({
     }
   })
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: UserFormData }) => updateUser(id, data),
-    onSuccess: () => {
-      toast.success('Utilisateur mis à jour avec succès')
-      queryClient.invalidateQueries({ queryKey: ['user', user.id] })
-      queryClient.invalidateQueries({ queryKey: ['users'] })
-      onSuccess()
-      onClose()
-    },
-    onError: (error: Error) => {
-      toast.error(error.message)
-    }
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.firstName || !formData.lastName || !formData.email) {
       toast.error('Veuillez remplir tous les champs obligatoires')
       return
     }
-    updateMutation.mutate({ id: user.id, data: formData })
+    
+    try {
+      await updateUser({ id: user.id, data: formData })
+      onSuccess()
+      onClose()
+    } catch (error) {
+      // L'erreur est déjà gérée par le hook
+    }
   }
 
   const canEditRole = permissions.can('create', 'users')
@@ -249,8 +188,8 @@ function EditUserForm({
           <X className="h-4 w-4 mr-2" />
           Annuler
         </Button>
-        <Button type="submit" disabled={updateMutation.isPending}>
-          {updateMutation.isPending ? (
+        <Button type="submit" disabled={isUpdating}>
+          {isUpdating ? (
             <LoadingSpinner size="sm" />
           ) : (
             <>
@@ -286,37 +225,22 @@ export default function UserDetailPage() {
   const params = useParams()
   const router = useRouter()
   const permissions = useAuthPermissions()
-  const queryClient = useQueryClient()
 
   const [showEditDialog, setShowEditDialog] = useState(false)
 
   const userId = params.id as string
 
-  // Query pour récupérer l'utilisateur
+  // Utilisation des nouveaux hooks
   const { 
     data: user, 
     isLoading, 
     error 
-  } = useQuery({
-    queryKey: ['user', userId],
-    queryFn: () => fetchUser(userId),
-    enabled: !!userId
-  })
+  } = useUser(userId)
 
   // Query pour récupérer les logs d'activité (si admin)
   const { 
     data: userActivity 
-  } = useQuery({
-    queryKey: ['user-activity', userId],
-    queryFn: () => fetchUserActivity(userId),
-    enabled: !!userId && permissions.canViewActivityLogs()
-  })
-
-  // Vérifier les permissions
-//   if (!permissions.can('read', 'users')) {
-//     router.push('/dashboard')
-//     return null
-//   }
+  } = useUserActivity(userId)
 
   if (isLoading) {
     return (
@@ -533,9 +457,9 @@ export default function UserDetailPage() {
                 <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5" />
                 Journal d&apos;activité
-                {userActivity && (
+                {userActivity?.data && (
                     <Badge variant="outline" className="ml-auto">
-                    {userActivity.length} activités
+                    {userActivity.data.length} activités
                     </Badge>
                 )}
                 </CardTitle>
@@ -543,8 +467,7 @@ export default function UserDetailPage() {
             <CardContent>
                 {userActivity ? (
                 <div className="space-y-6">
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {userActivity.map((log: any, index: number) => (
+                    {userActivity.data.map((log, index: number) => (
                     <div key={log.id} className="relative border-l-2 border-gray-200 pl-6 pb-6 last:pb-0">
                         {/* Point de timeline */}
                         <div className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-white border-2 border-gray-300">
@@ -741,7 +664,7 @@ export default function UserDetailPage() {
                         )}
 
                         {/* Séparateur entre les activités */}
-                        {index < userActivity.length - 1 && (
+                        {index < userActivity.data.length - 1 && (
                             <div className="pt-3">
                             <div className="border-t border-gray-100"></div>
                             </div>
@@ -750,7 +673,7 @@ export default function UserDetailPage() {
                     </div>
                     ))}
 
-                    {userActivity.length === 0 && (
+                    {userActivity.data.length === 0 && (
                     <div className="text-center py-8">
                         <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-600">Aucune activité enregistrée pour cet utilisateur</p>

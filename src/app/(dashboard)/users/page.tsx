@@ -1,6 +1,7 @@
+// app/users/page.tsx
 'use client'
 
-import { useState, useMemo,useEffect  } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,13 +9,14 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import Link from "next/link"
+import { useQuery } from '@tanstack/react-query'
 import { useAuthPermissions, usePagination } from '@/hooks'
+import { useUsers, useUserActions, type UserFormData, type ValidationData, type UserWithClient } from '@/hooks/useUsers'
 import { 
   UserPlus, 
   Search, 
@@ -33,120 +35,8 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
-import type { Profile, UserRole, Client } from '@/types'
+import type { UserRole, Client } from '@/types'
 
-// Types spécifiques pour cette page
-interface UserWithClient extends Profile {
-  clients?: Pick<Client, 'id' | 'name'>
-}
-
-interface UserFormData {
-  firstName: string
-  lastName: string
-  email: string
-  phone?: string
-  company?: string
-  role: UserRole
-  clientId?: string
-  password?: string
-}
-
-interface ValidationData {
-  role: UserRole
-  clientId?: string
-}
-
-// Fonction pour récupérer les utilisateurs
-const fetchUsers = async (params: {
-  page: number
-  limit: number
-  search?: string
-  role?: string
-}): Promise<{
-  data: UserWithClient[]
-  count: number
-  page: number
-  totalPages: number
-  hasMore: boolean
-}> => {
-  const url = new URL('/api/users', window.location.origin)
-  url.searchParams.set('page', params.page.toString())
-  url.searchParams.set('limit', params.limit.toString())
-  
-  if (params.search) {
-    url.searchParams.set('search', params.search)
-  }
-  if (params.role && params.role !== 'all') {
-    url.searchParams.set('role', params.role)
-  }
-
-  const response = await fetch(url.toString())
-  
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Erreur lors de la récupération des utilisateurs')
-  }
-
-  return response.json()
-}
-
-// Fonction pour créer un utilisateur
-const createUser = async (userData: UserFormData): Promise<UserWithClient> => {
-  const response = await fetch('/api/users', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(userData)
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Erreur lors de la création de l\'utilisateur')
-  }
-
-  return response.json()
-}
-// Fonction pour mettre à jour un utilisateur
-const updateUser = async (id: string, data: UserFormData): Promise<UserWithClient> => {
-  const response = await fetch(`/api/users/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Erreur lors de la mise à jour de l\'utilisateur')
-  }
-
-  return response.json()
-}
-// Fonction pour valider un utilisateur
-const validateUser = async (userId: string, validationData: ValidationData): Promise<UserWithClient> => {
-  const response = await fetch(`/api/users/${userId}/validate`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(validationData)
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Erreur lors de la validation de l\'utilisateur')
-  }
-
-  return response.json()
-}
-
-// Fonction pour supprimer un utilisateur
-const deleteUser = async (userId: string): Promise<void> => {
-  const response = await fetch(`/api/users/${userId}`, {
-    method: 'DELETE'
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Erreur lors de la suppression de l\'utilisateur')
-  }
-}
 // Composant pour le formulaire d'édition
 function EditUserForm({ 
   user, 
@@ -163,12 +53,12 @@ function EditUserForm({
     email: user.email,
     phone: user.phone || '',
     company: user.company || '',
-    role: user.role ?? 'unverified', // ⬅️ Change this line
+    role: user.role ?? 'unverified',
     clientId: user.client_id || ''
   })
 
-  const queryClient = useQueryClient()
   const permissions = useAuthPermissions()
+  const { updateUser, isUpdating } = useUserActions()
 
   // Récupérer la liste des clients
   const { data: clientsData } = useQuery({
@@ -180,27 +70,20 @@ function EditUserForm({
     }
   })
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: UserFormData }) => updateUser(id, data),
-    onSuccess: () => {
-      toast.success('Utilisateur mis à jour avec succès')
-      queryClient.invalidateQueries({ queryKey: ['user', user.id] })
-      queryClient.invalidateQueries({ queryKey  : ['users'] })
-      onSuccess()
-      onClose()
-    },
-    onError: (error: Error) => {
-      toast.error(error.message)
-    }
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.firstName || !formData.lastName || !formData.email) {
       toast.error('Veuillez remplir tous les champs obligatoires')
       return
     }
-    updateMutation.mutate({ id: user.id, data: formData })
+    
+    try {
+      await updateUser({ id: user.id, data: formData })
+      onSuccess()
+      onClose()
+    } catch (error) {
+      // L'erreur est déjà gérée par le hook
+    }
   }
 
   const canEditRole = permissions.can('create', 'users')
@@ -309,8 +192,8 @@ function EditUserForm({
           <X className="h-4 w-4 mr-2" />
           Annuler
         </Button>
-        <Button type="submit" disabled={updateMutation.isPending}>
-          {updateMutation.isPending ? (
+        <Button type="submit" disabled={isUpdating}>
+          {isUpdating ? (
             <LoadingSpinner size="sm" />
           ) : (
             <>
@@ -323,6 +206,7 @@ function EditUserForm({
     </form>
   )
 }
+
 // Composant pour le formulaire de création d'utilisateur
 function CreateUserForm({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
   const [formData, setFormData] = useState<UserFormData>({
@@ -336,7 +220,7 @@ function CreateUserForm({ onClose, onSuccess }: { onClose: () => void, onSuccess
     password: ''
   })
 
-  const queryClient = useQueryClient()
+  const { createUser, isCreating } = useUsers()
 
   // Récupérer la liste des clients pour la sélection
   const { data: clientsData } = useQuery({
@@ -348,26 +232,20 @@ function CreateUserForm({ onClose, onSuccess }: { onClose: () => void, onSuccess
     }
   })
 
-  const createMutation = useMutation({
-    mutationFn: createUser,
-    onSuccess: () => {
-      toast.success('Utilisateur créé avec succès')
-      queryClient.invalidateQueries({ queryKey: ['users'] })
-      onSuccess()
-      onClose()
-    },
-    onError: (error: Error) => {
-      toast.error(error.message)
-    }
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
       toast.error('Veuillez remplir tous les champs obligatoires')
       return
     }
-    createMutation.mutate(formData)
+    
+    try {
+      await createUser(formData)
+      onSuccess()
+      onClose()
+    } catch (error) {
+      // L'erreur est déjà gérée par le hook
+    }
   }
 
   return (
@@ -468,8 +346,8 @@ function CreateUserForm({ onClose, onSuccess }: { onClose: () => void, onSuccess
         <Button type="button" variant="outline" onClick={onClose}>
           Annuler
         </Button>
-        <Button type="submit" disabled={createMutation.isPending}>
-          {createMutation.isPending ? <LoadingSpinner size="sm" /> : 'Créer'}
+        <Button type="submit" disabled={isCreating}>
+          {isCreating ? <LoadingSpinner size="sm" /> : 'Créer'}
         </Button>
       </div>
     </form>
@@ -491,7 +369,7 @@ function ValidateUserDialog({
     clientId: ''
   })
 
-  const queryClient = useQueryClient()
+  const { validateUser, isValidating } = useUserActions()
 
   // Récupérer la liste des clients
   const { data: clientsData } = useQuery({
@@ -503,26 +381,19 @@ function ValidateUserDialog({
     }
   })
 
-  const validateMutation = useMutation({
-    mutationFn: ({ userId, data }: { userId: string, data: ValidationData }) => 
-      validateUser(userId, data),
-    onSuccess: () => {
-      toast.success('Utilisateur validé avec succès')
-      queryClient.invalidateQueries({ queryKey: ['users'] })
-      onSuccess()
-      onClose()
-    },
-    onError: (error: Error) => {
-      toast.error(error.message)
-    }
-  })
-
-  const handleValidate = () => {
+  const handleValidate = async () => {
     if (validationData.role === 'client' && !validationData.clientId) {
       toast.error('Veuillez sélectionner un client')
       return
     }
-    validateMutation.mutate({ userId: user.id, data: validationData })
+    
+    try {
+      await validateUser({ userId: user.id, data: validationData })
+      onSuccess()
+      onClose()
+    } catch (error) {
+      // L'erreur est déjà gérée par le hook
+    }
   }
 
   return (
@@ -575,8 +446,8 @@ function ValidateUserDialog({
         <Button variant="outline" onClick={onClose}>
           Annuler
         </Button>
-        <Button onClick={handleValidate} disabled={validateMutation.isPending}>
-          {validateMutation.isPending ? <LoadingSpinner size="sm" /> : 'Valider'}
+        <Button onClick={handleValidate} disabled={isValidating}>
+          {isValidating ? <LoadingSpinner size="sm" /> : 'Valider'}
         </Button>
       </div>
     </div>
@@ -600,71 +471,102 @@ function getRoleBadge(role: UserRole) {
     </Badge>
   )
 }
+// Dans un fichier séparé si vous préférez, ou juste au-dessus de UsersPage
+// Composant de Squelette pour le tableau
+function UserTableSkeleton({ count = 10 }: { count?: number }) {
+  // Un tableau pour générer 'count' lignes
+  const skeletonRows = Array.from({ length: count }, (_, index) => (
+    <TableRow key={index}>
+      {/* Colonne Utilisateur/Company */}
+      <TableCell>
+        <div className="space-y-2">
+          {/* Nom de l'utilisateur (ligne plus large) */}
+          <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+          {/* Compagnie (ligne plus étroite) */}
+          <div className="h-3 w-1/2 bg-gray-200 rounded animate-pulse" />
+        </div>
+      </TableCell>
+      {/* Colonne Contact */}
+      <TableCell>
+        <div className="space-y-1">
+          {/* Email */}
+          <div className="h-3 w-5/6 bg-gray-200 rounded animate-pulse" />
+          {/* Téléphone */}
+          <div className="h-3 w-3/4 bg-gray-200 rounded animate-pulse" />
+        </div>
+      </TableCell>
+      {/* Colonne Rôle */}
+      <TableCell>
+        <div className="h-5 w-20 bg-gray-200 rounded-full animate-pulse" />
+      </TableCell>
+      {/* Colonne Client associé */}
+      <TableCell>
+        <div className="h-4 w-4/6 bg-gray-200 rounded animate-pulse" />
+      </TableCell>
+      {/* Colonne Créé le */}
+      <TableCell>
+        <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
+      </TableCell>
+      {/* Colonne Actions */}
+      <TableCell>
+        <div className="flex space-x-2">
+          <div className="h-8 w-8 bg-gray-200 rounded-md animate-pulse" />
+          <div className="h-8 w-8 bg-gray-200 rounded-md animate-pulse" />
+          <div className="h-8 w-8 bg-gray-200 rounded-md animate-pulse" />
+        </div>
+      </TableCell>
+    </TableRow>
+  ));
+
+  return (
+    <Table>
+      {/* Gardez l'en-tête du tableau pour conserver la structure */}
+      <TableHeader>
+        <TableRow>
+          <TableHead>Utilisateur</TableHead>
+          <TableHead>Contact</TableHead>
+          <TableHead>Rôle</TableHead>
+          <TableHead>Client associé</TableHead>
+          <TableHead>Créé le</TableHead>
+          <TableHead>Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {skeletonRows}
+      </TableBody>
+    </Table>
+  );
+}
 
 export default function UsersPage() {
   const permissions = useAuthPermissions()
   const router = useRouter()
-  const queryClient = useQueryClient()
 
   // États locaux
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [editUser, setEditUser] = useState<UserWithClient | null>(null)
-
   const [validateDialogUser, setValidateDialogUser] = useState<UserWithClient | null>(null)
 
   // Pagination
   const { page, limit, goToPage, goToNextPage, goToPreviousPage } = usePagination(1, 10)
 
-//   // Vérifier les permissions
-//   useEffect(() => {
-//     if (!permissions.can('read', 'users')) {
-//       router.push('/dashboard')
-//     }
-//   }, [permissions, router])
-//     if (!permissions.can('read', 'users')) {
-//     // Afficher un placeholder pendant la redirection
-//     return <div>Redirection...</div>
-//   }
-  // Query pour récupérer les utilisateurs
-  const { data: usersData, isLoading, error } = useQuery({
-    queryKey: ['users', page, limit, search, roleFilter],
-    queryFn: () => fetchUsers({ page, limit, search, role: roleFilter }),
-    staleTime: 0
+  // Utilisation du hook useUsers
+  const { users, loading, error, stats, pagination, deleteUser, isDeleting } = useUsers({
+    page,
+    limit,
+    search,
+    role: roleFilter
   })
-
-  // Mutation pour supprimer un utilisateur
-  const deleteMutation = useMutation({
-    mutationFn: deleteUser,
-    onSuccess: () => {
-      toast.success('Utilisateur supprimé avec succès')
-      queryClient.invalidateQueries({ queryKey: ['users'] })
-    },
-    onError: (error: Error) => {
-      toast.error(error.message)
-    }
-  })
-
-  // Calculer les statistiques
-  const stats = useMemo(() => {
-    if (!usersData) return { total: 0, unverified: 0, admins: 0, technicians: 0, clients: 0 }
-    
-    return usersData.data.reduce((acc, user) => {
-      acc.total++
-      switch (user.role) {
-        case 'unverified': acc.unverified++; break
-        case 'admin': acc.admins++; break
-        case 'technicien': acc.technicians++; break
-        case 'client': acc.clients++; break
-      }
-      return acc
-    }, { total: 0, unverified: 0, admins: 0, technicians: 0, clients: 0 })
-  }, [usersData])
 
   const handleDeleteUser = async (userId: string, userName: string) => {
     if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur "${userName}" ? Cette action est irréversible.`)) {
-      deleteMutation.mutate(userId)
+      try {
+        await deleteUser(userId)
+      } catch (error) {
+        // L'erreur est déjà gérée par le hook
+      }
     }
   }
 
@@ -759,9 +661,9 @@ export default function UsersPage() {
           <CardTitle>Liste des utilisateurs</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {loading ? (
             <div className="flex justify-center py-8">
-              <LoadingSpinner size="lg" />
+             <UserTableSkeleton count={10} />
             </div>
           ) : error ? (
             <div className="text-center py-8">
@@ -771,7 +673,7 @@ export default function UsersPage() {
                 Réessayer
               </Button>
             </div>
-          ) : !usersData?.data?.length ? (
+          ) : !users?.length ? (
             <div className="text-center py-8 text-gray-500">
               Aucun utilisateur trouvé
             </div>
@@ -789,7 +691,7 @@ export default function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {usersData.data.map((user) => (
+                  {users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <div>
@@ -842,30 +744,28 @@ export default function UsersPage() {
                             </Button>
                           )}
                           
-                                <Link href={`/users/${user.id}`}>
-                                <Button size="sm" variant="outline">
-                                    <Eye className="h-4 w-4" />
-                                </Button>
-                                </Link>
-                          
+                          <Link href={`/users/${user.id}`}>
+                            <Button size="sm" variant="outline">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
 
                           {permissions.can('update', 'users', user) && (
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              onClick={() => setEditUser(user)} // ⚡ On stocke l'utilisateur cliqué
+                              onClick={() => setEditUser(user)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
                           )}
 
-                          
                           {permissions.can('delete', 'users', user) && (
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleDeleteUser(user.id, `${user.first_name} ${user.last_name}`)}
-                              disabled={deleteMutation.isPending}
+                              disabled={isDeleting}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -878,17 +778,17 @@ export default function UsersPage() {
               </Table>
 
               {/* Pagination */}
-              {usersData && usersData.totalPages > 1 && (
+              {pagination && pagination.totalPages > 1 && (
                 <div className="flex items-center justify-between px-2 py-4">
                   <div className="text-sm text-gray-700">
-                    Page {usersData.page} sur {usersData.totalPages} ({usersData.count} utilisateurs au total)
+                    Page {pagination.page} sur {pagination.totalPages} ({pagination.count} utilisateurs au total)
                   </div>
                   <div className="flex space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={goToPreviousPage}
-                      disabled={usersData.page <= 1}
+                      disabled={pagination.page <= 1}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -896,7 +796,7 @@ export default function UsersPage() {
                       variant="outline"
                       size="sm"
                       onClick={goToNextPage}
-                      disabled={usersData.page >= usersData.totalPages}
+                      disabled={pagination.page >= pagination.totalPages}
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -936,25 +836,22 @@ export default function UsersPage() {
           )}
         </DialogContent>
       </Dialog>
+
       {/* Dialog d'édition */}
       <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Modifier l’utilisateur</DialogTitle>
+            <DialogTitle>Modifier l&apos;utilisateur</DialogTitle>
           </DialogHeader>
           {editUser && (
             <EditUserForm
               user={editUser}
               onClose={() => setEditUser(null)}
-              onSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['users'] })
-                setEditUser(null)
-              }}
+              onSuccess={() => setEditUser(null)}
             />
           )}
         </DialogContent>
       </Dialog>
-
     </div>
   )
 }

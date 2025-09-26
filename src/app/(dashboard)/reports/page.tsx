@@ -5,54 +5,64 @@ import { useAuth } from '@/hooks/useAuth'
 import { usePermissions } from '@/lib/auth/permissions'
 import { Download, FileText, Calendar, Filter, RefreshCw, BarChart3, Users, HardDrive, Key, FileSpreadsheet } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { FaRegFilePdf } from "react-icons/fa";
- import { useSession } from '@/app/context/auth' 
- 
-interface ReportData {
-  title: string
-  generated_at: string
-  total_count: number
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: any[]
-  metadata?: {
-    total_licenses?: number
-    total_cost?: number
-    expired_count?: number
-    expiring_soon_count?: number
-    active_count?: number
-  }
-}
-
-interface StatsData {
-  total: number
-  by_type?: Record<string, number>
-  by_status: Record<string, number>
-  total_value?: number
-  monthly_expiry?: Array<{ month: string; count: number }>
-  chart_data: {
-    types?: Array<{ name: string; value: number; percentage: number }>
-    statuses: Array<{ name: string; value: number; percentage: number }>
-    expiry?: Array<{ month: string; count: number }>
-  }
-}
+import { FaRegFilePdf } from "react-icons/fa"
+import { 
+  useReports, 
+  useReportsLicenseStats, 
+  useReportsEquipmentStats, 
+  useQuickReports,
+  useReportNotifications,
+  type ReportConfig 
+} from '@/hooks/useReports'
 
 interface Client {
   id: string
   name: string
 }
 
-interface ReportConfig {
-  type: 'licenses' | 'equipment'
-  clientId: string
-  status: string
-  format: 'json' | 'csv' | 'pdf'
-  dateFrom: string
-  dateTo: string
+// Composant simple de Skeleton pour simuler un bloc de chargement
+function Skeleton({ className }: { className?: string }) {
+  // combine les classes de base avec celles passées en props
+  return <div className={`bg-gray-200 rounded animate-pulse ${className}`} />;
 }
-
+// Composant de Skeleton pour les listes de statuts des licences/équipements
+function StatusChartSkeleton({ count = 4 }: { count?: number }) {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: count }).map((_, index) => (
+        <div key={index} className="flex items-center justify-between">
+          {/* Squelette pour le badge de statut */}
+          <Skeleton className="w-24 h-5" />
+          <div className="flex items-center space-x-2">
+            {/* Squelette pour la barre de pourcentage */}
+            <Skeleton className="w-24 h-2" />
+            {/* Squelette pour la valeur (nombre) */}
+            <Skeleton className="w-12 h-4" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 export default function ReportsPage() {
-  const { user, loading: userLoading } = useAuth(); // Utilisez le hook de session
+  const { user } = useAuth()
   const permissions = usePermissions(user)
+  
+  // Utilisation des nouveaux hooks
+  const { 
+    isGenerating, 
+    reportData, 
+    lastGeneratedConfig, 
+    generateReport, 
+    downloadCurrentReport, 
+    resetReport 
+  } = useReports()
+  
+  const { stats: licenseStats, loading: licenseStatsLoading } = useReportsLicenseStats()
+  const { stats: equipmentStats, loading: equipmentStatsLoading } = useReportsEquipmentStats()
+  const { generateQuickReport } = useQuickReports()
+  const { showNotification } = useReportNotifications()
+
   const [reportConfig, setReportConfig] = useState<ReportConfig>({
     type: 'licenses',
     clientId: '',
@@ -61,19 +71,16 @@ export default function ReportsPage() {
     dateFrom: '',
     dateTo: ''
   })
-    // Auto-remplir le client_id pour les clients
-    useEffect(() => {
-      if (user && !permissions.canViewAllData() && user.client_id) {
-        setReportConfig(prev => ({
-          ...prev,
-          clientId: user.client_id ?? ''
-        }));
-      }
-    }, [user, permissions]);
 
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [reportData, setReportData] = useState<ReportData | null>(null)
-  const [lastGeneratedConfig, setLastGeneratedConfig] = useState<ReportConfig | null>(null)
+  // Auto-remplir le client_id pour les clients
+  useEffect(() => {
+    if (user && !permissions.canViewAllData() && user.client_id) {
+      setReportConfig(prev => ({
+        ...prev,
+        clientId: user.client_id ?? ''
+      }));
+    }
+  }, [user, permissions]);
 
   // Récupération des clients
   const { data: clients = [] } = useQuery<Client[]>({
@@ -87,110 +94,59 @@ export default function ReportsPage() {
     enabled: permissions.canViewAllData()
   })
 
-  // Récupération des statistiques
-  const { data: licenseStats } = useQuery<StatsData>({
-    queryKey: ['stats', 'licenses'],
-    queryFn: async () => {
-      const response = await fetch('/api/stats/licenses')
-      if (!response.ok) throw new Error('Erreur lors du chargement des statistiques licences')
-      return response.json()
-    }
-  })
-
-  const { data: equipmentStats } = useQuery<StatsData>({
-    queryKey: ['stats', 'equipment'],
-    queryFn: async () => {
-      const response = await fetch('/api/stats/equipment')
-      if (!response.ok) throw new Error('Erreur lors du chargement des statistiques équipements')
-      return response.json()
-    }
-  })
-
   const updateConfig = (key: keyof ReportConfig, value: string) => {
     setReportConfig(prev => ({ ...prev, [key]: value }))
   }
 
-  const generateReport = async (configOverride?: Partial<ReportConfig>) => {
-    const canGenerate = permissions.can('read', 'reports', { 
-        client_id: reportConfig.clientId || user?.client_id 
-    });
-    
-    if (!canGenerate) {
-        alert('Permissions insuffisantes pour générer des rapports');
-        return;
-    }
-
-
-
-    const config = { ...reportConfig, ...configOverride }
-    setIsGenerating(true)
-    
+  const handleGenerateReport = async (configOverride?: Partial<ReportConfig>) => {
     try {
-      const params = new URLSearchParams()
-      
-      if (config.clientId) params.append('client_id', config.clientId)
-      if (config.status) params.append('status', config.status)
-      if (config.dateFrom) params.append('date_from', config.dateFrom)
-      if (config.dateTo) params.append('date_to', config.dateTo)
-      params.append('format', config.format)
-
-      const endpoint = config.type === 'licenses' 
-        ? `/api/reports/licenses?${params}`
-        : `/api/reports/equipment?${params}`
-
-      const response = await fetch(endpoint)
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Erreur inconnue' }))
-        throw new Error(errorData.message || 'Erreur lors de la génération du rapport')
-      }
-
-      if (config.format === 'csv' || config.format === 'pdf') {
-        // Téléchargement direct pour CSV et PDF
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.style.display = 'none'
-        a.href = url
-        
-        const extension = config.format
-        const filename = `rapport_${config.type}_${new Date().toISOString().split('T')[0]}.${extension}`
-        a.download = filename
-        
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-
-        // Notification de succès
-        showNotification(`Rapport ${extension.toUpperCase()} téléchargé avec succès`, 'success')
-      } else {
-        // Affichage JSON
-        const data = await response.json()
-        setReportData(data)
-        setLastGeneratedConfig(config)
-        showNotification('Rapport généré avec succès', 'success')
+      const result = await generateReport(reportConfig, configOverride)
+      if (result.success) {
+        showNotification(result.message, 'success')
       }
     } catch (error) {
       console.error('Erreur:', error)
       showNotification(error instanceof Error ? error.message : 'Erreur lors de la génération du rapport', 'error')
-    } finally {
-      setIsGenerating(false)
     }
   }
 
-  const showNotification = (message: string, type: 'success' | 'error') => {
-    // Simple notification - vous pouvez remplacer par votre système de notification
-    const notification = document.createElement('div')
-    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg ${
-      type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'
-    }`
-    notification.textContent = message
-    document.body.appendChild(notification)
-    
-    setTimeout(() => {
-      document.body.removeChild(notification)
-    }, 5000)
+  const handleDownloadCurrentReport = async (format: 'csv' | 'pdf' | 'json') => {
+    try {
+      const result = await downloadCurrentReport(format)
+      if (result?.success) {
+        showNotification(result.message, 'success')
+      }
+    } catch (error) {
+      console.error('Erreur:', error)
+      showNotification(error instanceof Error ? error.message : 'Erreur lors du téléchargement', 'error')
+    }
+  }
+
+  const handleQuickReport = async (
+    type: 'expired-licenses' | 'obsolete-equipment' | 'expiring-soon',
+    format: 'csv' | 'pdf' = 'csv'
+  ) => {
+    try {
+      const result = await generateQuickReport(type, format)
+      if (result.success) {
+        showNotification(result.message, 'success')
+      }
+    } catch (error) {
+      console.error('Erreur:', error)
+      showNotification(error instanceof Error ? error.message : 'Erreur lors de la génération du rapport rapide', 'error')
+    }
+  }
+
+  const resetFilters = () => {
+    setReportConfig({
+      type: 'licenses',
+      clientId: '',
+      status: '',
+      format: 'json',
+      dateFrom: '',
+      dateTo: ''
+    })
+    resetReport()
   }
 
   const getStatusColor = (status: string) => {
@@ -219,19 +175,6 @@ export default function ReportsPage() {
     return new Date(dateString).toLocaleDateString('fr-FR')
   }
 
-  const resetFilters = () => {
-    setReportConfig({
-      type: 'licenses',
-      clientId: '',
-      status: '',
-      format: 'json',
-      dateFrom: '',
-      dateTo: ''
-    })
-    setReportData(null)
-    setLastGeneratedConfig(null)
-  }
-
   return (
     <div className="space-y-8 p-6">
       {/* En-tête */}
@@ -253,7 +196,9 @@ export default function ReportsPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Total Licences</dt>
-                  <dd className="text-lg font-medium text-gray-900">{licenseStats?.total || 0}</dd>
+                  <dd className="text-lg font-medium text-gray-900">
+                    {licenseStatsLoading ? <Skeleton className="w-16 h-6" /> : licenseStats?.total || 0}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -269,7 +214,9 @@ export default function ReportsPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Total Équipements</dt>
-                  <dd className="text-lg font-medium text-gray-900">{equipmentStats?.total || 0}</dd>
+                  <dd className="text-lg font-medium text-gray-900">
+                    {equipmentStatsLoading ? <Skeleton className="w-16 h-6" /> : equipmentStats?.total || 0}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -286,7 +233,8 @@ export default function ReportsPage() {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Valeur Totale</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {licenseStats?.total_value ? formatCurrency(licenseStats.total_value) : 'N/A'}
+                    {licenseStatsLoading ? <Skeleton className="w-20 h-6" /> : 
+                      licenseStats?.total_value ? formatCurrency(licenseStats.total_value) : 'N/A'}
                   </dd>
                 </dl>
               </div>
@@ -316,47 +264,56 @@ export default function ReportsPage() {
         {/* Statistiques des licences */}
         <div className="bg-white shadow rounded-lg p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Statuts des Licences</h3>
-          <div className="space-y-3">
-            {licenseStats?.chart_data?.statuses?.map((item) => (
-              <div key={item.name} className="flex items-center justify-between">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.name)}`}>
-                  {item.name}
-                </span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-24 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
-                      style={{ width: `${item.percentage}%` }}
-                    />
+          {licenseStatsLoading ? (
+            <StatusChartSkeleton count={3} /> // Affiche 3 barres pour l'exemple
+
+          ) : (
+            <div className="space-y-3">
+              {licenseStats?.chart_data?.statuses?.map((item) => (
+                <div key={item.name} className="flex items-center justify-between">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.name)}`}>
+                    {item.name}
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${item.percentage}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600 w-12">{item.value}</span>
                   </div>
-                  <span className="text-sm text-gray-600 w-12">{item.value}</span>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Statistiques des équipements */}
         <div className="bg-white shadow rounded-lg p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Statuts des Équipements</h3>
-          <div className="space-y-3">
-            {equipmentStats?.chart_data?.statuses?.map((item) => (
-              <div key={item.name} className="flex items-center justify-between">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.name)}`}>
-                  {item.name}
-                </span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-24 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-600 h-2 rounded-full" 
-                      style={{ width: `${item.percentage}%` }}
-                    />
+          {equipmentStatsLoading ? (
+              <StatusChartSkeleton count={3} /> // Affiche 3 barres pour l'exemple
+          ) : (
+            <div className="space-y-3">
+              {equipmentStats?.chart_data?.statuses?.map((item) => (
+                <div key={item.name} className="flex items-center justify-between">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.name)}`}>
+                    {item.name}
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full" 
+                        style={{ width: `${item.percentage}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600 w-12">{item.value}</span>
                   </div>
-                  <span className="text-sm text-gray-600 w-12">{item.value}</span>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -512,7 +469,7 @@ export default function ReportsPage() {
               )}
               
               <button
-                onClick={() => generateReport()}
+                onClick={() => handleGenerateReport()}
                 disabled={isGenerating}
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -522,7 +479,7 @@ export default function ReportsPage() {
                   <>
                     {reportConfig.format === 'json' && <BarChart3 className="w-4 h-4 mr-2" />}
                     {reportConfig.format === 'csv' && <FileSpreadsheet className="w-4 h-4 mr-2" />}
-                    {reportConfig.format === 'pdf' && <FaRegFilePdf />}
+                    {reportConfig.format === 'pdf' && <FaRegFilePdf className="w-4 h-4 mr-2" />}
                   </>
                 )}
                 {isGenerating ? 'Génération...' : `Générer ${reportConfig.format.toUpperCase()}`}
@@ -569,33 +526,27 @@ export default function ReportsPage() {
             
             <div className="flex space-x-2">
               <button
-                onClick={() => generateReport({ format: 'pdf' })}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                onClick={() => handleDownloadCurrentReport('pdf')}
+                disabled={isGenerating}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
               >
-                <FaRegFilePdf />
+                <FaRegFilePdf className="w-4 h-4 mr-2" />
                 PDF
               </button>
               
               <button
-                onClick={() => generateReport({ format: 'csv' })}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                onClick={() => handleDownloadCurrentReport('csv')}
+                disabled={isGenerating}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
               >
                 <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
                 CSV
               </button>
               
               <button
-                onClick={() => {
-                  const dataStr = JSON.stringify(reportData, null, 2)
-                  const dataBlob = new Blob([dataStr], { type: 'application/json' })
-                  const url = URL.createObjectURL(dataBlob)
-                  const link = document.createElement('a')
-                  link.href = url
-                  link.download = `${reportData.title.toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`
-                  link.click()
-                  URL.revokeObjectURL(url)
-                }}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                onClick={() => handleDownloadCurrentReport('json')}
+                disabled={isGenerating}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
                 <Download className="w-4 h-4 mr-2" />
                 JSON
@@ -670,7 +621,7 @@ export default function ReportsPage() {
                     {reportConfig.type === 'licenses' ? (
                       <>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {item.license_name}
+                          {item.license_name || item.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {item.editor || 'N/A'}
@@ -700,7 +651,7 @@ export default function ReportsPage() {
                     ) : (
                       <>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {item.equipment_name}
+                          {item.equipment_name || item.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {item.type}
@@ -719,7 +670,7 @@ export default function ReportsPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.obsolescence_date ? formatDate(item.obsolescence_date) : 'N/A'}
+                          {item.obsolescence_date || item.estimated_obsolescence_date ? formatDate(item.obsolescence_date || item.estimated_obsolescence_date) : 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <span className={item.days_until_obsolescence < 0 ? 'text-red-600 font-medium' : item.days_until_obsolescence <= 30 ? 'text-orange-600 font-medium' : 'text-gray-500'}>
@@ -764,32 +715,19 @@ export default function ReportsPage() {
               </div>
               <div className="flex space-x-2">
                 <button
-                  onClick={() => generateReport({ 
-                    type: 'licenses', 
-                    status: 'expired', 
-                    format: 'csv',
-                    clientId: '',
-                    dateFrom: '',
-                    dateTo: ''
-                  })}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  onClick={() => handleQuickReport('expired-licenses', 'csv')}
+                  disabled={isGenerating}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <FileSpreadsheet className="w-3 h-3 mr-1" />
                   CSV
                 </button>
                 <button
-                  onClick={() => generateReport({ 
-                    type: 'licenses', 
-                    status: 'expired', 
-                    format: 'pdf',
-                    clientId: '',
-                    dateFrom: '',
-                    dateTo: ''
-                  })}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  onClick={() => handleQuickReport('expired-licenses', 'pdf')}
+                  disabled={isGenerating}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
-                  <FaRegFilePdf />
-
+                  <FaRegFilePdf className="w-3 h-3 mr-1" />
                   PDF
                 </button>
               </div>
@@ -803,32 +741,19 @@ export default function ReportsPage() {
               </div>
               <div className="flex space-x-2">
                 <button
-                  onClick={() => generateReport({ 
-                    type: 'equipment', 
-                    status: 'obsolete', 
-                    format: 'csv',
-                    clientId: '',
-                    dateFrom: '',
-                    dateTo: ''
-                  })}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  onClick={() => handleQuickReport('obsolete-equipment', 'csv')}
+                  disabled={isGenerating}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <FileSpreadsheet className="w-3 h-3 mr-1" />
                   CSV
                 </button>
                 <button
-                  onClick={() => generateReport({ 
-                    type: 'equipment', 
-                    status: 'obsolete', 
-                    format: 'pdf',
-                    clientId: '',
-                    dateFrom: '',
-                    dateTo: ''
-                  })}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  onClick={() => handleQuickReport('obsolete-equipment', 'pdf')}
+                  disabled={isGenerating}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
-                  <FaRegFilePdf />
-
+                  <FaRegFilePdf className="w-3 h-3 mr-1" />
                   PDF
                 </button>
               </div>
@@ -842,32 +767,19 @@ export default function ReportsPage() {
               </div>
               <div className="flex space-x-2">
                 <button
-                  onClick={() => generateReport({ 
-                    type: 'licenses', 
-                    status: 'about_to_expire', 
-                    format: 'csv',
-                    clientId: '',
-                    dateFrom: '',
-                    dateTo: ''
-                  })}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  onClick={() => handleQuickReport('expiring-soon', 'csv')}
+                  disabled={isGenerating}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <FileSpreadsheet className="w-3 h-3 mr-1" />
                   CSV
                 </button>
                 <button
-                  onClick={() => generateReport({ 
-                    type: 'licenses', 
-                    status: 'about_to_expire', 
-                    format: 'pdf',
-                    clientId: '',
-                    dateFrom: '',
-                    dateTo: ''
-                  })}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  onClick={() => handleQuickReport('expiring-soon', 'pdf')}
+                  disabled={isGenerating}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
-                  <FaRegFilePdf />
-
+                  <FaRegFilePdf className="w-3 h-3 mr-1" />
                   PDF
                 </button>
               </div>
