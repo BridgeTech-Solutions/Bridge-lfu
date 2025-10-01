@@ -4,16 +4,12 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 
-// interface Params {
-//   params: { licenseId: string }
-// }
-
 // GET /api/licenses/[id]/attachments - Récupérer les pièces jointes d'une licence
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function GET(request: NextRequest, context :any) {
+export async function GET(request: NextRequest, context: any) {
   try {
     const user = await getCurrentUser();
-      const { licenseId } = await context.params;
+    const { licenseId } = await context.params;
 
     if (!user) {
       return NextResponse.json(
@@ -80,10 +76,11 @@ export async function GET(request: NextRequest, context :any) {
 
 // POST /api/licenses/[id]/attachments - Ajouter une pièce jointe à une licence
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function POST(request: NextRequest,  context :any) {
-  const { licenseId } = await context.params;
-    try {
+export async function POST(request: NextRequest, context: any) {
+  try {
     const user = await getCurrentUser();
+    const { licenseId } = await context.params;
+
     if (!user) {
       return NextResponse.json(
         { message: 'Non authentifié' },
@@ -98,7 +95,7 @@ export async function POST(request: NextRequest,  context :any) {
     const { data: license, error: licenseError } = await supabase
       .from('licenses')
       .select('*')
-      .eq('id',licenseId)
+      .eq('id', licenseId)
       .single();
 
     if (licenseError || !license) {
@@ -154,15 +151,14 @@ export async function POST(request: NextRequest,  context :any) {
       );
     }
 
-    // Générer un nom de fichier unique
+    // CORRECTION : Générer un nom de fichier unique SANS le préfixe du bucket
     const fileExtension = file.name.split('.').pop();
     const fileName = `${licenseId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
-    const bucketPath = `license-attachments/${fileName}`;
 
-    // Upload vers Supabase Storage
+    // CORRECTION : Upload vers Supabase Storage - SANS le préfixe du bucket
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('license-attachments')
-      .upload(bucketPath, file, {
+      .upload(fileName, file, {  // Utilisez fileName directement
         cacheControl: '3600',
         upsert: false
       });
@@ -181,7 +177,7 @@ export async function POST(request: NextRequest,  context :any) {
       .insert({
         license_id: licenseId,
         file_name: file.name,
-        file_url: uploadData.path,
+        file_url: uploadData.path, // CORRECTION : Ce chemin ne contient pas le préfixe du bucket
         file_type: fileType,
         file_size: file.size,
         uploaded_by: user.id
@@ -191,7 +187,7 @@ export async function POST(request: NextRequest,  context :any) {
 
     if (attachmentError) {
       // Supprimer le fichier uploadé en cas d'erreur
-      await supabase.storage.from('license-attachments').remove([bucketPath]);
+      await supabase.storage.from('license-attachments').remove([uploadData.path]);
       
       console.error('Erreur lors de la création de la pièce jointe:', attachmentError);
       return NextResponse.json(

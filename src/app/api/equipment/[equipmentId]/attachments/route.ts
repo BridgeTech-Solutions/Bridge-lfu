@@ -8,9 +8,10 @@ import { PermissionChecker } from '@/lib/auth/permissions';
 
 // GET /api/equipment/[id]/attachments - Récupérer les pièces jointes d'un équipement
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function GET(request: NextRequest, { params } : any) {
+export async function GET(request: NextRequest, context: any) {
   try {
     const user = await getCurrentUser();
+    const { equipmentId } = await context.params;
     if (!user) {
       return NextResponse.json(
         { message: 'Non authentifié' },
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest, { params } : any) {
     const { data: equipment, error: equipmentError } = await supabase
       .from('equipment')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', equipmentId)
       .single();
 
     if (equipmentError || !equipment) {
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest, { params } : any) {
           last_name
         )
       `)
-      .eq('equipment_id', params.id)
+      .eq('equipment_id', equipmentId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest, { params } : any) {
     return NextResponse.json(attachments);
 
   } catch (error) {
-    console.error('Erreur API GET /equipment/[id]/attachments:', error);
+    console.error('Erreur API GET /equipment/[equipmentId]/attachments:', error);
     return NextResponse.json(
       { message: 'Erreur interne du serveur' },
       { status: 500 }
@@ -74,11 +75,13 @@ export async function GET(request: NextRequest, { params } : any) {
   }
 }
 
-// POST /api/equipment/[id]/attachments - Ajouter une pièce jointe à un équipement
+// POST /api/equipment/[equipmentId]/attachments - Ajouter une pièce jointe à un équipement
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function POST(request: NextRequest, { params }: any) {
+export async function POST(request: NextRequest, context: any) {
   try {
     const user = await getCurrentUser();
+    const { equipmentId } = await context.params;
+
     if (!user) {
       return NextResponse.json(
         { message: 'Non authentifié' },
@@ -93,7 +96,7 @@ export async function POST(request: NextRequest, { params }: any) {
     const { data: equipment, error: equipmentError } = await supabase
       .from('equipment')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', equipmentId)
       .single();
 
     if (equipmentError || !equipment) {
@@ -150,14 +153,14 @@ export async function POST(request: NextRequest, { params }: any) {
     }
 
     // Générer un nom de fichier unique
+    // Générer un nom de fichier unique
     const fileExtension = file.name.split('.').pop();
-    const fileName = `${params.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
-    const bucketPath = `equipment-attachments/${fileName}`;
+    const fileName = `${equipmentId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
 
-    // Upload vers Supabase Storage
+    // Upload vers Supabase Storage - SANS le préfixe du bucket
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('equipment-attachments')
-      .upload(bucketPath, file, {
+      .upload(fileName, file, {  // Utilisez fileName au lieu de bucketPath
         cacheControl: '3600',
         upsert: false
       });
@@ -174,9 +177,9 @@ export async function POST(request: NextRequest, { params }: any) {
     const { data: attachment, error: attachmentError } = await supabase
       .from('equipment_attachments')
       .insert({
-        equipment_id: params.id,
+        equipment_id: equipmentId,
         file_name: file.name,
-        file_url: uploadData.path,
+        file_url: uploadData.path, // Ce chemin ne contient pas le préfixe du bucket
         file_type: fileType,
         file_size: file.size,
         uploaded_by: user.id
@@ -186,7 +189,7 @@ export async function POST(request: NextRequest, { params }: any) {
 
     if (attachmentError) {
       // Supprimer le fichier uploadé en cas d'erreur
-      await supabase.storage.from('equipment-attachments').remove([bucketPath]);
+      await supabase.storage.from('equipment-attachments').remove([uploadData.path]);
       
       console.error('Erreur lors de la création de la pièce jointe:', attachmentError);
       return NextResponse.json(
@@ -198,7 +201,7 @@ export async function POST(request: NextRequest, { params }: any) {
     return NextResponse.json(attachment, { status: 201 });
 
   } catch (error) {
-    console.error('Erreur API POST /equipment/[id]/attachments:', error);
+    console.error('Erreur API POST /equipment/[equipmentId]/attachments:', error);
     return NextResponse.json(
       { message: 'Erreur interne du serveur' },
       { status: 500 }

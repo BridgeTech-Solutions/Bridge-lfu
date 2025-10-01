@@ -169,7 +169,7 @@ export default function LicenseDetailPage() {
   // Affichage du loading
   if (licenseLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 m-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" disabled>
             <ArrowLeft className="w-4 h-4" />
@@ -574,10 +574,6 @@ export default function LicenseDetailPage() {
                 </Button>
               )}
               
-              <Button variant="outline" className="w-full justify-start" onClick={() => window.print()}>
-                <FileText className="w-4 h-4 mr-2" />
-                Imprimer
-              </Button>
               
               {permissions.can('delete', 'licenses') && (
                 <Button 

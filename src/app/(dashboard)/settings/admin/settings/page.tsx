@@ -50,20 +50,20 @@ const CATEGORIES: Record<string, CategoryConfig> = {
     description: 'Configuration SMTP et notifications email',
     color: 'text-green-600'
   },
-  security: {
-    name: 'security',
-    displayName: 'Sécurité',
-    icon: Shield,
-    description: 'Paramètres de sécurité et authentification',
-    color: 'text-red-600'
-  },
-  ui: {
-    name: 'ui',
-    displayName: 'Interface',
-    icon: Palette,
-    description: 'Personnalisation de l\'interface utilisateur',
-    color: 'text-purple-600'
-  },
+  // security: {
+  //   name: 'security',
+  //   displayName: 'Sécurité',
+  //   icon: Shield,
+  //   description: 'Paramètres de sécurité et authentification',
+  //   color: 'text-red-600'
+  // },
+  // ui: {
+  //   name: 'ui',
+  //   displayName: 'Interface',
+  //   icon: Palette,
+  //   description: 'Personnalisation de l\'interface utilisateur',
+  //   color: 'text-purple-600'
+  // },
   alerts: {
     name: 'alerts',
     displayName: 'Alertes',
@@ -71,20 +71,20 @@ const CATEGORIES: Record<string, CategoryConfig> = {
     description: 'Configuration des alertes et notifications',
     color: 'text-yellow-600'
   },
-  files: {
-    name: 'files',
-    displayName: 'Fichiers',
-    icon: FileText,
-    description: 'Gestion des fichiers et téléchargements',
-    color: 'text-indigo-600'
-  },
-  backup: {
-    name: 'backup',
-    displayName: 'Sauvegarde',
-    icon: Database,
-    description: 'Configuration des sauvegardes automatiques',
-    color: 'text-teal-600'
-  }
+  // files: {
+  //   name: 'files',
+  //   displayName: 'Fichiers',
+  //   icon: FileText,
+  //   description: 'Gestion des fichiers et téléchargements',
+  //   color: 'text-indigo-600'
+  // },
+  // backup: {
+  //   name: 'backup',
+  //   displayName: 'Sauvegarde',
+  //   icon: Database,
+  //   description: 'Configuration des sauvegardes automatiques',
+  //   color: 'text-teal-600'
+  // }
 }
 
 interface SettingFormProps {
@@ -219,14 +219,6 @@ function GeneralSettings({ settings, onSave, isLoading }: Omit<SettingFormProps,
           <option value="fr">Français</option>
           <option value="en">English</option>
         </select>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Switch
-          checked={formData.maintenance_mode}
-          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, maintenance_mode: checked }))}
-        />
-        <Label>Mode maintenance</Label>
       </div>
 
       <Button onClick={handleSubmit} disabled={isLoading}>
@@ -768,16 +760,16 @@ export default function AdminSettingsPage() {
                   isLoading={isUpdating}
                 />
               )}
-              {/* NOUVELLE SECTION À AJOUTER */}
+              {/* NOUVELLE SECTION À AJOUTER
               {selectedCategory === 'backup' && (
                 <BackupSettings
                   settings={categorySettings}
                   onSave={handleSaveSettings}
                   isLoading={isUpdating}
                 />
-              )}
+              )} */}
               {/* MODIFIER CETTE CONDITION */}
-              {!['email', 'general', 'alerts', 'backup'].includes(selectedCategory) && (
+              {!['email', 'general', 'alerts'].includes(selectedCategory) && (
                 <div className="text-center py-8">
                   <SettingsIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">

@@ -5,10 +5,10 @@
   import { PermissionChecker } from '@/lib/auth/permissions';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  export async function GET(request: NextRequest, { params } : any 
+  export async function GET(request: NextRequest, context: { params: Promise<{ equipmentId: string; id: string }> } 
   ) {
     try {
-      const { equipmentId, id } = params;
+      const { equipmentId, id } = await context.params; // 
       const user = await getCurrentUser();
       if (!user) {
         return NextResponse.json(

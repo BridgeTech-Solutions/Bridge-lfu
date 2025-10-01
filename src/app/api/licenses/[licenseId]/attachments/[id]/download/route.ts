@@ -3,13 +3,11 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 
-// interface any {
-//   params: { licenseId: string; id: string }
-// }
+
 //recuperer une piece jointe
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function GET(request: NextRequest, context: { params: Promise<{ licenseId: string; id: string }> }) {
-    const { licenseId, id } = await context.params; // ✅ on attend la Promise
+    const { licenseId, id } = await context.params; 
 
   try {
     const user = await getCurrentUser();

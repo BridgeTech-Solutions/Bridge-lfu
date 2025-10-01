@@ -179,7 +179,7 @@ export async function PUT(request: NextRequest, context: any) {
 export async function DELETE(request: NextRequest, context: any) {
   try {
     const user = await getCurrentUser();
-    const { id: equipmentId } = await context.params;
+    const { equipmentId } = await context.params;
     const forwardedFor = request.headers.get('x-forwarded-for');
     const ipAddress = forwardedFor ? forwardedFor.split(',')[0] : null;
     const userAgent = request.headers.get('user-agent');

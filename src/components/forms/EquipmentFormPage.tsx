@@ -6,9 +6,8 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useQuery } from '@tanstack/react-query'
-import { useEquipmentActions } from '@/hooks/useEquipments'
-import { useClients } from '@/hooks/index'
+import { useEquipment, useEquipmentActions } from '@/hooks/useEquipments'
+import { useClients } from '@/hooks/useClients'
 import { useAuthPermissions } from '@/hooks/index'
 import { 
   Card, 
@@ -19,7 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import  Textarea  from '@/components/ui/textarea'
+import Textarea from '@/components/ui/textarea'
 import { 
   Select, 
   SelectContent, 
@@ -35,9 +34,6 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import { equipmentSchema } from '@/lib/validations'
-
-// Schéma de validation
-
 
 type EquipmentFormData = z.infer<typeof equipmentSchema>
 
@@ -68,29 +64,14 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
   const isEditing = !!equipmentId
   const [submitError, setSubmitError] = useState<string | null>(null)
 
-
-
   // Hook pour récupérer l'équipement existant (en mode édition)
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { data: equipment, isLoading: equipmentLoading } = useQuery({
-    queryKey: ['equipment', equipmentId],
-    queryFn: async () => {
-      if (!equipmentId) return null
-      const response = await fetch(`/api/equipment/${equipmentId}`)
-      if (!response.ok) {
-        throw new Error('Erreur lors de la récupération de l\'équipement')
-      }
-      return response.json()
-    },
-    enabled: isEditing,
-  })
+  const { data: equipment, isLoading: equipmentLoading } = useEquipment(equipmentId || '')
 
   // Hook pour récupérer la liste des clients
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { data: clientsData, isLoading: clientsLoading } = useClients({
-    page: 1,
-    limit: 100, // Récupérer tous les clients pour le select
-  })
+  const { clients: clientsData, loading: clientsLoading } = useClients({
+  page: 1,
+  limit: 100,
+})
 
   // Form hook
   const {
@@ -100,7 +81,6 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
     setValue,
     watch,
     reset,
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   } = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentSchema),
     defaultValues: {
@@ -108,8 +88,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
     },
   })
 
-  // Hook pour les actions
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+  // Hook pour les actions (création et mise à jour)
   const equipmentActions = useEquipmentActions({
     onSuccess: () => {
       router.push(isEditing ? `/equipment/${equipmentId}` : '/equipment')
@@ -120,12 +99,11 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
   })
 
   // Charger les données de l'équipement dans le formulaire (mode édition)
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (equipment && isEditing) {
       reset({
         name: equipment.name || '',
-        type: equipment.type || 'autre',
+        type: equipment.type as any || 'autre',
         brand: equipment.brand || '',
         model: equipment.model || '',
         serial_number: equipment.serial_number || '',
@@ -133,18 +111,17 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
         estimated_obsolescence_date: equipment.estimated_obsolescence_date || '',
         end_of_sale: equipment.end_of_sale || '',
         warranty_end_date: equipment.warranty_end_date || '',
-        cost: equipment.cost || '',
+        cost: equipment.cost || undefined,
         client_id: equipment.client_id || '',
         location: equipment.location || '',
         description: equipment.description || '',
-        status: equipment.status || 'actif',
+        status: equipment.status as any || 'actif',
       })
     }
   }, [equipment, isEditing, reset])
 
   const onSubmit = async (data: EquipmentFormData) => {
     setSubmitError(null)
-      console.log('Données du formulaire:', data); // Debug
 
     const formData = {
       name: data.name,
@@ -160,14 +137,31 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
       client_id: data.client_id,
       location: data.location,
       description: data.description,
-      status: data.status || 'actif',  // assure que ce champ est envoyé
+      status: data.status || 'actif',
     }
-  console.log('Données envoyées à l\'API:', formData); // Debug
 
-    if (isEditing) {
-      equipmentActions.updateEquipment({ id: equipmentId, data: formData })
-    } else {
-      equipmentActions.createEquipment(formData)
+    try {
+      if (isEditing && equipmentId) {
+        await equipmentActions.updateEquipment({ id: equipmentId, data: formData as any })
+      } else {
+        // Pour la création, nous devons utiliser une approche différente
+        // car useEquipmentActions ne retourne pas createEquipment
+        const response = await fetch('/api/equipment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.message || 'Erreur lors de la création')
+        }
+
+        // Succès - redirection
+        router.push('/equipment')
+      }
+    } catch (error: any) {
+      setSubmitError(error.message || 'Une erreur est survenue')
     }
   }
 
@@ -183,12 +177,13 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       {/* En-tête */}
       <div className="flex items-center gap-4 mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
+        <Button 
+          variant="outline" 
+          size="sm" 
           onClick={() => router.back()}
+          className="hover:bg-slate-100"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
+          <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>
         <div>
@@ -386,8 +381,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                     <SelectValue placeholder="Sélectionner un client" />
                   </SelectTrigger>
                   <SelectContent>
-                    {/*  eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {clientsData?.data?.map((client: any) => (
+                    {clientsData?.map((client: any) => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.name}
                       </SelectItem>
@@ -419,6 +413,9 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                     })}
                     placeholder="0.00"
                   />
+                  {errors.cost && (
+                    <p className="text-sm text-red-600 mt-1">{errors.cost.message}</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -429,11 +426,11 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                 <div className="flex flex-col gap-2">
                   <Button
                     type="submit"
-                    disabled={equipmentActions.isCreating || equipmentActions.isUpdating}
+                    disabled={equipmentActions.isUpdating || submitError !== null}
                     className="w-full"
                   >
                     <Save className="h-4 w-4 mr-2" />
-                    {equipmentActions.isCreating || equipmentActions.isUpdating ? (
+                    {equipmentActions.isUpdating ? (
                       'Enregistrement...'
                     ) : (
                       isEditing ? 'Enregistrer les modifications' : 'Créer l\'équipement'

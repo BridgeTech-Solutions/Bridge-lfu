@@ -20,8 +20,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
 import { useAuthPermissions } from '@/hooks'
+import { useClientActions  } from '@/hooks/useClients'
 import type { Client } from '@/types'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 // import { deleteClient } from '@/lib/supabase/client'
 
 interface ClientsTableProps {
@@ -30,14 +31,26 @@ interface ClientsTableProps {
 
 export function ClientsTable({ clients }: ClientsTableProps) {
   const { can } = useAuthPermissions()
-  const queryClient = useQueryClient()
+  // Utilisation du nouveau hook pour les actions sur les clients
+  const { deleteClient, isDeleting } = useClientActions({
+    onSuccess: () => {
+      toast.success('Client supprimé avec succès')
+    },
+    onError: (error) => {
+      toast.error(`Erreur: ${error}`)
+    }
+  })
 
-
-  const handleDelete = (clientId: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce client ?")) {
-      // deleteClientMutation.mutate(clientId)
+  const handleDelete = async (clientId: string, clientName: string) => {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer le client "${clientName}" ?\n\nCette action supprimera également toutes les licences et équipements associés.`)) {
+      try {
+        await deleteClient(clientId)
+      } catch (error) {
+        console.error('Erreur lors de la suppression:', error)
+      }
     }
   }
+
 
   const getInitials = (name: string) => {
     return name
@@ -209,7 +222,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
                       
                       {can('delete', 'clients') && (
                         <DropdownMenuItem
-                          onClick={() => handleDelete(client.id)}
+                          onClick={() => handleDelete(client.id,client.name)}
                           className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />

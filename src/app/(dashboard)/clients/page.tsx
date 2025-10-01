@@ -2,7 +2,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useClients, useDebounce, useSectors } from '@/hooks/index';
+import {  useDebounce } from '@/hooks/index';
+import {   useSectors } from '@/hooks/useClients';
+import {  useClients } from '@/hooks/useClients';
 import { useAuthPermissions } from '@/hooks/index';
 import { ClientsTable } from '@/components/tables/ClientsTable';
 import { Button } from '@/components/ui/button';
@@ -11,8 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Alert } from '@/components/ui/alert';
 import Link from 'next/link';
-import { RocketIcon, Search, Users, Plus, Filter } from 'lucide-react';
-import { Spinner } from '@/components/ui/spinner';
+import { RocketIcon, Search, Users, Plus, Filter, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function ClientsPage() {
@@ -23,17 +24,24 @@ export default function ClientsPage() {
   
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   
-  const { data, isLoading, isError, error } = useClients({
+  // Utilisation du nouveau hook useClients
+  const { 
+    clients, 
+    loading, 
+    error, 
+    stats, 
+    pagination 
+  } = useClients({
     page: currentPage,
     limit: 10,
     search: debouncedSearchTerm,
     sector: selectedSector,
   });
-
+  // Redirection pour les users clients
+  // Hook pour les secteurs
   const { data: sectors, isLoading: isLoadingSectors, isError: isErrorSectors } = useSectors();
 
-
-  if (isLoading || isLoadingSectors) {
+  if (loading || isLoadingSectors) {
     return (
       <div className="min-h-screen p-6">
         {/* Skeleton de l'en-tête */}
@@ -50,26 +58,20 @@ export default function ClientsPage() {
           </div>
         </div>
 
-        {/* Skeleton des informations principales */}
+        {/* Skeleton des statistiques */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Skeleton des informations de contact */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="h-48 bg-gray-200 rounded-lg animate-pulse"></div>
-          </div>
-
-          {/* Skeleton des statistiques et informations */}
-          <div className="space-y-6">
-            <div className="h-48 bg-gray-200 rounded-lg animate-pulse"></div>
-            <div className="h-48 bg-gray-200 rounded-lg animate-pulse"></div>
-          </div>
+          <div className="h-32 bg-gray-200 rounded-lg animate-pulse"></div>
+          <div className="h-32 bg-gray-200 rounded-lg animate-pulse"></div>
+          <div className="h-32 bg-gray-200 rounded-lg animate-pulse"></div>
         </div>
 
-        {/* Skeleton des onglets et listes */}
+        {/* Skeleton du tableau */}
         <div className="h-96 bg-gray-200 rounded-lg animate-pulse"></div>
       </div>
     );
   }
-  if (isError || isErrorSectors) {
+
+  if (error || isErrorSectors) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-6">
         <div className="max-w-2xl mx-auto pt-20">
@@ -79,9 +81,9 @@ export default function ClientsPage() {
               <h3 className="font-bold text-lg">Erreur de chargement</h3>
               <p className="mt-2 text-sm">
                 Une erreur est survenue lors du chargement des clients ou des secteurs.
-                {error instanceof Error && (
+                {error && (
                   <span className="block mt-1 font-mono text-xs bg-red-50 p-2 rounded">
-                    {error.message}
+                    {error}
                   </span>
                 )}
               </p>
@@ -92,9 +94,8 @@ export default function ClientsPage() {
     );
   }
 
-  const clients = data?.data || [];
-  const totalItems = data?.count || 0;
-  const totalPages = Math.ceil(totalItems / 10);
+  const totalItems = pagination?.count || 0;
+  const totalPages = pagination?.totalPages || 1;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
@@ -128,7 +129,7 @@ export default function ClientsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-600">Total Clients</p>
-                    <p className="text-3xl font-bold text-slate-800">{totalItems}</p>
+                    <p className="text-3xl font-bold text-slate-800">{stats.total}</p>
                   </div>
                   <Users className="h-12 w-12 text-blue-500" />
                 </div>
@@ -140,7 +141,7 @@ export default function ClientsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-600">Secteurs</p>
-                    <p className="text-3xl font-bold text-slate-800">{sectors?.length || 0}</p>
+                    <p className="text-3xl font-bold text-slate-800">{Object.keys(stats.bySector).length}</p>
                   </div>
                   <Filter className="h-12 w-12 text-green-500" />
                 </div>
@@ -151,10 +152,11 @@ export default function ClientsPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-600">Page Actuelle</p>
-                    <p className="text-3xl font-bold text-slate-800">{currentPage}/{totalPages}</p>
+                    <p className="text-sm font-medium text-slate-600">Clients Récents</p>
+                    <p className="text-3xl font-bold text-slate-800">{stats.recent}</p>
+                    <p className="text-xs text-slate-500 mt-1">30 derniers jours</p>
                   </div>
-                  <Search className="h-12 w-12 text-purple-500" />
+                  <TrendingUp className="h-12 w-12 text-purple-500" />
                 </div>
               </CardContent>
             </Card>

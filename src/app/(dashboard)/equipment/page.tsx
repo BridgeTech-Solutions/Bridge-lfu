@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   Search, 
   Filter, 
@@ -19,7 +18,6 @@ import {
   XCircle,
   Server
 } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,44 +38,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useAuthPermissions } from '@/hooks'
-
-// Types pour les équipements
-interface Equipment {
-  id: string
-  name: string
-  type: 'pc' | 'serveur' | 'routeur' | 'switch' | 'imprimante' | 'autre'
-  brand?: string
-  model?: string
-  serial_number?: string
-  purchase_date?: string
-  warranty_end_date?: string
-  estimated_obsolescence_date?: string
-  status: 'actif' | 'en_maintenance' | 'obsolete' | 'bientot_obsolete' | 'retire'
-  cost?: number
-  location?: string
-  description?: string
-  client_id: string
-  client_name?: string
-  created_at: string
-  updated_at: string
-}
-
-interface EquipmentResponse {
-  data: Equipment[]
-  count: number
-  page: number
-  totalPages: number
-  hasMore: boolean
-}
-
-interface Client {
-  id: string
-  name: string
-}
+import {  useClients } from '@/hooks/useClients'
+import { useEquipments } from '@/hooks/useEquipments'
 
 export default function EquipmentPage() {
   const router = useRouter()
-  const queryClient = useQueryClient()
   const permissions = useAuthPermissions()
   
   // États locaux
@@ -88,101 +53,60 @@ export default function EquipmentPage() {
   const [page, setPage] = useState(1)
   const [limit] = useState(10)
   const [showFilters, setShowFilters] = useState(false)
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; equipment: Equipment | null }>({
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; equipmentId: string | null; equipmentName: string | null }>({
     open: false,
-    equipment: null
+    equipmentId: null,
+    equipmentName: null
+  })
+
+  // Utilisation du hook useEquipments
+  const { 
+    equipment,
+    loading: isLoading,
+    error,
+    stats,
+      exportEquipment,
+      isExporting,
+    pagination,
+    deleteEquipment,
+    refreshStatuses,
+    isDeleting,
+    isRefreshing,
+    refetch
+  } = useEquipments({
+    page,
+    limit,
+    search: searchTerm,
+    status: selectedStatus,
+    clientId: selectedClient,
+    type: selectedType
   })
 
   // Récupération des clients pour le filtre
-  const { data: clients = [] } = useQuery<Client[]>({
-    queryKey: ['clients'],
-    queryFn: async () => {
-      const response = await fetch('/api/clients')
-      if (!response.ok) throw new Error('Erreur lors de la récupération des clients')
-      const data = await response.json()
-      return data.data || []
-    },
-    enabled: permissions.canViewAllData()
+  const {     clients: clientsData } = useClients({
+    page: 1,
+    limit: 100
   })
+  const clients = clientsData || []
 
-  // Récupération des équipements
-  const { 
-    data: equipmentData, 
-    isLoading, 
-    error,
-    refetch 
-  } = useQuery<EquipmentResponse>({
-    queryKey: ['equipment', { 
-      search: searchTerm, 
-      type: selectedType, 
-      status: selectedStatus,
-      client_id: selectedClient,
-      page, 
-      limit 
-    }],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString()
-      })
-      
-      if (searchTerm) params.append('search', searchTerm)
-      if (selectedType) params.append('type', selectedType)
-      if (selectedStatus) params.append('status', selectedStatus)
-      if (selectedClient) params.append('client_id', selectedClient)
 
-      const response = await fetch(`/api/equipment?${params.toString()}`)
-      if (!response.ok) {
-        throw new Error('Erreur lors de la récupération des équipements')
-      }
-      return response.json()
-    }
-  })
-
-  // Mutation pour supprimer un équipement
-  const deleteEquipmentMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetch(`/api/equipment/${id}`, {
-        method: 'DELETE'
-      })
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Erreur lors de la suppression')
-      }
-    },
-    onSuccess: () => {
-      toast.success('Équipement supprimé avec succès')
-      queryClient.invalidateQueries({ queryKey: ['equipment'] })
-      setDeleteDialog({ open: false, equipment: null })
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Erreur lors de la suppression')
-    }
-  })
-
-  // Mutation pour rafraîchir les statuts
-  const refreshStatusMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/api/equipment/refresh-status', {
-        method: 'PUT'
-      })
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Erreur lors du rafraîchissement')
-      }
-      return response.json()
-    },
-    onSuccess: (data) => {
-      toast.success(data.message || 'Statuts mis à jour')
-      queryClient.invalidateQueries({ queryKey: ['equipment'] })
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Erreur lors du rafraîchissement')
-    }
-  })
-
+const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
+  try {
+    await exportEquipment({
+      params: {
+        search: searchTerm,
+        status: selectedStatus,
+        clientId: selectedClient,
+        type: selectedType
+      },
+      format
+    })
+  } catch (error) {
+    // L'erreur est déjà gérée par le hook
+  }
+}
   // Fonction pour obtenir l'icône et la couleur du statut
-  const getStatusDisplay = (status: Equipment['status']) => {
+  const getStatusDisplay = (status: string) => {
     switch (status) {
       case 'actif':
         return { icon: CheckCircle, color: 'success', label: 'Actif' }
@@ -200,7 +124,7 @@ export default function EquipmentPage() {
   }
 
   // Fonction pour obtenir l'icône du type
-  const getTypeIcon = (type: Equipment['type']) => {
+  const getTypeIcon = (type: string) => {
     switch (type) {
       case 'pc':
         return '💻'
@@ -231,16 +155,67 @@ export default function EquipmentPage() {
       currency: 'XAF' 
     }).format(cost)
   }
+  // composant Skeleton
+  const EquipmentSkeleton = () => (
+    <div className="space-y-6 animate-pulse">
 
+
+      {/* Squelette du Tableau */}
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            {/* Squelette de l'en-tête du tableau */}
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                {['Équipement', 'Type', 'Statut', 'Obsolescence', 'Coût', 'Actions'].map((header) => (
+                  <th key={header} className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            {/* Squelette des lignes du tableau */}
+            <tbody className="bg-white divide-y divide-gray-200">
+              {[...Array(limit)].map((_, index) => ( // Utiliser 'limit' (10) pour simuler 10 lignes
+                <tr key={index} className="h-16">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="h-6 w-6 rounded-full bg-gray-200 mr-3"></div>
+                      <div className="space-y-1">
+                        <div className="h-4 bg-gray-200 rounded w-32"></div>
+                        <div className="h-3 bg-gray-200 rounded w-40"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-16"></div></td>
+                  <td className="px-6 py-4"><div className="h-6 bg-gray-200 rounded w-24"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                  <td className="px-6 py-4 text-right"><div className="h-8 w-8 ml-auto bg-gray-200 rounded-full"></div></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Squelette de la pagination */}
+      <div className="px-6 py-4 border-t bg-gray-50">
+        <div className="flex items-center justify-between">
+          <div className="h-4 bg-gray-200 rounded w-60"></div>
+          <div className="flex space-x-2">
+            <div className="h-8 w-24 bg-gray-200 rounded-md"></div>
+            <div className="h-8 w-20 bg-gray-200 rounded-md"></div>
+            <div className="h-8 w-24 bg-gray-200 rounded-md"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   // Réinitialiser la page quand les filtres changent
   useEffect(() => {
     setPage(1)
   }, [searchTerm, selectedType, selectedStatus, selectedClient])
-
-  // Calculs dérivés
-  const equipment = equipmentData?.data || []
-  const totalCount = equipmentData?.count || 0
-  const totalPages = equipmentData?.totalPages || 1
 
   const activeFiltersCount = useMemo(() => {
     let count = 0
@@ -252,13 +227,18 @@ export default function EquipmentPage() {
   }, [searchTerm, selectedType, selectedStatus, selectedClient])
 
   // Fonctions de gestion
-  const handleDeleteEquipment = (equipment: Equipment) => {
-    setDeleteDialog({ open: true, equipment })
+  const handleDeleteEquipment = (equipmentId: string, equipmentName: string) => {
+    setDeleteDialog({ open: true, equipmentId, equipmentName })
   }
 
-  const confirmDelete = () => {
-    if (deleteDialog.equipment) {
-      deleteEquipmentMutation.mutate(deleteDialog.equipment.id)
+  const confirmDelete = async () => {
+    if (deleteDialog.equipmentId) {
+      try {
+        await deleteEquipment(deleteDialog.equipmentId)
+        setDeleteDialog({ open: false, equipmentId: null, equipmentName: null })
+      } catch (error) {
+        // L'erreur est déjà gérée par le hook
+      }
     }
   }
 
@@ -269,8 +249,12 @@ export default function EquipmentPage() {
     setSelectedClient('')
   }
 
-  const handleRefreshStatus = () => {
-    refreshStatusMutation.mutate()
+  const handleRefreshStatus = async () => {
+    try {
+      await refreshStatuses()
+    } catch (error) {
+      // L'erreur est déjà gérée par le hook
+    }
   }
 
   if (error) {
@@ -280,6 +264,7 @@ export default function EquipmentPage() {
           <div className="text-red-600 mb-4">
             <XCircle className="h-12 w-12 mx-auto mb-2" />
             <p>Erreur lors du chargement des équipements</p>
+            <p className="text-sm mt-2">{error}</p>
           </div>
           <Button onClick={() => refetch()}>
             Réessayer
@@ -296,7 +281,7 @@ export default function EquipmentPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Équipements</h1>
           <p className="text-gray-600 mt-1">
-            Gestion des équipements informatiques ({totalCount} équipement{totalCount !== 1 ? 's' : ''})
+            Gestion des équipements informatiques ({pagination?.count || 0} équipement{(pagination?.count || 0) !== 1 ? 's' : ''})
           </p>
         </div>
         
@@ -305,18 +290,36 @@ export default function EquipmentPage() {
             <Button
               onClick={handleRefreshStatus}
               variant="outline"
-              disabled={refreshStatusMutation.isPending}
+              disabled={isRefreshing}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshStatusMutation.isPending ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Rafraîchir statuts
             </Button>
           )}
           
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Exporter
-          </Button>
-          
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={isExporting}>
+                <Download className={`h-4 w-4 mr-2 ${isExporting ? 'animate-bounce' : ''}`} />
+                {isExporting ? 'Export en cours...' : 'Exporter'}
+              </Button>
+            </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport('xlsx')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exporter en Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('csv')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exporter en CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('json')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exporter en JSON
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+          </DropdownMenu>
           {permissions.can('create', 'equipment') && (
             <Button onClick={() => router.push('/equipment/new')}>
               <Plus className="h-4 w-4 mr-2" />
@@ -430,10 +433,7 @@ export default function EquipmentPage() {
       {/* Tableau des équipements */}
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center">
-            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600">Chargement des équipements...</p>
-          </div>
+          <EquipmentSkeleton />
         ) : equipment.length === 0 ? (
           <div className="p-8 text-center">
             <Server className="h-12 w-12 mx-auto mb-4 text-gray-400" />
@@ -445,7 +445,7 @@ export default function EquipmentPage() {
               }
             </p>
             {permissions.can('create', 'equipment') && (
-              <Button onClick={() => router.push('/equipment/create')}>
+              <Button onClick={() => router.push('/equipment/new')}>
                 <Plus className="h-4 w-4 mr-2" />
                 Créer un équipement
               </Button>
@@ -563,8 +563,8 @@ export default function EquipmentPage() {
                               <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem 
-                                  onClick={() => handleDeleteEquipment(item)}
-                                  variant="destructive"
+                                  onClick={() => handleDeleteEquipment(item.id, item.name)}
+                                  className="text-red-600"
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
                                   Supprimer
@@ -583,11 +583,11 @@ export default function EquipmentPage() {
         )}
 
         {/* Pagination */}
-        {equipment.length > 0 && (
+        {equipment.length > 0 && pagination && (
           <div className="px-6 py-4 border-t bg-gray-50">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-700">
-                Affichage de {((page - 1) * limit) + 1} à {Math.min(page * limit, totalCount)} sur {totalCount} résultats
+                Affichage de {((page - 1) * limit) + 1} à {Math.min(page * limit, pagination.count)} sur {pagination.count} résultats
               </div>
               
               <div className="flex items-center space-x-2">
@@ -601,14 +601,14 @@ export default function EquipmentPage() {
                 </Button>
                 
                 <span className="text-sm text-gray-700">
-                  Page {page} sur {totalPages}
+                  Page {page} sur {pagination.totalPages}
                 </span>
                 
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setPage(page + 1)}
-                  disabled={page >= totalPages}
+                  disabled={page >= pagination.totalPages}
                 >
                   Suivant
                 </Button>
@@ -624,24 +624,24 @@ export default function EquipmentPage() {
           <DialogHeader>
             <DialogTitle>Confirmer la suppression</DialogTitle>
             <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer l&apos;équipement &quot;{deleteDialog.equipment?.name}&quot; ? 
+              Êtes-vous sûr de vouloir supprimer l&apos;équipement &quot;{deleteDialog.equipmentName}&quot; ? 
               Cette action est irréversible.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end space-x-2 pt-4">
             <Button 
               variant="outline" 
-              onClick={() => setDeleteDialog({ open: false, equipment: null })}
-              disabled={deleteEquipmentMutation.isPending}
+              onClick={() => setDeleteDialog({ open: false, equipmentId: null, equipmentName: null })}
+              disabled={isDeleting}
             >
               Annuler
             </Button>
             <Button 
               variant="destructive" 
               onClick={confirmDelete}
-              disabled={deleteEquipmentMutation.isPending}
+              disabled={isDeleting}
             >
-              {deleteEquipmentMutation.isPending ? 'Suppression...' : 'Supprimer'}
+              {isDeleting ? 'Suppression...' : 'Supprimer'}
             </Button>
           </div>
         </DialogContent>

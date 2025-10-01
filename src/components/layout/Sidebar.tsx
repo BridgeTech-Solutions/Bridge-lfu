@@ -1,23 +1,49 @@
-  'use client'
+'use client'
 
-  import { useState } from 'react'
-  import { usePathname } from 'next/navigation'
-  import Link from 'next/link'
-  import { cn } from '@/lib/utils'
-  import { useAuthPermissions } from '@/hooks'
-  import {
-    LayoutDashboard,
-    Users,
-    Shield,
-    Server,
-    Bell,
-    FileText,
-    Settings,
-    ChevronLeft,
-    ChevronRight,
-    HelpCircle,
-    User 
-  } from 'lucide-react'
+import { useState } from 'react'
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { cn } from '@/lib/utils'
+import { useAuthPermissions } from '@/hooks'
+import { useAuth } from '@/hooks/useAuth'
+import {
+  LayoutDashboard,
+  Users,
+  Shield,
+  Server,
+  Bell,
+  FileText,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  HelpCircle,
+  User,
+  Building
+} from 'lucide-react'
+
+export function Sidebar() {
+  const [collapsed, setCollapsed] = useState(false)
+  const pathname = usePathname()
+  const permissions = useAuthPermissions()
+  const { user } = useAuth()
+
+  // Déterminer le lien et le label pour la section client
+  const getClientNavItem = () => {
+    if (user?.role === 'client' && user?.client_id) {
+      return {
+        name: 'Mon Entreprise',
+        href: `/my-company`,
+        icon: Building,
+      }
+    }
+    return {
+      name: 'Clients',
+      href: '/clients',
+      icon: Users,
+    }
+  }
+
+  const clientNavItem = getClientNavItem()
 
   const navigationItems = [
     {
@@ -26,23 +52,16 @@
       icon: LayoutDashboard,
       permissions: { resource: 'dashboard', action: 'read' }
     },
-    {
-      name: 'Clients',
-      href: '/clients',
-      icon: Users,
-      // permissions: { resource: 'clients', action: 'read' }
-    },
+    clientNavItem, // Utiliser l'item dynamique
     {
       name: 'Licences',
       href: '/licenses',
       icon: Shield,
-      // permissions: { resource: 'licenses', action: 'read' }
     },
     {
       name: 'Équipements',
       href: '/equipment',
       icon: Server,
-      // permissions: { resource: 'equipment', action: 'read' }
     },
     {
       name: 'Notifications',
@@ -59,7 +78,7 @@
     {
       name: 'Utilisateurs',
       href: '/users',
-      icon: User ,
+      icon: User,
       permissions: { resource: 'users', action: 'read' }
     },
   ]
@@ -77,110 +96,65 @@
     },
   ]
 
-  export function Sidebar() {
-    const [collapsed, setCollapsed] = useState(false)
-    const pathname = usePathname()
-    const permissions = useAuthPermissions()
-
-  //   const isActiveRoute = (href: string) => {
-  //     if (href === '/dashboard') {
-  //       return pathname === href
-  //     }
-  //     return pathname.startsWith(href)
-  //   }
   const isActiveRoute = (href: string) => {
     if (href === '/dashboard') return pathname === href
+    
+    // Pour les clients, considérer actif si on est sur la page détail de leur client
+    if (user?.role === 'client' && user?.client_id && href.includes(user.client_id)) {
+      return pathname.includes(`/clients/${user.client_id}`)
+    }
+    
     return pathname.startsWith(href)
   }
 
-      // const isActiveRoute = (href: string) => {
-      // if (href === '/dashboard') {
-      //     return pathname === '/dashboard' || pathname === '/dashboard/'
-      // }
-      // return pathname.startsWith(href)
-      // }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const canAccessRoute = (item: any) => {
-      if (!item.permissions) return true
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const canAccessRoute = (item: any) => {
+    if (!item.permissions) return true
 
-      // on force true pour l'affichage de la route
-      // même si la permission est conditionnelle
-      const { action, resource } = item.permissions
-      return permissions.can(action, resource) || hasConditionalPermission(resource)
+    const { action, resource } = item.permissions
+    return permissions.can(action, resource) || hasConditionalPermission(resource)
+  }
+
+  const hasConditionalPermission = (resource: string) => {
+    if (permissions.getPermissions().clientAccess && ['reports', 'notifications'].includes(resource)) {
+      return true
     }
+    return false
+  }
 
-    // petit helper pour "forcer" l'accès au lien dans le menu
-    const hasConditionalPermission = (resource: string) => {
-      // un client a toujours accès aux liens "reports" et "notifications"
-      if (permissions.getPermissions().clientAccess && ['reports', 'notifications'].includes(resource)) {
-        return true
-      }
-      return false
-    }
-
-
-    return (
-      <div className={cn(
-        'bg-white border-r border-gray-200 flex flex-col transition-all duration-300',
-        collapsed ? 'w-16' : 'w-64'
-      )}>
-        {/* Logo and collapse button */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
-          {!collapsed && (
-            <Link href="/dashboard" className="flex items-center space-x-2">
-              <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">B</span>
-              </div>
-              <span className="font-semibold text-gray-900">Bridge LFU</span>
-            </Link>
+  return (
+    <div className={cn(
+      'bg-white border-r border-gray-200 flex flex-col transition-all duration-300',
+      collapsed ? 'w-16' : 'w-64'
+    )}>
+      {/* Logo and collapse button */}
+      <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+        {!collapsed && (
+          <Link href="/dashboard" className="flex items-center space-x-2">
+            <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">B</span>
+            </div>
+            <span className="font-semibold text-gray-900">Bridge LFU</span>
+          </Link>
+        )}
+        
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="p-1.5 rounded-md hover:bg-gray-100 transition-colors"
+        >
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4 text-gray-500" />
+          ) : (
+            <ChevronLeft className="h-4 w-4 text-gray-500" />
           )}
-          
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="p-1.5 rounded-md hover:bg-gray-100 transition-colors"
-          >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4 text-gray-500" />
-            ) : (
-              <ChevronLeft className="h-4 w-4 text-gray-500" />
-            )}
-          </button>
-        </div>
+        </button>
+      </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-          {navigationItems
-            .filter(canAccessRoute)
-            .map((item) => {
-              const Icon = item.icon
-              const active = isActiveRoute(item.href)
-              
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
-                    active
-                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                  )}
-                  title={collapsed ? item.name : undefined}
-                >
-                  <Icon className={cn(
-                    'flex-shrink-0 h-5 w-5',
-                    active ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500',
-                    collapsed ? 'mx-auto' : 'mr-3'
-                  )} />
-                  {!collapsed && item.name}
-                </Link>
-              )
-            })}
-        </nav>
-
-        {/* Bottom navigation */}
-        <div className="border-t border-gray-200 p-2 space-y-1">
-          {bottomNavItems.map((item) => {
+      {/* Navigation */}
+      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+        {navigationItems
+          .filter(canAccessRoute)
+          .map((item) => {
             const Icon = item.icon
             const active = isActiveRoute(item.href)
             
@@ -191,7 +165,7 @@
                 className={cn(
                   'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
                   active
-                    ? 'bg-blue-50 text-blue-700'
+                    ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
                     : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 )}
                 title={collapsed ? item.name : undefined}
@@ -205,7 +179,36 @@
               </Link>
             )
           })}
-        </div>
+      </nav>
+
+      {/* Bottom navigation */}
+      <div className="border-t border-gray-200 p-2 space-y-1">
+        {bottomNavItems.map((item) => {
+          const Icon = item.icon
+          const active = isActiveRoute(item.href)
+          
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={cn(
+                'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
+                active
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+              )}
+              title={collapsed ? item.name : undefined}
+            >
+              <Icon className={cn(
+                'flex-shrink-0 h-5 w-5',
+                active ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500',
+                collapsed ? 'mx-auto' : 'mr-3'
+              )} />
+              {!collapsed && item.name}
+            </Link>
+          )
+        })}
       </div>
-    )
-  }
+    </div>
+  )
+}

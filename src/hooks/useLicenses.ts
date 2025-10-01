@@ -178,7 +178,42 @@ const downloadAttachment = async (licenseId: string, attachmentId: string): Prom
 
   return response.json()
 }
+// Fonction pour exporter les licences
+const exportLicenses = async (params: LicensesParams, format: 'xlsx' | 'csv' | 'json' = 'xlsx'): Promise<void> => {
+  const url = new URL('/api/licenses/export', window.location.origin)
+  
+  if (params.search) url.searchParams.set('search', params.search)
+  if (params.status && params.status !== 'all') url.searchParams.set('status', params.status)
+  if (params.clientId && params.clientId !== 'all') url.searchParams.set('client_id', params.clientId)
+  if (params.editor) url.searchParams.set('editor', params.editor)
+  url.searchParams.set('format', format)
 
+  const response = await fetch(url.toString())
+  
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.message || 'Erreur lors de l\'exportation')
+  }
+
+  const blob = await response.blob()
+  const downloadUrl = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = downloadUrl
+  
+  const extensions = {
+    xlsx: 'xlsx',
+    csv: 'csv',
+    json: 'json'
+  }
+  
+  const fileName = `licences_${new Date().toISOString().split('T')[0]}.${extensions[format]}`
+  link.download = fileName
+  
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(downloadUrl)
+}
 // Hook principal pour la gestion des licences
 export function useLicenses(params: LicensesParams = {}) {
   const { user, loading } = useAuth()
@@ -243,6 +278,16 @@ export function useLicenses(params: LicensesParams = {}) {
       toast.error(error.message)
     }
   })
+  const exportMutation = useMutation({
+    mutationFn: ({ params, format }: { params: LicensesParams, format: 'xlsx' | 'csv' | 'json' }) => 
+      exportLicenses(params, format),
+    onSuccess: () => {
+      toast.success('Exportation réussie')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    }
+  })
 
   return {
     // Données
@@ -261,12 +306,14 @@ export function useLicenses(params: LicensesParams = {}) {
     createLicense: createMutation.mutateAsync,
     updateLicense: updateMutation.mutateAsync,
     deleteLicense: deleteMutation.mutateAsync,
+    exportLicenses: exportMutation.mutateAsync,
     refetch,
     
     // États des mutations
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    isExporting: exportMutation.isPending,
   }
 }
 

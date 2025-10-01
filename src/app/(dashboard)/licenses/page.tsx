@@ -13,13 +13,14 @@ import { PaginationWithLogic, PaginationInfo } from '@/components/ui/pagination'
 import { toast } from 'sonner'
 import { 
   useStablePermissions,
-  useClients, 
   usePagination, 
   useDebounce 
 } from '@/hooks'
 import { useLicenses } from '@/hooks/useLicenses' // Nouveau hook
+import { useClients } from '@/hooks/useClients' // Nouveau hook
 import type { LicenseStatus } from '@/types'
 import { LicenseTable } from '@/components/tables/LicenseTable'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 export default function LicensesPage() {
   const router = useRouter()
@@ -45,7 +46,9 @@ export default function LicensesPage() {
     pagination,
     refetch: refetchLicenses,
     deleteLicense,
-    isDeleting
+    isDeleting,
+    exportLicenses,
+    isExporting
   } = useLicenses({
     page,
     limit,
@@ -56,8 +59,8 @@ export default function LicensesPage() {
   })
   
   const { 
-    data: clientsData, 
-    isLoading: isClientsLoading 
+    clients: clientsData, 
+    loading: isClientsLoading 
   } = useClients({
     page: 1,
     limit: 999, // On charge tous les clients pour les filtres
@@ -66,38 +69,21 @@ export default function LicensesPage() {
   })
 
   // Gestion de l'export
-  const handleExport = async () => {
-    try {
-      const params = new URLSearchParams({
-        search: debouncedSearch,
-        status: statusFilter,
-        clientId: clientFilter,
-        editor: debouncedEditorFilter
-      })
-      
-      const response = await fetch(`/api/licenses/export?${params}`)
-      
-      if (!response.ok) {
-        throw new Error("Erreur lors de l'exportation des données.")
+    const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
+      try {
+        await exportLicenses({
+          params: {
+            search: debouncedSearch,
+            status: statusFilter === 'all' ? undefined : statusFilter,
+            clientId: clientFilter === 'all' ? undefined : clientFilter,
+            editor: debouncedEditorFilter
+          },
+          format
+        })
+      } catch (error) {
+        // L'erreur est déjà gérée par le hook
       }
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.style.display = 'none'
-      a.href = url
-      a.download = `licenses-${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      
-      toast.success("Le fichier a été téléchargé avec succès.")
-    } catch (error) {
-      console.error(error)
-      toast.error("Impossible d'exporter les données.")
     }
-  }
-
   // Gestionnaires d'événements du tableau
   const handleEdit = (id: string) => router.push(`/licenses/${id}/edit`)
   const handleView = (id: string) => router.push(`/licenses/${id}`)
@@ -116,7 +102,7 @@ export default function LicensesPage() {
   }
 
   // Données traitées
-  const clients = clientsData?.data || []
+  const clients = clientsData || []
   const totalLicenses = pagination?.count || 0
 
   // Gestion des changements de filtres avec retour à la page 1
@@ -223,10 +209,28 @@ export default function LicensesPage() {
         </div>
         <div className="flex gap-2">
           {permissions.canViewReports && (
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" />
-              Exporter
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={isExporting}>
+                  <Download className={`w-4 h-4 mr-2 ${isExporting ? 'animate-bounce' : ''}`} />
+                  {isExporting ? 'Export en cours...' : 'Exporter'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport('xlsx')}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Exporter en Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('csv')}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Exporter en CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('json')}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Exporter en JSON
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {permissions.can('create', 'licenses') && (
             <Button onClick={() => router.push('/licenses/new')}>

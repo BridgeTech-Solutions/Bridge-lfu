@@ -304,10 +304,6 @@ export default function UserDetailPage() {
             <Shield className="h-4 w-4 mr-2" />
             Permissions
           </TabsTrigger>
-          <TabsTrigger value="notifications">
-            <Bell className="h-4 w-4 mr-2" />
-            Notifications
-          </TabsTrigger>
           {permissions.canViewActivityLogs() && (
             <TabsTrigger value="activity">
               <Activity className="h-4 w-4 mr-2" />
@@ -437,7 +433,7 @@ export default function UserDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* Onglet Notifications */}
+        {/* Onglet Notifications
         <TabsContent value="notifications">
           <Card>
             <CardHeader>
@@ -447,7 +443,7 @@ export default function UserDetailPage() {
               <p className="text-gray-600">Configuration des notifications à implémenter...</p>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
 
         {/* Onglet Activité */}
         {permissions.canViewActivityLogs() && (

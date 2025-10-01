@@ -1,14 +1,16 @@
+// app/(dashboard)/clients/[id]/edit/page.tsx ou /new/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useClient, useAuthPermissions } from '@/hooks/index';
+import { useAuthPermissions } from '@/hooks/index';
+import { useClient, useClientActions } from '@/hooks/useClients';
 import { clientSchema, type ClientInput } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Textarea from "@/components/ui/textarea"; // ✅ Bon
+import Textarea from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -21,15 +23,24 @@ interface ClientFormPageProps {
   mode: 'create' | 'edit';
 }
 
-// Composant principal qui peut être utilisé pour créer ou modifier
 export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps) {
   const params = useParams();
   const router = useRouter();
   const { can } = useAuthPermissions();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const clientId = mode === 'edit' ? params.id as string : null;
+  
+  // Utilisation du nouveau hook useClient pour récupérer les données existantes
   const { data: existingClient, isLoading: loadingClient } = useClient(clientId || '');
+  
+  // Utilisation du hook useClientActions pour les mutations
+  const { updateClient, isUpdating } = useClientActions({
+    onSuccess: () => {
+      if (mode === 'edit' && clientId) {
+        router.push(`/clients/${clientId}`);
+      }
+    }
+  });
 
   const form = useForm<ClientInput>({
     resolver: zodResolver(clientSchema),
@@ -93,36 +104,30 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
   }
 
   const onSubmit = async (data: ClientInput) => {
-    setIsSubmitting(true);
-    
     try {
-      const url = mode === 'create' ? '/api/clients' : `/api/clients/${clientId}`;
-      const method = mode === 'create' ? 'POST' : 'PUT';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+      if (mode === 'edit' && clientId) {
+        // Utilisation du hook pour la mise à jour
+        await updateClient({ id: clientId, data });
+      } else {
+        // Pour la création, appel direct à l'API
+        const response = await fetch('/api/clients', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur lors de la sauvegarde');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erreur lors de la création');
+        }
+
+        const result = await response.json();
+        
+        toast.success('Client créé avec succès !');
+        router.push(`/clients/${result.id}`);
       }
-
-      const result = await response.json();
-      
-      toast.success(
-        mode === 'create' 
-          ? 'Client créé avec succès !' 
-          : 'Client modifié avec succès !'
-      );
-
-      // Redirection vers la page de détail du client
-      router.push(`/clients/${result.id}`);
-      
     } catch (error) {
       console.error('Erreur:', error);
       toast.error(
@@ -130,8 +135,6 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
           ? error.message 
           : 'Une erreur est survenue lors de la sauvegarde'
       );
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -159,6 +162,8 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
     'Tourisme',
     'Autre'
   ];
+
+  const isSubmitting = isUpdating;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">

@@ -8,16 +8,16 @@ import { z } from 'zod'
 import { ArrowLeft, Save, Calendar, DollarSign, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import  Textarea  from '@/components/ui/textarea'
+import Textarea from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useCurrentUser } from '@/hooks/useCurrentUser'
-import { usePermissions } from '@/lib/auth/permissions'
-import { useSupabase as createSupabaseClient } from '@/lib/supabase/client'
-import { LicenseWithClientView, Client } from '@/types'
-import { toast } from 'sonner';
+import { useAuthPermissions } from '@/hooks'
+import { useLicense, useLicenses } from '@/hooks/useLicenses'
+import { useClients } from '@/hooks/useClients'
+import { useAuth } from '@/hooks/useAuth'
+import { toast } from 'sonner'
 
 // Schéma de validation
 const licenseSchema = z.object({
@@ -37,19 +37,20 @@ type LicenseFormData = z.infer<typeof licenseSchema>
 interface LicenseFormPageProps {
   mode: 'create' | 'edit'
 }
-// Définissez un nouveau type pour les clients qui ne contiennent que l'ID et le nom
-type ClientForSelect = Pick<Client, 'id' | 'name'>;
 
 export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
   const router = useRouter()
   const params = useParams()
-    const { user, profile } = useCurrentUser()
-    const permissions = usePermissions(profile)
-  const supabase = createSupabaseClient()
-  const [loading, setLoading] = useState(false)
-  const [initialLoading, setInitialLoading] = useState(mode === 'edit')
-  const [clients, setClients] = useState<ClientForSelect[]>([])
-  const [license, setLicense] = useState<LicenseWithClientView | null>(null)
+  const { user } = useAuth()
+  const permissions = useAuthPermissions()
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const licenseId = mode === 'edit' ? (params.id as string) : ''
+
+  // Hooks pour les données
+  const { data: license, isLoading: licenseLoading } = useLicense(licenseId)
+  const { clients, loading: clientsLoading } = useClients({ page: 1, limit: 100 })
+  const { createLicense, updateLicense, isCreating, isUpdating } = useLicenses()
 
   const form = useForm<LicenseFormData>({
     resolver: zodResolver(licenseSchema),
@@ -66,140 +67,77 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
     }
   })
 
-  // Chargement des données initiales
+  // Charger les données de la licence en mode édition
   useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-
-        // Charger les clients (selon les permissions)
-        let clientsQuery = supabase.from('clients').select('id, name').order('name')
-        
-        // Si utilisateur client, filtrer par son client
-        if (profile?.role === 'client' && profile.client_id) {
-          clientsQuery = clientsQuery.eq('id', profile.client_id)
-        }
-
-        const { data: clientsData } = await clientsQuery
-        setClients(clientsData || [])
-
-        // Pré-sélectionner le client si utilisateur client
-        if (profile?.role === 'client' && profile.client_id) {
-          form.setValue('clientId', profile.client_id)
-        }
-
-        // Si mode édition, charger la licence
-        if (mode === 'edit' && params.id) {
-          const response = await fetch(`/api/licenses/${params.id}`)
-          
-          if (!response.ok) {
-            throw new Error('Licence non trouvée')
-          }
-
-          const licenseData: LicenseWithClientView = await response.json()
-          setLicense(licenseData)
-
-          // Remplir le formulaire
-          form.reset({
-            name: licenseData.name || '',
-            editor: licenseData.editor || '',
-            version: licenseData.version || '',
-            licenseKey: licenseData.license_key || '',
-            purchaseDate: licenseData.purchase_date || '',
-            expiryDate: licenseData.expiry_date || '',
-            cost: licenseData.cost || undefined,
-            clientId: licenseData.client_id || '',
-            description: licenseData.description || ''
-          })
-        }
-      } catch (error) {
-        console.error('Erreur lors du chargement:', error)
-        // toast({
-        //   title: 'Erreur',
-        //   description: 'Impossible de charger les données',
-        //   variant: 'destructive'
-        // })
-     toast.error(
-        'Impossible de charger les données'
-      );
-        router.push('/licenses')
-      } finally {
-        setInitialLoading(false)
-      }
+    if (license && mode === 'edit') {
+      form.reset({
+        name: license.name || '',
+        editor: license.editor || '',
+        version: license.version || '',
+        licenseKey: license.license_key || '',
+        purchaseDate: license.purchase_date || '',
+        expiryDate: license.expiry_date || '',
+        cost: license.cost || undefined,
+        clientId: license.client_id || '',
+        description: license.description || ''
+      })
     }
+  }, [license, mode, form])
 
-    loadInitialData()
-  }, [mode, params.id, profile, form, router])
+  // Pré-sélectionner le client si utilisateur client
+  useEffect(() => {
+    if (user?.role === 'client' && user.client_id && mode === 'create') {
+      form.setValue('clientId', user.client_id)
+    }
+  }, [user, mode, form])
 
   // Vérification des permissions
-  useEffect(() => {
-    if (!profile) return
-
     const action = mode === 'create' ? 'create' : 'update'
-    const resource = 'licenses'
     const resourceData = mode === 'edit' ? license : undefined
 
-    if (!permissions.can(action, resource, resourceData)) {
-    //   toast({
-    //     title: 'Accès refusé',
-    //     description: 'Vous n\'avez pas les permissions nécessaires',
-    //     variant: 'destructive'
-    //   })
-     toast.error(
-        'Accès refusé. Vous n\'avez pas les permissions nécessaires'
-      );     
-      router.push('/licenses')
-
+    if (!permissions.can(action, 'licenses', resourceData)) {
+      // toast.error('Accès refusé. Vous n\'avez pas les permissions nécessaires')
+      // router.push('/licenses')
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-6">
+              <div className="max-w-2xl mx-auto pt-20">
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    Vous n&apos;avez pas les permissions nécessaires pour {mode === 'create' ? 'créer' : 'modifier'} une licence.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            </div>
+          );
     }
-  }, [profile, permissions, mode, license, router])
 
   // Soumission du formulaire
   const onSubmit = async (data: LicenseFormData) => {
+    setSubmitError(null)
+
     try {
-      setLoading(true)
-
-      const url = mode === 'create' ? '/api/licenses' : `/api/licenses/${params.id}`
-      const method = mode === 'create' ? 'POST' : 'PUT'
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: data.name,
-          editor: data.editor || null,
-          version: data.version || null,
-          licenseKey: data.licenseKey || null,
-          purchaseDate: data.purchaseDate || null,
-          expiryDate: data.expiryDate,
-          cost: data.cost || null,
-          clientId: data.clientId,
-          description: data.description || null
-        })
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Erreur lors de la sauvegarde')
+      const formData = {
+        name: data.name,
+        editor: data.editor || undefined,
+        version: data.version || undefined,
+        licenseKey: data.licenseKey || undefined,
+        purchaseDate: data.purchaseDate || undefined,
+        expiryDate: data.expiryDate,
+        cost: data.cost,
+        clientId: data.clientId,
+        description: data.description || undefined
       }
 
-      const result = await response.json()
-
-      toast.success(
-        mode === 'create' 
-          ? 'La licence a été créée avec succès' 
-          : 'La licence a été modifiée avec succès'
-      );
-      router.push(`/licenses/${result.id}`)
+      if (mode === 'create') {
+        const result = await createLicense(formData)
+        router.push(`/licenses/${result.id}`)
+      } else {
+        const result = await updateLicense({ id: licenseId, data: formData })
+        router.push(`/licenses/${result.id}`)
+      }
     } catch (error) {
-      console.error('Erreur lors de la soumission:', error)
-      toast.error(
-        error instanceof Error 
-          ? error.message 
-          : 'Une erreur est survenue lors de la sauvegarde'
-      );
-    } finally {
-      setLoading(false)
+      const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue'
+      setSubmitError(errorMessage)
     }
   }
 
@@ -223,7 +161,10 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
   }
 
   const expiryDateValue = form.watch('expiryDate')
-  const x  = checkExpiryDate(expiryDateValue)
+  const expiryAlert = checkExpiryDate(expiryDateValue)
+
+  // État de chargement initial
+  const initialLoading = (mode === 'edit' && licenseLoading) || clientsLoading
 
   if (initialLoading) {
     return (
@@ -277,6 +218,14 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
           </p>
         </div>
       </div>
+
+      {/* Erreur de soumission */}
+      {submitError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{submitError}</AlertDescription>
+        </Alert>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -356,8 +305,8 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                     <FormLabel>Client *</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      disabled={profile?.role === 'client'}
+                      value={field.value}
+                      disabled={user?.role === 'client'}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -444,23 +393,23 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
               </div>
 
               {/* Alerte date d'expiration */}
-              {x && (
+              {expiryAlert && (
                 <Alert className={
-                  x.type === 'error' ? 'border-red-200 bg-red-50' :
-                  x.type === 'warning' ? 'border-orange-200 bg-orange-50' :
+                  expiryAlert.type === 'error' ? 'border-red-200 bg-red-50' :
+                  expiryAlert.type === 'warning' ? 'border-orange-200 bg-orange-50' :
                   'border-blue-200 bg-blue-50'
                 }>
                   <AlertTriangle className={`h-4 w-4 ${
-                    x.type === 'error' ? 'text-red-600' :
-                    x.type === 'warning' ? 'text-orange-600' :
+                    expiryAlert.type === 'error' ? 'text-red-600' :
+                    expiryAlert.type === 'warning' ? 'text-orange-600' :
                     'text-blue-600'
                   }`} />
                   <AlertDescription className={
-                    x.type === 'error' ? 'text-red-800' :
-                    x.type === 'warning' ? 'text-orange-800' :
+                    expiryAlert.type === 'error' ? 'text-red-800' :
+                    expiryAlert.type === 'warning' ? 'text-orange-800' :
                     'text-blue-800'
                   }>
-                    {x.message}
+                    {expiryAlert.message}
                   </AlertDescription>
                 </Alert>
               )}
@@ -499,12 +448,12 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
               type="button"
               variant="outline"
               onClick={() => router.back()}
-              disabled={loading}
+              disabled={isCreating || isUpdating}
             >
               Annuler
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? (
+            <Button type="submit" disabled={isCreating || isUpdating}>
+              {(isCreating || isUpdating) ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                   {mode === 'create' ? 'Création...' : 'Modification...'}
