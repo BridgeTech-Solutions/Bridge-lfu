@@ -397,7 +397,7 @@ export async function GET(request: NextRequest) {
 
     const statusRow = worksheet.addRow([
       '',
-      `Actifs: ${statusCounts.actif || 0}`,
+      `Actifs: ${statusCounts.actif + statusCounts.bientot_obsolete || 0}`,
       `En maintenance: ${statusCounts.en_maintenance || 0}`,
       `Bientôt obsolètes: ${statusCounts.bientot_obsolete || 0}`,
       `Obsolètes: ${statusCounts.obsolete || 0}`,
@@ -410,7 +410,7 @@ export async function GET(request: NextRequest) {
       equipment.length
     ]);
     statusRow.font = { size: 10 };
-    worksheet.mergeCells(`B${statusRow.number}:F${statusRow.number}`);
+    // worksheet.mergeCells(`B${statusRow.number}:F${statusRow.number}`);
 
     // ============================================
     // GÉNÉRATION DU FICHIER

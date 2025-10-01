@@ -381,7 +381,7 @@ export async function GET(request: NextRequest) {
 
     const statusRow = worksheet.addRow([
       '',
-      `Actives: ${statusCounts.active || 0}`,
+      `Actives: ${statusCounts.active + statusCounts.about_to_expire || 0}`,
       `Bientôt expirées: ${statusCounts.about_to_expire || 0}`,
       `Expirées: ${statusCounts.expired || 0}`,
       `Annulées: ${statusCounts.cancelled || 0}`,
@@ -392,7 +392,7 @@ export async function GET(request: NextRequest) {
       licenses.length
     ]);
     statusRow.font = { size: 10 };
-    worksheet.mergeCells(`B${statusRow.number}:E${statusRow.number}`);
+    // worksheet.mergeCells(`B${statusRow.number}:E${statusRow.number}`);
 
     // Génération du fichier
     const buffer = await workbook.xlsx.writeBuffer();
