@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { usePermissions } from '@/lib/auth/permissions'
-import { Download, FileText, Calendar, Filter, RefreshCw, BarChart3, Users, HardDrive, Key, FileSpreadsheet } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { Download, FileText, RefreshCw, BarChart3, Users, HardDrive, Key, FileSpreadsheet, Calendar } from 'lucide-react'
 import { FaRegFilePdf, FaFileExcel } from "react-icons/fa"
 import { 
   useReports, 
@@ -14,11 +13,7 @@ import {
   useReportNotifications,
   type ReportConfig 
 } from '@/hooks/useReports'
-
-interface Client {
-  id: string
-  name: string
-}
+import { useClients } from '@/hooks/useClients'
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={`bg-gray-200 rounded animate-pulse ${className}`} />;
@@ -47,11 +42,12 @@ export default function ReportsPage() {
   const { 
     isGenerating, 
     reportData, 
-    lastGeneratedConfig, 
     generateReport, 
     downloadCurrentReport, 
     resetReport 
   } = useReports()
+  
+  const { clients, loading: clientsLoading } = useClients()
   
   const { stats: licenseStats, loading: licenseStatsLoading } = useReportsLicenseStats()
   const { stats: equipmentStats, loading: equipmentStatsLoading } = useReportsEquipmentStats()
@@ -76,16 +72,6 @@ export default function ReportsPage() {
     }
   }, [user, permissions]);
 
-  const { data: clients = [] } = useQuery<Client[]>({
-    queryKey: ['clients'],
-    queryFn: async () => {
-      const response = await fetch('/api/clients')
-      if (!response.ok) throw new Error('Erreur lors du chargement des clients')
-      const data = await response.json()
-      return data.clients || []
-    },
-    enabled: permissions.canViewAllData()
-  })
 
   const updateConfig = (key: keyof ReportConfig, value: string) => {
     setReportConfig(prev => ({ ...prev, [key]: value }))
@@ -189,7 +175,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Statistiques en un coup d'œil */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`grid grid-cols-1 gap-5 sm:grid-cols-2 ${permissions.canViewAllData() ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <div className="flex items-center">
@@ -236,8 +222,8 @@ export default function ReportsPage() {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Valeur Totale</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {licenseStatsLoading ? <Skeleton className="w-20 h-6" /> : 
-                      licenseStats?.total_value ? formatCurrency(licenseStats.total_value) : 'N/A'}
+                    {licenseStatsLoading || equipmentStatsLoading ? <Skeleton className="w-20 h-6" /> : 
+                      formatCurrency((licenseStats?.total_value || 0) + (equipmentStats?.total_value || 0))}
                   </dd>
                 </dl>
               </div>
@@ -245,21 +231,25 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Users className="h-6 w-6 text-purple-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Clients</dt>
-                  <dd className="text-lg font-medium text-gray-900">{clients.length}</dd>
-                </dl>
+        {permissions.canViewAllData() && (
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Users className="h-6 w-6 text-purple-400" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Clients</dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {clientsLoading ? <Skeleton className="w-16 h-6" /> : clients.length}
+                    </dd>
+                  </dl>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Graphiques des statistiques */}

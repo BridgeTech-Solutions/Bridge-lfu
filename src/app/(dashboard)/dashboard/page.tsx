@@ -340,8 +340,8 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
         </div>
 
         {/* Stats Grid - AMÉLIORÉ avec les nouvelles données */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stablePermissions.canViewAllData ? (
+        <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${stablePermissions.canViewAllData ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+          {stablePermissions.canViewAllData && (
             loading ? (
               <StatCardSkeleton />
             ) : (
@@ -353,7 +353,7 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
                 href="/clients"
               />
             )
-          ) : null}
+          )}
           {licenseLoading ? (
             <StatCardSkeleton />
           ) : (

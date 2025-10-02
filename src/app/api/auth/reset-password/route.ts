@@ -7,7 +7,6 @@ import { z } from 'zod'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
     // Validation des données
     const validatedData = resetPasswordSchema.parse(body)
     
@@ -23,7 +22,6 @@ export async function POST(request: NextRequest) {
     if (error) {
       return NextResponse.json(
         { error: error.message },
-        { status: 400 }
       )
     }
 

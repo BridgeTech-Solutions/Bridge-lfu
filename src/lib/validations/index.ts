@@ -4,7 +4,7 @@ import { z } from 'zod'
 const emailSchema = z.string().email('Email invalide')
 const phoneSchema = z
   .string()
-  .regex(/^(\+237|6)[0-9]{8}$/, 'Numéro de téléphone invalide')
+  .regex(/^(\+237[6-9][0-9]{8}|[6-9][0-9]{8})$/, 'Numéro de téléphone invalide (ex: +237612345678 ou 612345678)')
   .optional()
   .or(z.literal('')).nullable();
   const passwordSchema = z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères')

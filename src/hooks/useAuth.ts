@@ -208,28 +208,22 @@ const signIn = async (email: string, password: string) => {
       return { error }
     }
   }
-  // const resetPassword = async (email: string) => {
-  //   const response = await fetch('/api/auth/reset-password', {
-  //     method: 'POST',
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //     },
-  //     body: JSON.stringify({ email }),
-  //   })
-
-  //   const data = await response.json()
-
-  //   if (!response.ok) {
-  //     return { data: null, error: { message: data.error || 'Erreur lors de la réinitialisation' } }
-  //   }
-
-  //   return { data, error: null }
-  // }
   const resetPassword = async (email: string) => {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`
+    const response = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
     })
-    return { data, error }
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return { data: null, error: { message: data.error || 'Erreur lors de la réinitialisation' } }
+    }
+
+    return { data, error: null }
   }
 
   const updatePassword = async (currentPassword: string, newPassword: string) => {

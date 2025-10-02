@@ -169,9 +169,8 @@ export class NotificationTriggers {
 
       for (const equipment of equipments) {
         const clients = equipment.clients as Client[] | Client
-        const clientName = Array.isArray(clients) ? clients[0].name : clients.name
 
-        // 🔥 CORRECTION: Récupérer TOUS les utilisateurs concernés
+        // CORRECTION: Récupérer TOUS les utilisateurs concernés
         // 1. Admins et techniciens
         const { data: adminTechProfiles } = await supabase
           .from('profiles')
