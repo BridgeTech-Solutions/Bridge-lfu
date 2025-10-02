@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { usePermissions } from '@/lib/auth/permissions'
 import { Download, FileText, Calendar, Filter, RefreshCw, BarChart3, Users, HardDrive, Key, FileSpreadsheet } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { FaRegFilePdf } from "react-icons/fa"
+import { FaRegFilePdf, FaFileExcel } from "react-icons/fa"
 import { 
   useReports, 
   useReportsLicenseStats, 
@@ -20,23 +20,18 @@ interface Client {
   name: string
 }
 
-// Composant simple de Skeleton pour simuler un bloc de chargement
 function Skeleton({ className }: { className?: string }) {
-  // combine les classes de base avec celles passées en props
   return <div className={`bg-gray-200 rounded animate-pulse ${className}`} />;
 }
-// Composant de Skeleton pour les listes de statuts des licences/équipements
+
 function StatusChartSkeleton({ count = 4 }: { count?: number }) {
   return (
     <div className="space-y-4">
       {Array.from({ length: count }).map((_, index) => (
         <div key={index} className="flex items-center justify-between">
-          {/* Squelette pour le badge de statut */}
           <Skeleton className="w-24 h-5" />
           <div className="flex items-center space-x-2">
-            {/* Squelette pour la barre de pourcentage */}
             <Skeleton className="w-24 h-2" />
-            {/* Squelette pour la valeur (nombre) */}
             <Skeleton className="w-12 h-4" />
           </div>
         </div>
@@ -44,11 +39,11 @@ function StatusChartSkeleton({ count = 4 }: { count?: number }) {
     </div>
   );
 }
+
 export default function ReportsPage() {
   const { user } = useAuth()
   const permissions = usePermissions(user)
   
-  // Utilisation des nouveaux hooks
   const { 
     isGenerating, 
     reportData, 
@@ -72,7 +67,6 @@ export default function ReportsPage() {
     dateTo: ''
   })
 
-  // Auto-remplir le client_id pour les clients
   useEffect(() => {
     if (user && !permissions.canViewAllData() && user.client_id) {
       setReportConfig(prev => ({
@@ -82,7 +76,6 @@ export default function ReportsPage() {
     }
   }, [user, permissions]);
 
-  // Récupération des clients
   const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ['clients'],
     queryFn: async () => {
@@ -110,7 +103,7 @@ export default function ReportsPage() {
     }
   }
 
-  const handleDownloadCurrentReport = async (format: 'csv' | 'pdf' | 'json') => {
+  const handleDownloadCurrentReport = async (format: 'csv' | 'pdf' | 'excel' | 'json') => {
     try {
       const result = await downloadCurrentReport(format)
       if (result?.success) {
@@ -124,7 +117,7 @@ export default function ReportsPage() {
 
   const handleQuickReport = async (
     type: 'expired-licenses' | 'obsolete-equipment' | 'expiring-soon',
-    format: 'csv' | 'pdf' = 'csv'
+    format: 'csv' | 'pdf' | 'excel' = 'csv'
   ) => {
     try {
       const result = await generateQuickReport(type, format)
@@ -175,13 +168,23 @@ export default function ReportsPage() {
     return new Date(dateString).toLocaleDateString('fr-FR')
   }
 
+  const getFormatIcon = (format: string) => {
+    switch(format) {
+      case 'csv': return <FileSpreadsheet className="w-4 h-4" />
+      case 'pdf': return <FaRegFilePdf className="w-4 h-4" />
+      case 'excel': return <FaFileExcel className="w-4 h-4 text-green-600" />
+      case 'json': return <BarChart3 className="w-4 h-4" />
+      default: return <FileText className="w-4 h-4" />
+    }
+  }
+
   return (
     <div className="space-y-8 p-6">
       {/* En-tête */}
       <div className="border-b border-gray-200 pb-5">
         <h1 className="text-3xl font-bold leading-6 text-gray-900">Rapports et Statistiques</h1>
         <p className="mt-2 max-w-4xl text-sm text-gray-500">
-          Générez et visualisez des rapports détaillés sur vos licences et équipements au format JSON, CSV ou PDF.
+          Générez et visualisez des rapports détaillés sur vos licences et équipements au format JSON, CSV, Excel ou PDF.
         </p>
       </div>
 
@@ -261,12 +264,10 @@ export default function ReportsPage() {
 
       {/* Graphiques des statistiques */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Statistiques des licences */}
         <div className="bg-white shadow rounded-lg p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Statuts des Licences</h3>
           {licenseStatsLoading ? (
-            <StatusChartSkeleton count={3} /> // Affiche 3 barres pour l'exemple
-
+            <StatusChartSkeleton count={3} />
           ) : (
             <div className="space-y-3">
               {licenseStats?.chart_data?.statuses?.map((item) => (
@@ -289,11 +290,10 @@ export default function ReportsPage() {
           )}
         </div>
 
-        {/* Statistiques des équipements */}
         <div className="bg-white shadow rounded-lg p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Statuts des Équipements</h3>
           {equipmentStatsLoading ? (
-              <StatusChartSkeleton count={3} /> // Affiche 3 barres pour l'exemple
+            <StatusChartSkeleton count={3} />
           ) : (
             <div className="space-y-3">
               {equipmentStats?.chart_data?.statuses?.map((item) => (
@@ -337,7 +337,7 @@ export default function ReportsPage() {
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">Générateur de Rapports</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Configurez et générez des rapports personnalisés au format JSON, CSV ou PDF
+            Configurez et générez des rapports personnalisés au format JSON, CSV, Excel ou PDF
           </p>
         </div>
         
@@ -417,11 +417,11 @@ export default function ReportsPage() {
               >
                 <option value="json">Aperçu (JSON)</option>
                 <option value="csv">Téléchargement CSV</option>
+                <option value="excel">Téléchargement Excel</option>
                 <option value="pdf">Téléchargement PDF</option>
               </select>
             </div>
 
-            {/* Filtres de dates */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Date de début
@@ -457,13 +457,12 @@ export default function ReportsPage() {
               Réinitialiser
             </button>
 
-            <div className="flex space-x-3">
+            <div className="flex space-x-3 items-center">
               {reportConfig.format !== 'json' && (
                 <div className="flex items-center space-x-2">
-                  {reportConfig.format === 'csv' && <FileSpreadsheet className="w-4 h-4 text-green-600" />}
-                  {reportConfig.format === 'pdf' && <FaRegFilePdf />}
+                  {getFormatIcon(reportConfig.format)}
                   <span className="text-sm text-gray-600">
-                    Le fichier sera téléchargé automatiquement
+                    Le fichier {reportConfig.format.toUpperCase()} sera téléchargé automatiquement
                   </span>
                 </div>
               )}
@@ -477,12 +476,11 @@ export default function ReportsPage() {
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
                   <>
-                    {reportConfig.format === 'json' && <BarChart3 className="w-4 h-4 mr-2" />}
-                    {reportConfig.format === 'csv' && <FileSpreadsheet className="w-4 h-4 mr-2" />}
-                    {reportConfig.format === 'pdf' && <FaRegFilePdf className="w-4 h-4 mr-2" />}
+                    {getFormatIcon(reportConfig.format)}
+                    <span className="ml-2" />
                   </>
                 )}
-                {isGenerating ? 'Génération...' : `Générer ${reportConfig.format.toUpperCase()}`}
+                {isGenerating ? 'Génération...' : `Générer ${reportConfig.format === 'excel' ? 'XLSX' : reportConfig.format.toUpperCase()}`}
               </button>
             </div>
           </div>
@@ -498,33 +496,18 @@ export default function ReportsPage() {
               <p className="mt-1 text-sm text-gray-500">
                 Généré le {formatDate(reportData.generated_at)} • {reportData.total_count} éléments
               </p>
-              {lastGeneratedConfig && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {lastGeneratedConfig.clientId && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
-                      Client: {clients.find(c => c.id === lastGeneratedConfig.clientId)?.name || lastGeneratedConfig.clientId}
-                    </span>
-                  )}
-                  {lastGeneratedConfig.status && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
-                      Statut: {lastGeneratedConfig.status}
-                    </span>
-                  )}
-                  {lastGeneratedConfig.dateFrom && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-yellow-100 text-yellow-800">
-                      Du: {formatDate(lastGeneratedConfig.dateFrom)}
-                    </span>
-                  )}
-                  {lastGeneratedConfig.dateTo && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-yellow-100 text-yellow-800">
-                      Au: {formatDate(lastGeneratedConfig.dateTo)}
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
             
             <div className="flex space-x-2">
+              <button
+                onClick={() => handleDownloadCurrentReport('excel')}
+                disabled={isGenerating}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+              >
+                <FaFileExcel className="w-4 h-4 mr-2 text-green-600" />
+                Excel
+              </button>
+
               <button
                 onClick={() => handleDownloadCurrentReport('pdf')}
                 disabled={isGenerating}
@@ -554,36 +537,7 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* Métadonnées du rapport */}
-          {reportData.metadata && (
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div>
-                  <div className="text-lg font-semibold text-blue-600">{reportData.metadata.total_licenses || reportData.total_count}</div>
-                  <div className="text-xs text-gray-500">Total</div>
-                </div>
-                {reportData.metadata.total_cost !== undefined && (
-                  <div>
-                    <div className="text-lg font-semibold text-green-600">{formatCurrency(reportData.metadata.total_cost)}</div>
-                    <div className="text-xs text-gray-500">Coût total</div>
-                  </div>
-                )}
-                {reportData.metadata.expired_count !== undefined && (
-                  <div>
-                    <div className="text-lg font-semibold text-red-600">{reportData.metadata.expired_count}</div>
-                    <div className="text-xs text-gray-500">Expirées</div>
-                  </div>
-                )}
-                {reportData.metadata.expiring_soon_count !== undefined && (
-                  <div>
-                    <div className="text-lg font-semibold text-orange-600">{reportData.metadata.expiring_soon_count}</div>
-                    <div className="text-xs text-gray-500">Expirent bientôt</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
+          {/* Tableau des données - Reste identique au code original */}
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -689,7 +643,7 @@ export default function ReportsPage() {
             <div className="px-6 py-4 border-t border-gray-200 text-center">
               <p className="text-sm text-gray-500">
                 Affichage des 50 premiers résultats sur {reportData.total_count} total. 
-                Téléchargez le rapport CSV ou PDF pour voir tous les résultats.
+                Téléchargez le rapport CSV, Excel ou PDF pour voir tous les résultats.
               </p>
             </div>
           )}
@@ -723,6 +677,14 @@ export default function ReportsPage() {
                   CSV
                 </button>
                 <button
+                  onClick={() => handleQuickReport('expired-licenses', 'excel')}
+                  disabled={isGenerating}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <FaFileExcel className="w-3 h-3 mr-1 text-green-600" />
+                  Excel
+                </button>
+                <button
                   onClick={() => handleQuickReport('expired-licenses', 'pdf')}
                   disabled={isGenerating}
                   className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
@@ -749,6 +711,14 @@ export default function ReportsPage() {
                   CSV
                 </button>
                 <button
+                  onClick={() => handleQuickReport('obsolete-equipment', 'excel')}
+                  disabled={isGenerating}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <FaFileExcel className="w-3 h-3 mr-1 text-green-600" />
+                  Excel
+                </button>
+                <button
                   onClick={() => handleQuickReport('obsolete-equipment', 'pdf')}
                   disabled={isGenerating}
                   className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
@@ -773,6 +743,14 @@ export default function ReportsPage() {
                 >
                   <FileSpreadsheet className="w-3 h-3 mr-1" />
                   CSV
+                </button>
+                <button
+                  onClick={() => handleQuickReport('expiring-soon', 'excel')}
+                  disabled={isGenerating}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <FaFileExcel className="w-3 h-3 mr-1 text-green-600" />
+                  Excel
                 </button>
                 <button
                   onClick={() => handleQuickReport('expiring-soon', 'pdf')}

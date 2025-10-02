@@ -63,8 +63,7 @@ export class NotificationTriggers {
           name,
           expiry_date,
           client_id,
-          clients!inner(name),
-          profiles!inner(id, email, first_name, last_name)
+          clients!inner(name)
         `)
         .gte('expiry_date', new Date().toISOString().split('T')[0])
         .lte('expiry_date', new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
@@ -78,44 +77,67 @@ export class NotificationTriggers {
         const expiryDate = new Date(license.expiry_date)
         const daysUntilExpiry = Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
         const clients = license.clients as Client[] | Client
-        const profile = Array.isArray(license.profiles) ? license.profiles[0] : license.profiles
-
-        // Récupérer explicitement les paramètres de notification pour ce profil
-        const { data: settingsData } = await supabase
-          .from('notification_settings')
-          .select('*')
-          .eq('user_id', profile.id)
-          .single()
-
-        if (!settingsData) continue
-        const settings = settingsData
-
-        if (!settings.license_alert_days?.includes(daysUntilExpiry)) continue
-
-        // Vérifier qu'une alerte n'a pas déjà été envoyée dans les dernières 24h
-        const { data: existingAlert } = await supabase
-          .from('notifications')
-          .select('id')
-          .eq('user_id', profile.id)
-          .eq('type', 'license_expiry')
-          .eq('related_id', license.id)
-          .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-          .single()
-
-        if (existingAlert) continue
-
         const clientName = Array.isArray(clients) ? clients[0].name : clients.name
-        const title = `Licence "${license.name}" expire bientôt`
-        const message = `La licence "${license.name}" du client "${clientName}" expire dans ${daysUntilExpiry} jour${daysUntilExpiry > 1 ? 's' : ''} (${expiryDate.toLocaleDateString('fr-FR')}). Pensez à la renouveler.`
 
-        await this.createNotification(
-          profile.id,
-          'license_expiry',
-          title,
-          message,
-          license.id,
-          'license'
-        )
+        //  CORRECTION: Récupérer TOUS les utilisateurs concernés par cette licence
+        // 1. Admins et techniciens (voient tout)
+        const { data: adminTechProfiles } = await supabase
+          .from('profiles')
+          .select('id, email, first_name, last_name, role')
+          .in('role', ['admin', 'technicien'])
+
+        // 2. Utilisateurs clients du client concerné
+        const { data: clientProfiles } = await supabase
+          .from('profiles')
+          .select('id, email, first_name, last_name, role')
+          .eq('role', 'client')
+          .eq('client_id', license.client_id)
+
+        // Combiner tous les utilisateurs à notifier
+        const allProfiles = [...(adminTechProfiles || []), ...(clientProfiles || [])]
+
+        // Créer une notification pour chaque utilisateur concerné
+        for (const profile of allProfiles) {
+          // Récupérer les paramètres de notification pour ce profil
+          const { data: settingsData } = await supabase
+            .from('notification_settings')
+            .select('*')
+            .eq('user_id', profile.id)
+            .single()
+
+          if (!settingsData) continue
+          const settings = settingsData
+
+          // Vérifier si l'utilisateur veut être notifié à ce moment
+          if (!settings.license_alert_days?.includes(daysUntilExpiry)) continue
+
+          // Vérifier qu'une alerte n'a pas déjà été envoyée dans les dernières 24h
+          const { data: existingAlert } = await supabase
+            .from('notifications')
+            .select('id')
+            .eq('user_id', profile.id)
+            .eq('type', 'license_expiry')
+            .eq('related_id', license.id)
+            .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+            .single()
+
+          if (existingAlert) continue
+
+          // Personnaliser le message selon le rôle
+          const title = `Licence "${license.name}" expire bientôt`
+          const message = profile.role === 'client'
+            ? `Votre licence "${license.name}" expire dans ${daysUntilExpiry} jour${daysUntilExpiry > 1 ? 's' : ''} (${expiryDate.toLocaleDateString('fr-FR')}). Veuillez contacter votre administrateur pour le renouvellement.`
+            : `La licence "${license.name}" du client "${clientName}" expire dans ${daysUntilExpiry} jour${daysUntilExpiry > 1 ? 's' : ''} (${expiryDate.toLocaleDateString('fr-FR')}). Pensez à la renouveler.`
+
+          await this.createNotification(
+            profile.id,
+            'license_expiry',
+            title,
+            message,
+            license.id,
+            'license'
+          )
+        }
       }
 
     } catch (error) {
@@ -136,8 +158,7 @@ export class NotificationTriggers {
           estimated_obsolescence_date,
           end_of_sale,
           client_id,
-          clients!inner(name),
-          profiles!inner(id, email, first_name, last_name)
+          clients!inner(name)
         `)
         .or('estimated_obsolescence_date.gte.' + new Date().toISOString().split('T')[0] + ',end_of_sale.gte.' + new Date().toISOString().split('T')[0])
 
@@ -147,18 +168,35 @@ export class NotificationTriggers {
       }
 
       for (const equipment of equipments) {
-        const profile = Array.isArray(equipment.profiles) ? equipment.profiles[0] : equipment.profiles
         const clients = equipment.clients as Client[] | Client
+        const clientName = Array.isArray(clients) ? clients[0].name : clients.name
 
-        // Récupérer explicitement les paramètres de notification
-        const { data: settingsData } = await supabase
-          .from('notification_settings')
-          .select('*')
-          .eq('user_id', profile.id)
-          .single()
+        // 🔥 CORRECTION: Récupérer TOUS les utilisateurs concernés
+        // 1. Admins et techniciens
+        const { data: adminTechProfiles } = await supabase
+          .from('profiles')
+          .select('id, email, first_name, last_name, role')
+          .in('role', ['admin', 'technicien'])
 
-        if (!settingsData) continue
-        const settings = settingsData
+        // 2. Utilisateurs clients du client concerné
+        const { data: clientProfiles } = await supabase
+          .from('profiles')
+          .select('id, email, first_name, last_name, role')
+          .eq('role', 'client')
+          .eq('client_id', equipment.client_id)
+
+        const allProfiles = [...(adminTechProfiles || []), ...(clientProfiles || [])]
+
+        for (const profile of allProfiles) {
+          // Récupérer les paramètres de notification
+          const { data: settingsData } = await supabase
+            .from('notification_settings')
+            .select('*')
+            .eq('user_id', profile.id)
+            .single()
+
+          if (!settingsData) continue
+          const settings = settingsData
 
         // Obsolescence estimée
         if (equipment.estimated_obsolescence_date) {
@@ -223,6 +261,7 @@ export class NotificationTriggers {
             }
           }
         }
+      }
       }
 
     } catch (error) {

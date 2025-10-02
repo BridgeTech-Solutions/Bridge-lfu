@@ -1,16 +1,15 @@
+// app/api/reports/licenses/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 import PDFDocument from 'pdfkit';
+import ExcelJS from 'exceljs';
 import path from 'path';
 import fs from 'fs';
 
-// On importe le type LicenseWithClientView qui correspond à la vue de la base de données.
 import { LicenseWithClientView, LicenseStatus } from '@/types'; 
 
-// This interface is adjusted to be compatible with the new data fetching approach
-// The properties 'license_type', 'version', and 'seats' will now be correctly fetched
 interface LicenseReportData {
   name: string;
   editor: string;
@@ -22,53 +21,29 @@ interface LicenseReportData {
   version: string | null;
   created_at: string;
 }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function cleanCost(value: any): number {
-  if (!value) return 0;
 
-  const cleaned = String(value)
-    .normalize("NFKC")
-    .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '') // supprime espaces spéciaux & caractères invisibles
-    .replace(/[^0-9.,]/g, '')                    // garde uniquement chiffres, point et virgule
-    .replace(',', '.');                          // convertit virgule → point
-
-  return parseFloat(cleaned) || 0;
-}
-
-
-// Charger la police en dehors de la fonction principale pour éviter de le faire à chaque requête.
-// La police sera chargée une fois au démarrage du serveur.
-//
-// SOLUTION : Déplacer le fichier de police dans un dossier accessible par le serveur,
-// par exemple 'src/lib/fonts', pour que 'fs.readFileSync' puisse y accéder de manière fiable.
 const fontPath = path.join(process.cwd(), 'src', 'lib', 'fonts', 'Roboto-Regular.ttf');
 let fontBuffer: Buffer;
 try {
   fontBuffer = fs.readFileSync(fontPath);
 } catch (err) {
-  console.error("Erreur de chargement de la police: Le fichier 'Roboto-Regular.ttf' n'a pas été trouvé. Assurez-vous de l'avoir déplacé dans le dossier 'src/lib/fonts'.", err);
+  console.error("Erreur de chargement de la police: Le fichier 'Roboto-Regular.ttf' n'a pas été trouvé.", err);
 }
 
-
-// GET /api/reports/licenses - Génération de rapport des licences
+// GET /api/reports/licenses
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { message: 'Non authentifié' },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: 'Non authentifié' }, { status: 401 });
     }
 
     const checker = new PermissionChecker(user);
-    
     const supabase = createSupabaseServerClient();
     const { searchParams } = new URL(request.url);
     
     const clientId = searchParams.get('client_id');
     if (!checker.canViewAllData()) {
-      // utilisateur 'client' : forcer client_id coté serveur
       if (clientId && clientId !== user.client_id) {
         return NextResponse.json({ message: 'Vous ne pouvez pas accéder aux rapports d\'un autre client' }, { status: 403 });
       }
@@ -76,11 +51,9 @@ export async function GET(request: NextRequest) {
 
     const canAccessReports = checker.can('read', 'reports', { client_id: user.client_id });
     if (!canAccessReports) {
-      return NextResponse.json(
-        { message: 'Permissions insuffisantes pour accéder aux rapports' },
-        { status: 403 }
-      );
+      return NextResponse.json({ message: 'Permissions insuffisantes pour accéder aux rapports' }, { status: 403 });
     }
+
     const status = searchParams.get('status');
     const format = searchParams.get('format') || 'json';
     const dateFrom = searchParams.get('date_from');
@@ -104,12 +77,8 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status as LicenseStatus);
     }
 
-    if (dateFrom) {
-      query = query.gte('expiry_date', dateFrom);
-    }
-    if (dateTo) {
-      query = query.lte('expiry_date', dateTo);
-    }
+    if (dateFrom) query = query.gte('expiry_date', dateFrom);
+    if (dateTo) query = query.lte('expiry_date', dateTo);
 
     const { data: licenses, error } = await query.order('expiry_date', { 
       ascending: true, 
@@ -118,10 +87,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Erreur lors de la génération du rapport licences:', error);
-      return NextResponse.json(
-        { message: 'Erreur lors de la génération du rapport' },
-        { status: 500 }
-      );
+      return NextResponse.json({ message: 'Erreur lors de la génération du rapport' }, { status: 500 });
     }
 
     const typedLicenses = (licenses || []) as LicenseWithClientView[];
@@ -131,8 +97,6 @@ export async function GET(request: NextRequest) {
         ? Math.ceil((new Date(license.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
         : 0;
 
-      // Amélioration de la correction pour s'assurer que le coût est un nombre.
-      // On retire d'abord toutes les espaces, puis on retire tous les caractères non-numériques (sauf le point).
       const costAsNumber = parseFloat(String(license.cost).replace(/\s/g, '').replace(/[^0-9.]/g, ''));
 
       return {
@@ -141,7 +105,7 @@ export async function GET(request: NextRequest) {
         client_name: license.client_name || '',
         expiry_date: license.expiry_date || '',
         status: license.status || 'active',
-        cost: costAsNumber || 0, // Utilisez la valeur convertie
+        cost: costAsNumber || 0,
         version: license.version || '',
         created_at: license.created_at || '',
         days_until_expiry: daysUntilExpiry
@@ -152,8 +116,13 @@ export async function GET(request: NextRequest) {
       case 'csv':
         return generateCSVReport(reportData);
       case 'pdf':
-        // J'ai mis à jour cette ligne pour inclure le buffer de la police.
         return await generatePDFReport(reportData, fontBuffer, {
+          title: 'Rapport des Licences',
+          user: user.first_name || user.email,
+          filters: { clientId, status, dateFrom, dateTo }
+        });
+      case 'excel':
+        return await generateExcelReport(reportData, {
           title: 'Rapport des Licences',
           user: user.first_name || user.email,
           filters: { clientId, status, dateFrom, dateTo }
@@ -169,15 +138,12 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Erreur API GET /reports/licenses:', error);
-    return NextResponse.json(
-      { message: 'Erreur interne du serveur' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Erreur interne du serveur' }, { status: 500 });
   }
 }
 
+// Fonction de génération CSV
 function generateCSVReport(data: LicenseReportData[]): NextResponse {
-  // Définir le BOM pour un encodage UTF-8 correct dans Excel
   const BOM = '\uFEFF'; 
   const DELIMITER = ';';
 
@@ -199,21 +165,18 @@ function generateCSVReport(data: LicenseReportData[]): NextResponse {
     item.client_name,
     item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('fr-FR') : '',
     item.status,
-    // Le coût est converti en chaîne pour le CSV, et la virgule est remplacée par un point-virgule pour éviter les erreurs de format.
     item.cost?.toString().replace('.', ',') || '0', 
     item.days_until_expiry?.toString() || '0',
     item.version || '',
     item.created_at ? new Date(item.created_at).toLocaleDateString('fr-FR') : ''
   ]);
 
-  // Joindre les lignes et les champs avec le nouveau délimiteur
   const csvContent = [csvHeaders, ...csvRows]
     .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(DELIMITER))
     .join('\n');
 
   const filename = `rapport_licences_${new Date().toISOString().split('T')[0]}.csv`;
 
-  // Préfixer le contenu avec le BOM et renvoyer le tout
   return new NextResponse(BOM + csvContent, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
@@ -221,6 +184,207 @@ function generateCSVReport(data: LicenseReportData[]): NextResponse {
     }
   });
 }
+
+// Fonction de génération Excel
+async function generateExcelReport(
+  data: LicenseReportData[],
+  options: {
+    title: string;
+    user: string;
+    filters: Record<string, string | null>;
+  }
+): Promise<NextResponse> {
+  const workbook = new ExcelJS.Workbook();
+  
+  workbook.creator = 'Système de Gestion IT';
+  workbook.lastModifiedBy = options.user;
+  workbook.created = new Date();
+  workbook.modified = new Date();
+  
+  const worksheet = workbook.addWorksheet('Rapport des Licences', {
+    properties: { tabColor: { argb: '2563eb' } },
+    views: [{ state: 'frozen', xSplit: 0, ySplit: 3 }]
+  });
+
+  worksheet.columns = [
+    { header: 'Nom de la licence', key: 'name', width: 30 },
+    { header: 'Éditeur', key: 'editor', width: 20 },
+    { header: 'Client', key: 'client_name', width: 25 },
+    { header: 'Version', key: 'version', width: 15 },
+    { header: 'Date d\'expiration', key: 'expiry_date', width: 18 },
+    { header: 'Statut', key: 'status', width: 18 },
+    { header: 'Coût (FCFA)', key: 'cost', width: 15 },
+    { header: 'Jours restants', key: 'days_until_expiry', width: 15 },
+    { header: 'Date de création', key: 'created_at', width: 18 }
+  ];
+
+  worksheet.mergeCells('A1:I1');
+  const titleCell = worksheet.getCell('A1');
+  titleCell.value = options.title;
+  titleCell.font = { size: 18, bold: true, color: { argb: '2563eb' } };
+  titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  titleCell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'f8fafc' }
+  };
+
+  worksheet.mergeCells('A2:I2');
+  const infoCell = worksheet.getCell('A2');
+  infoCell.value = `Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')} par ${options.user}`;
+  infoCell.font = { size: 10, italic: true, color: { argb: '64748b' } };
+  infoCell.alignment = { horizontal: 'center' };
+
+  worksheet.addRow([]);
+
+  const headerRow = worksheet.getRow(4);
+  headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: '2563eb' }
+  };
+  headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+  headerRow.height = 25;
+
+  data.forEach((item, index) => {
+    const row = worksheet.addRow({
+      name: item.name,
+      editor: item.editor,
+      client_name: item.client_name,
+      version: item.version || 'N/A',
+      expiry_date: item.expiry_date ? new Date(item.expiry_date) : 'N/A',
+      status: item.status,
+      cost: item.cost,
+      days_until_expiry: item.days_until_expiry,
+      created_at: item.created_at ? new Date(item.created_at) : 'N/A'
+    });
+
+    if (index % 2 === 0) {
+      row.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'f8fafc' }
+      };
+    }
+
+    if (item.expiry_date) row.getCell('expiry_date').numFmt = 'dd/mm/yyyy';
+    if (item.created_at) row.getCell('created_at').numFmt = 'dd/mm/yyyy';
+    row.getCell('cost').numFmt = '#,##0';
+
+    const statusCell = row.getCell('status');
+    const statusColors: Record<string, string> = {
+      'active': '059669',
+      'expired': 'dc2626',
+      'about_to_expire': 'd97706',
+      'cancelled': '64748b'
+    };
+    const statusBgColors: Record<string, string> = {
+      'active': 'd1fae5',
+      'expired': 'fee2e2',
+      'about_to_expire': 'fed7aa',
+      'cancelled': 'f1f5f9'
+    };
+    
+    statusCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: statusBgColors[item.status] || 'f1f5f9' }
+    };
+    statusCell.font = {
+      color: { argb: statusColors[item.status] || '64748b' },
+      bold: true
+    };
+    statusCell.alignment = { horizontal: 'center' };
+
+    const daysCell = row.getCell('days_until_expiry');
+    if (item.days_until_expiry < 0) {
+      daysCell.font = { color: { argb: 'dc2626' }, bold: true };
+    } else if (item.days_until_expiry <= 30) {
+      daysCell.font = { color: { argb: 'd97706' }, bold: true };
+    }
+    daysCell.alignment = { horizontal: 'center' };
+  });
+
+  const lastRow = worksheet.lastRow?.number || 4;
+  for (let i = 4; i <= lastRow; i++) {
+    const row = worksheet.getRow(i);
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'e2e8f0' } },
+        left: { style: 'thin', color: { argb: 'e2e8f0' } },
+        bottom: { style: 'thin', color: { argb: 'e2e8f0' } },
+        right: { style: 'thin', color: { argb: 'e2e8f0' } }
+      };
+    });
+  }
+
+  const statsSheet = workbook.addWorksheet('Statistiques', {
+    properties: { tabColor: { argb: '059669' } }
+  });
+
+  const totalLicenses = data.length;
+  const totalCost = data.reduce((sum, l) => sum + (l.cost || 0), 0);
+  const expiredCount = data.filter(l => l.days_until_expiry < 0).length;
+  const expiringCount = data.filter(l => l.days_until_expiry >= 0 && l.days_until_expiry <= 30).length;
+  const activeCount = data.filter(l => l.status === 'active').length;
+
+  statsSheet.mergeCells('A1:B1');
+  statsSheet.getCell('A1').value = 'Résumé Exécutif';
+  statsSheet.getCell('A1').font = { size: 16, bold: true };
+  statsSheet.getCell('A1').alignment = { horizontal: 'center' };
+
+  const stats = [
+    ['Nombre total de licences', totalLicenses],
+    ['Coût total (FCFA)', totalCost],
+    ['Licences actives', activeCount],
+    ['Licences expirées', expiredCount],
+    ['Expirant dans 30 jours', expiringCount]
+  ];
+
+  statsSheet.addRow([]);
+  stats.forEach((stat) => {
+    const row = statsSheet.addRow(stat);
+    row.getCell(1).font = { bold: true };
+    row.getCell(2).numFmt = '#,##0';
+    row.getCell(2).alignment = { horizontal: 'right' };
+  });
+
+  statsSheet.columns = [
+    { width: 30 },
+    { width: 20 }
+  ];
+
+  if (Object.values(options.filters).some(v => v)) {
+    statsSheet.addRow([]);
+    statsSheet.addRow(['Filtres appliqués']).font = { bold: true, size: 14 };
+    
+    const filterLabels: Record<string, string> = {
+      clientId: 'Client',
+      status: 'Statut',
+      dateFrom: 'Date de début',
+      dateTo: 'Date de fin'
+    };
+
+    Object.entries(options.filters).forEach(([key, value]) => {
+      if (value) {
+        statsSheet.addRow([filterLabels[key], value]);
+      }
+    });
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const filename = `rapport_licences_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+  return new NextResponse(buffer, {
+    headers: {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`
+    }
+  });
+}
+
+// Fonction de génération PDF (conservée de l'original)
 async function generatePDFReport(
   data: LicenseReportData[], 
   fontBuffer: Buffer,
@@ -230,16 +394,14 @@ async function generatePDFReport(
     filters: Record<string, string | null>;
   }
 ): Promise<NextResponse> {
-  // AJOUT : Vérification que le buffer de police a été chargé
   if (!fontBuffer) {
     return NextResponse.json(
-      { message: 'Erreur serveur: La police personnalisée n\'a pas pu être chargée. Assurez-vous que le fichier est dans le bon dossier.' },
+      { message: 'Erreur serveur: La police personnalisée n\'a pas pu être chargée.' },
       { status: 500 }
     );
   }
 
   return new Promise((resolve, reject) => {
-    // La solution : passer le buffer de la police directement dans les options du constructeur.
     const doc = new PDFDocument({
       font: fontBuffer as unknown as string, 
       size: 'A4',
@@ -253,7 +415,6 @@ async function generatePDFReport(
     });
 
     const chunks: Buffer[] = [];
-    
     doc.on('data', (chunk) => chunks.push(chunk));
     doc.on('end', () => {
       const buffer = Buffer.concat(chunks);
@@ -266,12 +427,8 @@ async function generatePDFReport(
         }
       }));
     });
+    doc.on('error', (err) => reject(err));
 
-    doc.on('error', (err) => {
-      reject(err);
-    });
-
-    // Configuration des couleurs
     const colors = {
       primary: '#2563eb',
       secondary: '#64748b',
@@ -282,21 +439,16 @@ async function generatePDFReport(
       lightGray: '#f8fafc'
     };
 
-    // En-tête du document
     doc.fontSize(24).fillColor(colors.primary).text(options.title, { align: 'center' });
     doc.moveDown(0.5);
-    
     doc.fontSize(12).fillColor(colors.secondary)
         .text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`, { align: 'center' })
         .text(`Par: ${options.user}`, { align: 'center' });
-    
     doc.moveDown(1);
 
-    // Informations sur les filtres appliqués
     if (Object.values(options.filters).some(v => v)) {
       doc.fontSize(14).fillColor(colors.text).text('Filtres appliqués:', { underline: true });
       doc.moveDown(0.3);
-      
       Object.entries(options.filters).forEach(([key, value]) => {
         if (value) {
           const filterLabels: Record<string, string> = {
@@ -305,14 +457,12 @@ async function generatePDFReport(
             dateFrom: 'Date de début',
             dateTo: 'Date de fin'
           };
-          doc.fontSize(10).fillColor(colors.secondary)
-              .text(`${filterLabels[key]}: ${value}`);
+          doc.fontSize(10).fillColor(colors.secondary).text(`${filterLabels[key]}: ${value}`);
         }
       });
       doc.moveDown(1);
     }
 
-    // Statistiques de résumé
     const totalLicenses = data.length;
     const totalCost = data.reduce((sum, license) => sum + (license.cost || 0), 0);
     const expiredLicenses = data.filter(l => l.days_until_expiry < 0).length;
@@ -334,12 +484,9 @@ async function generatePDFReport(
     });
 
     doc.moveDown(1.5);
-
-    // Tableau des données
     doc.fontSize(14).fillColor(colors.text).text('Détail des Licences', { underline: true });
     doc.moveDown(0.5);
 
-    // En-têtes du tableau
     const tableTop = doc.y;
     const tableHeaders = ['Licence', 'Éditeur', 'Client', 'Expiration', 'Statut', 'Coût'];
     const columnWidths = [120, 80, 100, 80, 60, 80];
@@ -347,19 +494,14 @@ async function generatePDFReport(
 
     doc.fontSize(8).fillColor(colors.text);
     tableHeaders.forEach((header, index) => {
-      doc.rect(currentX, tableTop, columnWidths[index], 20)
-          .fillAndStroke(colors.lightGray, colors.secondary);
-      
-      doc.fillColor(colors.text)
-          .text(header, currentX + 5, tableTop + 6, {
-            width: columnWidths[index] - 10,
-            align: 'left'
-          });
-      
+      doc.rect(currentX, tableTop, columnWidths[index], 20).fillAndStroke(colors.lightGray, colors.secondary);
+      doc.fillColor(colors.text).text(header, currentX + 5, tableTop + 6, {
+        width: columnWidths[index] - 10,
+        align: 'left'
+      });
       currentX += columnWidths[index];
     });
 
-    // Données du tableau
     let currentY = tableTop + 25;
     doc.fontSize(7);
 
@@ -395,48 +537,34 @@ async function generatePDFReport(
           textColor = colors.warning;
         }
 
-        doc.fillColor(textColor)
-            .text(cellData, currentX + 3, currentY + 4, {
-              width: columnWidths[colIndex] - 6,
-              align: 'left',
-              ellipsis: true
-            });
-
+        doc.fillColor(textColor).text(cellData, currentX + 3, currentY + 4, {
+          width: columnWidths[colIndex] - 6,
+          align: 'left',
+          ellipsis: true
+        });
         currentX += columnWidths[colIndex];
       });
 
       currentY += rowHeight;
     });
 
-    // Pied de page
     doc.fontSize(8).fillColor(colors.secondary);
     const pageCount = doc.bufferedPageRange().count;
     for (let i = 0; i < pageCount; i++) {
       doc.switchToPage(i);
-      doc.text(
-        `Page ${i + 1} sur ${pageCount} - Généré le ${new Date().toLocaleDateString('fr-FR')}`,
-        50,
-        750,
-        { align: 'center' }
-      );
+      doc.text(`Page ${i + 1} sur ${pageCount} - Généré le ${new Date().toLocaleDateString('fr-FR')}`, 50, 750, { align: 'center' });
     }
     
-    // Fermer le document pour déclencher les événements 'data' et 'end'
     doc.end();
   });
 }
-// Fonctions utilitaires
+
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('fr-FR', {
     style: 'decimal',
     minimumFractionDigits: 0
-  })
-    .format(amount)
-    .replace(/[\u00A0\u202F]/g, ' ')  // transforme les espaces insécables en espaces normaux
-    + ' FCFA';
+  }).format(amount).replace(/[\u00A0\u202F]/g, ' ') + ' FCFA';
 }
-
-
 
 function getStatusColor(status: string): string {
   const statusColors: Record<string, string> = {
@@ -454,8 +582,8 @@ function validateRequestParams(searchParams: URLSearchParams): { isValid: boolea
   const dateFrom = searchParams.get('date_from');
   const dateTo = searchParams.get('date_to');
 
-  if (format && !['json', 'csv', 'pdf'].includes(format)) {
-    errors.push('Format non supporté. Formats acceptés: json, csv, pdf');
+  if (format && !['json', 'csv', 'pdf', 'excel'].includes(format)) {
+    errors.push('Format non supporté. Formats acceptés: json, csv, pdf, excel');
   }
 
   if (dateFrom && isNaN(Date.parse(dateFrom))) {

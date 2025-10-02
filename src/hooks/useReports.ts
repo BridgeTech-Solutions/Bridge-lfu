@@ -1,4 +1,4 @@
-// hooks/useReports.ts
+// hooks/useReports.ts - Mise à jour pour supporter Excel
 import { useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from './useAuth'
@@ -9,7 +9,7 @@ export interface ReportConfig {
   type: 'licenses' | 'equipment'
   clientId: string
   status: string
-  format: 'json' | 'csv' | 'pdf'
+  format: 'json' | 'csv' | 'pdf' | 'excel'  // Ajout de 'excel'
   dateFrom: string
   dateTo: string
 }
@@ -89,15 +89,15 @@ export function useReports() {
         throw new Error(errorData.message || 'Erreur lors de la génération du rapport')
       }
 
-      if (finalConfig.format === 'csv' || finalConfig.format === 'pdf') {
-        // Téléchargement direct pour CSV et PDF
+      // Téléchargement direct pour CSV, PDF et Excel
+      if (finalConfig.format === 'csv' || finalConfig.format === 'pdf' || finalConfig.format === 'excel') {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.style.display = 'none'
         a.href = url
         
-        const extension = finalConfig.format
+        const extension = finalConfig.format === 'excel' ? 'xlsx' : finalConfig.format
         const filename = `rapport_${finalConfig.type}_${new Date().toISOString().split('T')[0]}.${extension}`
         a.download = filename
         
@@ -106,7 +106,8 @@ export function useReports() {
         window.URL.revokeObjectURL(url)
         document.body.removeChild(a)
 
-        return { success: true, message: `Rapport ${extension.toUpperCase()} téléchargé avec succès` }
+        const formatLabel = finalConfig.format === 'excel' ? 'XLSX' : finalConfig.format.toUpperCase()
+        return { success: true, message: `Rapport ${formatLabel} téléchargé avec succès` }
       } else {
         // Affichage JSON
         const data = await response.json()
@@ -123,7 +124,7 @@ export function useReports() {
   }, [permissions, user?.client_id])
 
   // Fonction pour télécharger le rapport JSON courant dans d'autres formats
-  const downloadCurrentReport = useCallback(async (format: 'csv' | 'pdf' | 'json') => {
+  const downloadCurrentReport = useCallback(async (format: 'csv' | 'pdf' | 'excel' | 'json') => {
     if (!reportData || !lastGeneratedConfig) {
       throw new Error('Aucun rapport à télécharger')
     }
@@ -174,8 +175,8 @@ export function useReportsLicenseStats() {
       return response.json()
     },
     enabled: !!user && !loading,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   })
 
   return {
@@ -201,8 +202,8 @@ export function useReportsEquipmentStats() {
       return response.json()
     },
     enabled: !!user && !loading,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   })
 
   return {
@@ -219,7 +220,7 @@ export function useQuickReports() {
 
   const generateQuickReport = useCallback(async (
     type: 'expired-licenses' | 'obsolete-equipment' | 'expiring-soon',
-    format: 'csv' | 'pdf' = 'csv'
+    format: 'csv' | 'pdf' | 'excel' = 'csv'
   ) => {
     const configs: Record<string, Partial<ReportConfig>> = {
       'expired-licenses': {
@@ -264,7 +265,6 @@ export function useQuickReports() {
 // Hook pour la gestion des notifications de rapport
 export function useReportNotifications() {
   const showNotification = useCallback((message: string, type: 'success' | 'error') => {
-    // Simple notification - vous pouvez remplacer par votre système de notification
     const notification = document.createElement('div')
     notification.className = `fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg ${
       type === 'success' 

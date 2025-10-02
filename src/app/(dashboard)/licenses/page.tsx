@@ -208,7 +208,7 @@ export default function LicensesPage() {
           <p className="text-gray-600">Gestion des licences logicielles et matérielles</p>
         </div>
         <div className="flex gap-2">
-          {permissions.canViewReports && (
+          {/* {permissions.canViewReports && ( */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" disabled={isExporting}>
@@ -231,7 +231,7 @@ export default function LicensesPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
+          
           {permissions.can('create', 'licenses') && (
             <Button onClick={() => router.push('/licenses/new')}>
               <Plus className="w-4 h-4 mr-2" />
@@ -265,7 +265,7 @@ export default function LicensesPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Actives</p>
                 <p className="text-3xl font-bold text-green-600">
-                  {stats.active}
+                  {stats.active + stats.aboutToExpire}
                 </p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">

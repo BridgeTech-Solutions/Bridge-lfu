@@ -98,7 +98,7 @@ export default function ClientsPage() {
   const totalPages = pagination?.totalPages || 1;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
+    // <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
       <div className="container mx-auto py-8 px-6">
         {/* En-tête avec statistiques */}
         <div className="mb-8">
@@ -244,6 +244,5 @@ export default function ClientsPage() {
           </Card>
         )}
       </div>
-    </div>
   );
 }
