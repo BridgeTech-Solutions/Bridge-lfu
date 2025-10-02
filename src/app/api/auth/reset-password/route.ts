@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const { error } = await supabase.auth.resetPasswordForEmail(
       validatedData.email,
       {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password/confirm`
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password/confirm`
       }
     )
 
