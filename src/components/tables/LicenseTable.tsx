@@ -11,7 +11,9 @@ import {
   AlertTriangle,
   XCircle,
   Clock,
-  Server // Use a generic icon for unknown status
+  Server, // Use a generic icon for unknown status
+  Ban,
+  RotateCcw
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Button } from '../ui/button';
@@ -30,6 +32,8 @@ interface LicenseTableProps {
   onView?: (id: string) => void;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onCancel?: (id: string) => void;
+  onReactivate?: (id: string) => void;
 }
 
 // Nouvelle fonction pour gérer l'affichage du statut
@@ -61,7 +65,7 @@ const formatCurrency = (amount: number | null) => {
   }).format(amount);
 };
 
-export function LicenseTable({ licenses, onView, onEdit, onDelete }: LicenseTableProps) {
+export function LicenseTable({ licenses, onView, onEdit, onDelete, onCancel, onReactivate }: LicenseTableProps) {
   const permissions = useStablePermissions();
 
   if (!licenses || licenses.length === 0) {
@@ -181,6 +185,29 @@ export function LicenseTable({ licenses, onView, onEdit, onDelete }: LicenseTabl
                           <Edit className="mr-2 h-4 w-4" />
                           Modifier
                         </DropdownMenuItem>
+                      )}
+                      
+                      {permissions.can('update', 'licenses') && (
+                        <>
+                          <DropdownMenuSeparator />
+                          {license.status === 'cancelled' && onReactivate ? (
+                            <DropdownMenuItem 
+                              className="text-green-600 focus:text-green-600 focus:bg-green-50"
+                              onClick={() => onReactivate(license.id!)}
+                            >
+                              <RotateCcw className="mr-2 h-4 w-4" />
+                              Réactiver
+                            </DropdownMenuItem>
+                          ) : license.status !== 'cancelled' && onCancel ? (
+                            <DropdownMenuItem 
+                              className="text-orange-600 focus:text-orange-600 focus:bg-orange-50"
+                              onClick={() => onCancel(license.id!)}
+                            >
+                              <Ban className="mr-2 h-4 w-4" />
+                              Annuler
+                            </DropdownMenuItem>
+                          ) : null}
+                        </>
                       )}
                       
                       {permissions.can('delete', 'licenses') && onDelete && (

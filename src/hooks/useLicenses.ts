@@ -369,11 +369,38 @@ export function useLicenseActions() {
     }
   })
 
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, action }: { id: string; action: 'cancel' | 'reactivate' }) => {
+      const response = await fetch(`/api/licenses/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Erreur lors de la mise à jour du statut')
+      }
+      
+      return response.json()
+    },
+    onSuccess: (data, variables) => {
+      toast.success(data.message)
+      queryClient.invalidateQueries({ queryKey: ['licenses'] })
+      queryClient.invalidateQueries({ queryKey: ['license', variables.id] })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    }
+  })
+
   return {
     updateLicense: updateMutation.mutateAsync,
     deleteLicense: deleteMutation.mutateAsync,
+    updateStatus: updateStatusMutation.mutateAsync,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    isUpdatingStatus: updateStatusMutation.isPending,
   }
 }
 
