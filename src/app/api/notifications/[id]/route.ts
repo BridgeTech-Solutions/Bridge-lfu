@@ -158,21 +158,25 @@ export async function DELETE(request: NextRequest, context : any) {
     }
 
     // Supprimer la notification
-    const { error: deleteError } = await supabase
+    console.log('Tentative de suppression de la notification:', id, 'pour l\'utilisateur:', user.id);
+    
+    const { data: deletedData, error: deleteError } = await supabase
       .from('notifications')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .select();
 
     if (deleteError) {
       console.error('Erreur lors de la suppression de la notification:', deleteError);
       return NextResponse.json(
-        { message: 'Erreur lors de la suppression de la notification' },
+        { message: 'Erreur lors de la suppression de la notification', error: deleteError },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ message: 'Notification supprimée avec succès' });
+    console.log('Notification supprimée avec succès:', deletedData);
+    return NextResponse.json({ message: 'Notification supprimée avec succès', deleted: deletedData });
 
   } catch (error) {
     console.error('Erreur API DELETE /notifications/[id]:', error);

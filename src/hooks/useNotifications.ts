@@ -171,8 +171,9 @@ export function useNotifications(filters: NotificationFilters) {
   } = useQuery({
     queryKey: ['notifications', filters],
     queryFn: () => notificationAPI.getNotifications(filters),
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes - augmenté pour éviter les refetch trop fréquents
+    refetchInterval: 2 * 60 * 1000, // 2 minutes au lieu de 1 minute
+    refetchOnWindowFocus: false, // Ne pas refetch quand on revient sur la fenêtre
     retry: (failureCount, error) => {
       if (failureCount >= 2) return false
       if (error.message.includes('Non authentifié')) return false
@@ -211,17 +212,23 @@ export function useNotifications(filters: NotificationFilters) {
 
   const deleteMutation = useMutation({
     mutationFn: notificationAPI.deleteNotification,
-    onSuccess: (_, deletedId) => {
-      // Mise à jour optimiste du cache avec typage correct
-      queryClient.setQueryData(['notifications', filters], (old: NotificationsResponse | undefined) => {
-        if (!old) return old
-        return {
-          ...old,
-          data: old.data.filter((notif: Notification) => notif.id !== deletedId),
-          count: old.count - 1
+    onSuccess: async (_, deletedId) => {
+      // Supprimer de TOUS les caches de notifications (peu importe les filtres)
+      queryClient.setQueriesData(
+        { queryKey: ['notifications'] },
+        (old: NotificationsResponse | undefined) => {
+          if (!old) return old
+          return {
+            ...old,
+            data: old.data.filter((notif: Notification) => notif.id !== deletedId),
+            count: old.count - 1
+          }
         }
-      })
-      queryClient.invalidateQueries({ queryKey: ['notification-stats'] })
+      )
+      
+      // Refetch immédiat des stats pour mettre à jour le badge du header
+      await queryClient.refetchQueries({ queryKey: ['notification-stats'] })
+      
       toast.success('Notification supprimée')
     },
     onError: (error: Error) => {
@@ -233,7 +240,6 @@ export function useNotifications(filters: NotificationFilters) {
   const markAllReadMutation = useMutation({
     mutationFn: notificationAPI.markAllAsRead,
     onSuccess: (data) => {
-      // Mise à jour optimiste du cache avec typage correct
       queryClient.setQueryData(['notifications', filters], (old: NotificationsResponse | undefined) => {
         if (!old) return old
         return {

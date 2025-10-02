@@ -65,9 +65,9 @@
     }
 
     const content = (
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-blue-500">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
+      <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-blue-500 h-full">
+        <CardContent className="p-6 h-full">
+          <div className="flex items-center justify-between h-full">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600">{title}</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">{value.toLocaleString()}</p>
