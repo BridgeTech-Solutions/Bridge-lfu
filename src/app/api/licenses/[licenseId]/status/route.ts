@@ -6,7 +6,7 @@ import { PermissionChecker } from '@/lib/auth/permissions';
 // PATCH /api/licenses/[id]/status - Annuler ou réactiver une licence
 export async function PATCH(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ licenseId: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -20,7 +20,7 @@ export async function PATCH(
     }
 
     const params = await context.params;
-    const { id } = params;
+    const { licenseId } = params;
     const body = await request.json();
     const { action } = body; // 'cancel' ou 'reactivate'
 
@@ -37,7 +37,7 @@ export async function PATCH(
     const { data: license, error: fetchError } = await supabase
       .from('licenses')
       .select('*')
-      .eq('id', id)
+      .eq('id', licenseId)
       .single();
 
     if (fetchError || !license) {
@@ -64,7 +64,7 @@ export async function PATCH(
     const { data: updatedLicense, error: updateError } = await supabase
       .from('licenses')
       .update(updateData)
-      .eq('id', id)
+      .eq('id', licenseId)
       .select()
       .single();
 
@@ -81,7 +81,7 @@ export async function PATCH(
       user_id: user.id,
       action: action === 'cancel' ? 'license_cancelled' : 'license_reactivated',
       entity_type: 'license',
-      entity_id: id,
+      entity_id: licenseId,
       details: {
         license_name: license.name,
         old_status: license.status,
