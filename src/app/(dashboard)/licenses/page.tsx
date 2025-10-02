@@ -10,13 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PaginationWithLogic, PaginationInfo } from '@/components/ui/pagination'
-import { toast } from 'sonner'
 import { 
   useStablePermissions,
   usePagination, 
   useDebounce 
 } from '@/hooks'
-import { useLicenses } from '@/hooks/useLicenses' // Nouveau hook
+import { useLicenses, useLicenseActions } from '@/hooks/useLicenses' // Nouveau hook
 import { useClients } from '@/hooks/useClients' // Nouveau hook
 import type { LicenseStatus } from '@/types'
 import { LicenseTable } from '@/components/tables/LicenseTable'
@@ -68,6 +67,9 @@ export default function LicensesPage() {
     sector: ''
   })
 
+  // Hook pour les actions (annuler/réactiver)
+  const { updateStatus, isUpdatingStatus } = useLicenseActions()
+
   // Gestion de l'export
     const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
       try {
@@ -95,6 +97,34 @@ export default function LicensesPage() {
     if (confirm(`Êtes-vous sûr de vouloir supprimer la licence "${license.name}" ? Cette action est irréversible.`)) {
       try {
         await deleteLicense(id)
+      } catch (error) {
+        // L'erreur est déjà gérée par le hook
+      }
+    }
+  }
+
+  const handleCancel = async (id: string) => {
+    const license = licenses.find(l => l.id === id)
+    if (!license) return
+
+    if (confirm(`Êtes-vous sûr de vouloir annuler la licence "${license.name}" ?`)) {
+      try {
+        await updateStatus({ id, action: 'cancel' })
+        await refetchLicenses()
+      } catch (error) {
+        // L'erreur est déjà gérée par le hook
+      }
+    }
+  }
+
+  const handleReactivate = async (id: string) => {
+    const license = licenses.find(l => l.id === id)
+    if (!license) return
+
+    if (confirm(`Êtes-vous sûr de vouloir réactiver la licence "${license.name}" ?`)) {
+      try {
+        await updateStatus({ id, action: 'reactivate' })
+        await refetchLicenses()
       } catch (error) {
         // L'erreur est déjà gérée par le hook
       }
@@ -385,13 +415,14 @@ export default function LicensesPage() {
             licenses={licenses} 
             onEdit={handleEdit} 
             onDelete={handleDelete} 
-            onView={handleView} 
+            onView={handleView}
+            onCancel={handleCancel}
+            onReactivate={handleReactivate}
           />
 
           {/* État vide */}
           {licenses.length === 0 && !isLicensesLoading && (
             <div className="text-center py-8">
-              <Calendar className="w-16 h-16 mx-auto text-gray-300 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune licence</h3>
               <p className="text-gray-500 mb-4">
                 {debouncedSearch || statusFilter !== 'all' || clientFilter !== 'all' || debouncedEditorFilter ?
