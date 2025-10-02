@@ -93,15 +93,12 @@ export function useDashboard() {
     }
   }
 
-  // QueryKey stable pour éviter les re-renders inutiles
   const stableQueryKey = useMemo(() => [
     'dashboardData',
     user?.id,
-    permissions.canViewAllData ? 'all' : 'limited',
-    Array.isArray(permissions.clientAccess) 
-    ? permissions.clientAccess.join(',') 
-    : permissions.clientAccess || 'none'
-    ], [user?.id, permissions.canViewAllData, permissions.clientAccess])
+    user?.role, // Plus stable que les permissions calculées
+    user?.client_id
+  ], [user?.id, user?.role, user?.client_id])
 
   // Configuration de la query
   const {

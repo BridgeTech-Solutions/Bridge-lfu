@@ -1,16 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSupabase as createSupabaseClient} from '@/lib/supabase/client'
-import { usePermissions } from '@/lib/auth/permissions'
-import { useAuth } from './useAuth';
-
+import { PermissionChecker, usePermissions } from '@/lib/auth/permissions'
+import { useAuthContext } from '@/app/context/auth'
 
 // Hook pour les permissions - STABILISÉ
-import { useSession } from '@/app/context/auth'
-
 export function useAuthPermissions() {
-  // Utilisez le hook useSession pour obtenir l'utilisateur et le statut de chargement.
-  
-  const { user, loading } = useAuth()
+  const { user, loading } = useAuthContext()
 
   // Si le contexte est toujours en cours de chargement,
   // ou si aucun utilisateur n'est connecté, retournez les permissions par défaut.
@@ -22,7 +17,6 @@ export function useAuthPermissions() {
       canManageUsers: () => false,
       canViewActivityLogs: () => false,
       canExportReports: () => false,
-      // Changez cette ligne pour retourner un objet de permissions complet
       getPermissions: () => ({
         canManageClients: false,
         canManageLicenses: false,
@@ -30,54 +24,59 @@ export function useAuthPermissions() {
         canViewReports: false,
         canManageUsers: false,
         canViewAllData: false,
-        clientAccess: undefined, // L'accès au client est indéfini
+        clientAccess: undefined,
       }),
-    };
+    }
   }
-  // Le hook useSession fournit l'objet utilisateur, qui contient déjà le profil
-  // si votre AuthProvider est correctement configuré.
-  // Vous n'avez pas besoin de "fusionner" les deux objets.
+
   const mergedUser = {
     id: user.id,
     email: user.email ?? '',
     created_at: user.created_at ?? null,
-    updated_at: user.updated_at ?? null, // Utilisez les données de user
-    
-    // Champs spécifiques au profil, directement accessibles sur l'objet user
+    updated_at: user.updated_at ?? null,
     first_name: user.first_name ?? null,
     last_name: user.last_name ?? null,
     phone: user.phone ?? null,
     company: user.company ?? null,
     client_id: user.client_id ?? null,
     role: user.role ?? 'unverified',
-  };
+  }
 
-  // Utilisez le hook usePermissions avec l'objet utilisateur fusionné
-  // Note : L'ESLint-disable n'est plus nécessaire ici car la logique de chargement
-  // gère le retour du hook de manière conditionnelle et non réactive.
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  return usePermissions(mergedUser);
+  return usePermissions(mergedUser)
 }
 
-// NOUVEAU : Hook de permissions ultra-stabilisé
+// Hook de permissions ultra-stabilisé
 export function useStablePermissions() {
-  const permissions = useAuthPermissions()
-  
-  // Mémoriser les valeurs primitives plutôt que les objets
-  const canViewAllData = useMemo(() => permissions.canViewAllData(), [permissions])
-  const clientAccess = useMemo(() => permissions.getPermissions().clientAccess, [permissions])
-  
-  return useMemo(() => ({
-    canViewAllData,
-    clientAccess,
-    canManageClients: permissions.can('create', 'clients') || permissions.can('update', 'clients'),
-    canManageLicenses: permissions.can('create', 'licenses') || permissions.can('update', 'licenses'),
-    canManageEquipment: permissions.can('create', 'equipment') || permissions.can('update', 'equipment'),
-    canViewReports: permissions.can('read', 'reports'),
-    can: permissions.can
-  }), [canViewAllData, clientAccess, permissions.can])
-}
+  const { user, permissions } = useAuthContext()
 
+  return useMemo(() => {
+    if (!user || !permissions) {
+      return {
+        canViewAllData: false,
+        clientAccess: undefined,
+        canManageClients: false,
+        canManageLicenses: false,
+        canManageEquipment: false,
+        canViewReports: false,
+        can: () => false
+      }
+    }
+
+    return {
+      canViewAllData: permissions.canViewAllData,
+      clientAccess: user.role === 'client' ? user.client_id : undefined,
+      canManageClients: permissions.canManageClients,
+      canManageLicenses: permissions.canManageLicenses,
+      canManageEquipment: permissions.canManageEquipment,
+      canViewReports: permissions.canViewReports,
+      can: (action: string, resource: string) => {
+        const checker = new PermissionChecker(user)
+        return checker.can(action, resource)
+      }
+    }
+  }, [user?.id, user?.role, user?.client_id, permissions])
+}
 // Hooks utilitaires inchangés
 export function useRealtimeSubscription(table: string, callback: (payload: unknown) => void) {
   const supabase = createSupabaseClient()

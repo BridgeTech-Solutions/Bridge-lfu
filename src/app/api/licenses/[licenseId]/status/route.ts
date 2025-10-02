@@ -49,7 +49,7 @@ export async function PATCH(
       return NextResponse.json({ message: 'Accès refusé' }, { status: 403 });
     }
 
-    let updateData: { status?: 'cancelled'; expiry_date?: string };
+    let updateData: { status?: 'active' | 'expired' | 'about_to_expire' | 'cancelled'; expiry_date?: string };
 
     if (action === 'cancel') {
       // Annuler la licence
@@ -57,7 +57,7 @@ export async function PATCH(
     } else {
       // Réactivation : on met à jour expiry_date avec la même valeur
       // Le trigger calculate_license_status() recalculera automatiquement le bon statut
-      updateData = { expiry_date: license.expiry_date };
+      updateData = { status: 'active', expiry_date: license.expiry_date };
     }
 
     // Mettre à jour (le trigger recalculera le statut automatiquement pour la réactivation)

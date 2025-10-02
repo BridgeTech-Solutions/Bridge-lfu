@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
 import './globals.css'
-// import { AuthProvider } from './context/auth' // Importez le AuthProvider
+import { AuthProvider } from './context/auth' // Importez le AuthProvider
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -31,9 +31,9 @@ export default function RootLayout({
             Cela rend l'état de la session (utilisateur, chargement)
             disponible pour tous les composants client dans votre application.
           */}
-          {/* <AuthProvider> */}
+          <AuthProvider>
             {children}
-          {/* </AuthProvider> */}
+          </AuthProvider>
         </div>
         
         {/* Notifications toast */}

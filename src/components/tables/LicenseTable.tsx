@@ -155,8 +155,7 @@ export function LicenseTable({ licenses, onView, onEdit, onDelete, onCancel, onR
                   <Badge 
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     variant={statusDisplay.color as any} 
-                    className="flex items-center w-fit text-white"
-                  >
+                    className={`flex items-center w-fit ${license.status === 'cancelled' ? 'text-gray-700' : 'text-white'}`}                  >
                     <StatusIcon className="h-3 w-3 mr-1" />
                     {statusDisplay.label}
                   </Badge>
