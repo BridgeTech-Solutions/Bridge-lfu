@@ -110,19 +110,19 @@ const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
     switch (status) {
       case 'actif':
         return { icon: CheckCircle, color: 'success', label: 'Actif' }
-      case 'en_maintenance':
         return { icon: Clock, color: 'warning', label: 'En maintenance' }
       case 'bientot_obsolete':
         return { icon: AlertTriangle, color: 'warning', label: 'Bientôt obsolète' }
       case 'obsolete':
         return { icon: XCircle, color: 'destructive', label: 'Obsolète' }
       case 'retire':
-        return { icon: XCircle, color: 'secondary', label: 'Retiré' }
+        return { icon: XCircle, color: 'retired', label: 'Retiré', variant: 'retired' }
       default:
         return { icon: Server, color: 'default', label: status }
     }
   }
 
+// {{ ... }}
   // Fonction pour obtenir l'icône du type
   const getTypeIcon = (type: string) => {
     switch (type) {

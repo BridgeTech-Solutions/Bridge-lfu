@@ -300,6 +300,12 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
       return actifs + bientotObsolete;
 
     }, [equipmentStats]);
+
+    const totalAssetValue = useMemo(() => {
+      const licensesValue = licenseStats?.total_value ?? 0;
+      const equipmentValue = equipmentStats?.total_value ?? 0;
+      return licensesValue + equipmentValue;
+    }, [licenseStats?.total_value, equipmentStats?.total_value]);
     // Permissions stabilisées
     const stablePermissions = useStablePermissions()
 
@@ -662,14 +668,14 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
                       {statsAlerts.totalCount}
                     </Badge>
                   </div>
-                  {licenseStats && (
+                  {(licenseStats || equipmentStats) && (
                     <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                       <div className="flex items-center">
                         <DollarSign className="h-5 w-5 text-green-600 mr-3" />
                         <span className="text-sm font-medium text-green-900">Valeur totale</span>
                       </div>
                       <Badge variant="secondary">
-                        {licenseStats.total_value.toLocaleString()} FCFA
+                        {totalAssetValue.toLocaleString('fr-FR')} FCFA
                       </Badge>
                     </div>
                   )}

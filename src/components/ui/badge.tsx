@@ -22,6 +22,8 @@ const badgeVariants = cva(
           "border-transparent bg-red-500 text-white shadow hover:bg-red-500/80",
         urgent:
           "border-transparent bg-orange-500 text-white shadow hover:bg-orange-500/80",
+        retired:
+          "border-transparent bg-slate-600 text-white shadow hover:bg-slate-600/80",
       },
     },
     defaultVariants: {

@@ -1,13 +1,14 @@
 // hooks/useStats.ts
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useEffect, useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from './useAuth'
 
 // Types pour les statistiques d'équipements
 export interface EquipmentStats {
   total: number
+  total_value: number
   by_type: Record<string, number>
   by_status: Record<string, number>
   chart_data: {
@@ -75,13 +76,12 @@ export function useEquipmentStats() {
     queryKey: ['equipmentStats', user?.id],
     queryFn: fetchEquipmentStats,
     enabled: !!user && !authLoading,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: (failureCount, error) => {
-      // Ne pas retry sur les erreurs 401/403
-      if (error instanceof Error && error.message.includes('401')) return false
+    retry: (failureCount, err) => {
+      if (err instanceof Error && err.message.includes('401')) return false
       return failureCount < 3
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
@@ -125,13 +125,12 @@ export function useLicenseStats() {
     queryKey: ['licenseStats', user?.id],
     queryFn: fetchLicenseStats,
     enabled: !!user && !authLoading,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: (failureCount, error) => {
-      // Ne pas retry sur les erreurs 401/403
-      if (error instanceof Error && error.message.includes('401')) return false
+    retry: (failureCount, err) => {
+      if (err instanceof Error && err.message.includes('401')) return false
       return failureCount < 3
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
@@ -146,7 +145,7 @@ export function useLicenseStats() {
   }
 }
 
-// Hook combiné pour les statistiques générales (équipements + licences)
+// Hook combiné pour les statistiques générales
 export function useCombinedStats() {
   const equipmentStats = useEquipmentStats()
   const licenseStats = useLicenseStats()
@@ -163,7 +162,7 @@ export function useCombinedStats() {
       totals: {
         total_equipment: equipmentStats.stats.total,
         total_licenses: licenseStats.stats.total,
-        total_value: licenseStats.stats.total_value
+        total_value: (licenseStats.stats.total_value || 0) + (equipmentStats.stats.total_value || 0)
       }
     }
   }, [equipmentStats.stats, licenseStats.stats])
@@ -171,7 +170,7 @@ export function useCombinedStats() {
   const refetchAll = useCallback(() => {
     equipmentStats.refetch()
     licenseStats.refetch()
-  }, [equipmentStats.refetch, licenseStats.refetch])
+  }, [equipmentStats, licenseStats])
 
   return {
     data: combinedData,
@@ -195,7 +194,6 @@ export function useRealtimeStats(options?: {
   const equipmentStats = useEquipmentStats()
   const licenseStats = useLicenseStats()
 
-  // Polling automatique si activé
   useEffect(() => {
     if (!enablePolling) return
 
@@ -207,7 +205,6 @@ export function useRealtimeStats(options?: {
     return () => clearInterval(interval)
   }, [enablePolling, pollingInterval, queryClient])
 
-  // Fonction pour forcer le refresh
   const forceRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['equipmentStats'] })
     queryClient.invalidateQueries({ queryKey: ['licenseStats'] })
@@ -233,7 +230,7 @@ export function useStatsAlerts() {
     if (equipmentStats) {
       const obsoleteCount = equipmentStats.by_status.obsolete || 0
       const soonObsoleteCount = equipmentStats.by_status.bientot_obsolete || 0
-      
+
       if (obsoleteCount > 0) {
         alertsList.push({
           type: 'equipment',
@@ -299,7 +296,7 @@ export function useChartColors() {
       types: ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'],
       statuses: {
         actif: '#10B981',
-        en_maintenance: '#F59E0B', 
+        en_maintenance: '#F59E0B',
         obsolete: '#EF4444',
         bientot_obsolete: '#F97316',
         retire: '#6B7280'

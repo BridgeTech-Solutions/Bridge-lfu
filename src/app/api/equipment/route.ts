@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100);
     const offset = (page - 1) * limit;
-    
+
     // Paramètres de recherche
     const search = searchParams.get('search');
     const clientId = searchParams.get('client_id');
@@ -45,32 +45,28 @@ export async function GET(request: NextRequest) {
     if (search) {
       query = query.or(`name.ilike.%${search}%,brand.ilike.%${search}%,model.ilike.%${search}%`);
     }
-    
+
     if (clientId) {
       query = query.eq('client_id', clientId);
     }
 
     const validTypes = ['pc', 'serveur', 'routeur', 'switch', 'imprimante', 'autre'] as const;
-
-    type EquipementType = typeof validTypes[number]; // "pc" | "serveur" | ...
+    type EquipementType = typeof validTypes[number];
 
     if (type && validTypes.includes(type as EquipementType)) {
-    query = query.eq('type', type as EquipementType);
+      query = query.eq('type', type as EquipementType);
     }
 
+    const allowedStatuses = ['actif', 'en_maintenance', 'bientot_obsolete', 'obsolete', 'retire'] as const;
+    type EquipmentStatus = typeof allowedStatuses[number];
 
-    const allowedTypes = ['pc', 'serveur', 'routeur', 'switch', 'imprimante', 'autre'] as const;
-    type EquipmentType = typeof allowedTypes[number];
-
-    if (type && allowedTypes.includes(type as EquipmentType)) {
-    query = query.eq('type', type as EquipmentType);
+    if (status && allowedStatuses.includes(status as EquipmentStatus)) {
+      query = query.eq('status', status as EquipmentStatus);
     }
-
 
     if (brand) {
       query = query.ilike('brand', `%${brand}%`);
     }
-
     // Pagination et tri
     const { data: equipment, count, error } = await query
       .order('estimated_obsolescence_date', { ascending: true, nullsFirst: false })
