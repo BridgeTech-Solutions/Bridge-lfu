@@ -16,7 +16,9 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Server
+  Server,
+  CreditCard,
+  Wrench
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -117,12 +119,13 @@ const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
         return { icon: XCircle, color: 'destructive', label: 'Obsolète' }
       case 'retire':
         return { icon: XCircle, color: 'retired', label: 'Retiré', variant: 'retired' }
+      case 'en_maintenance':
+        return { icon: Clock, color: 'warning', label: 'En maintenance' }
       default:
         return { icon: Server, color: 'default', label: status }
     }
   }
 
-// {{ ... }}
   // Fonction pour obtenir l'icône du type
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -149,7 +152,7 @@ const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
 
   // Fonction pour formater le coût
   const formatCost = (cost?: number) => {
-    if (!cost) return 'N/A'
+    if (cost === undefined || cost === null) return 'N/A'
     return new Intl.NumberFormat('fr-FR', { 
       style: 'currency', 
       currency: 'XAF' 
@@ -225,7 +228,46 @@ const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
     if (selectedClient) count++
     return count
   }, [searchTerm, selectedType, selectedStatus, selectedClient])
-
+  const totalCost = useMemo(
+    () => equipment.reduce((sum, item) => sum + (item.cost ?? 0), 0),
+    [equipment]
+  )
+  
+  const formattedTotalCost = useMemo(() => formatCost(totalCost), [totalCost])
+  
+  const kpiCards = useMemo(
+    () => [
+      {
+        title: 'Total équipements',
+        value: stats.total,
+        description: 'Équipements suivis',
+        icon: Server,
+        accent: 'bg-blue-50 text-blue-600',
+      },
+      {
+        title: 'En maintenance',
+        value: stats.en_maintenance,
+        description: 'Interventions en cours',
+        icon: Wrench,
+        accent: 'bg-amber-50 text-amber-600',
+      },
+      {
+        title: 'Bientôt obsolètes',
+        value: stats.bientot_obsolete,
+        description: 'À surveiller prochainement',
+        icon: AlertTriangle,
+        accent: 'bg-orange-50 text-orange-600',
+      },
+      {
+        title: 'Coût total estimé',
+        value: formattedTotalCost,
+        description: 'Somme déclarée des équipements',
+        icon: CreditCard,
+        accent: 'bg-emerald-50 text-emerald-600',
+      },
+    ],
+    [stats, formattedTotalCost]
+  )
   // Fonctions de gestion
   const handleDeleteEquipment = (equipmentId: string, equipmentName: string) => {
     setDeleteDialog({ open: true, equipmentId, equipmentName })
@@ -327,8 +369,34 @@ const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
             </Button>
           )}
         </div>
-      </div>
 
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {kpiCards.map((card) => {
+            const Icon = card.icon
+            return (
+              <div
+                key={card.title}
+                className="bg-white border rounded-lg shadow-sm p-4 flex items-start justify-between"
+              >
+                <div>
+                  <p className="text-sm text-gray-500">{card.title}</p>
+                  <p className="text-3xl font-semibold text-gray-900">
+                    {typeof card.value === 'number'
+                      ? card.value.toLocaleString('fr-FR')
+                      : card.value}
+                  </p>
+                  {card.description && (
+                    <p className="text-xs text-gray-400 mt-1">{card.description}</p>
+                  )}
+                </div>
+                <div className={`p-3 rounded-full ${card.accent}`}>
+                  <Icon className="h-6 w-6" />
+                </div>
+              </div>
+            )
+          })}
+      </div>
       {/* Barre de recherche et filtres */}
       <div className="bg-white p-4 rounded-lg shadow-sm border space-y-4">
         <div className="flex flex-col sm:flex-row gap-4">
