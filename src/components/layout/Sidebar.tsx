@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -16,21 +16,50 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   HelpCircle,
   User,
   Building
 } from 'lucide-react'
 import { useTranslations } from '@/hooks/useTranslations'
+import type { LucideIcon } from 'lucide-react'
+
+type PermissionRequirement = {
+  action: string
+  resource: string
+}
+
+type NavigationChild = {
+  name: string
+  href: string
+  permissions?: PermissionRequirement
+  icon?: LucideIcon
+}
+
+type NavigationItem = {
+  name: string
+  href: string
+  icon: LucideIcon
+  permissions?: PermissionRequirement
+  children?: NavigationChild[]
+}
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({})
   const pathname = usePathname()
   const permissions = useAuthPermissions()
   const { user } = useAuth()
   const { t } = useTranslations('sidebar')
 
+  useEffect(() => {
+    if (collapsed) {
+      setExpandedMenus({})
+    }
+  }, [collapsed])
+
   // Déterminer le lien et le label pour la section client
-  const getClientNavItem = () => {
+  const getClientNavItem = (): NavigationItem => {
     if (user?.role === 'client' && user?.client_id) {
       return {
         name: t('items.myCompany'),
@@ -42,12 +71,25 @@ export function Sidebar() {
       name: t('items.clients'),
       href: '/clients',
       icon: Users,
+      permissions: { resource: 'clients', action: 'read' },
+      children: [
+        {
+          name: t('items.clientsList'),
+          href: '/clients',
+          permissions: { resource: 'clients', action: 'read' }
+        },
+        {
+          name: t('items.clientsCreate'),
+          href: '/clients/new',
+          permissions: { resource: 'clients', action: 'create' }
+        }
+      ]
     }
   }
 
   const clientNavItem = getClientNavItem()
 
-  const navigationItems = [
+  const navigationItems: NavigationItem[] = [
     {
       name: t('items.dashboard'),
       href: '/dashboard',
@@ -59,11 +101,37 @@ export function Sidebar() {
       name: t('items.licenses'),
       href: '/licenses',
       icon: Shield,
+      permissions: { resource: 'licenses', action: 'read' },
+      children: [
+        {
+          name: t('items.licensesList'),
+          href: '/licenses',
+          permissions: { resource: 'licenses', action: 'read' }
+        },
+        {
+          name: t('items.licensesCreate'),
+          href: '/licenses/new',
+          permissions: { resource: 'licenses', action: 'create' }
+        }
+      ]
     },
     {
       name: t('items.equipment'),
       href: '/equipment',
       icon: Server,
+      permissions: { resource: 'equipment', action: 'read' },
+      children: [
+        {
+          name: t('items.equipmentList'),
+          href: '/equipment',
+          permissions: { resource: 'equipment', action: 'read' }
+        },
+        {
+          name: t('items.equipmentCreate'),
+          href: '/equipment/new',
+          permissions: { resource: 'equipment', action: 'create' }
+        }
+      ]
     },
     {
       name: t('items.notifications'),
@@ -81,7 +149,19 @@ export function Sidebar() {
       name: t('items.users'),
       href: '/users',
       icon: User,
-      permissions: { resource: 'users', action: 'read' }
+      permissions: { resource: 'users', action: 'read' },
+      children: [
+        {
+          name: t('items.usersList'),
+          href: '/users',
+          permissions: { resource: 'users', action: 'read' }
+        },
+        // {
+        //   name: t('items.usersCreate'),
+        //   href: '/users/new',
+        //   permissions: { resource: 'users', action: 'create' }
+        // }
+      ]
     },
   ]
 
@@ -124,6 +204,13 @@ export function Sidebar() {
     return false
   }
 
+  const toggleSubmenu = (key: string, currentState: boolean) => {
+    setExpandedMenus((prev) => ({
+      ...prev,
+      [key]: !currentState
+    }))
+  }
+
   return (
     <div className={cn(
       'bg-white border-r border-gray-200 flex flex-col transition-all duration-300',
@@ -154,33 +241,89 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        {navigationItems
-          .filter(canAccessRoute)
-          .map((item) => {
-            const Icon = item.icon
-            const active = isActiveRoute(item.href)
-            
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
+        {navigationItems.map((item) => {
+          const Icon = item.icon
+          const allowedChildren = (item.children ?? []).filter((child) => canAccessRoute(child))
+          const childActive = allowedChildren.some((child) => isActiveRoute(child.href))
+          const itemActive = isActiveRoute(item.href) || childActive
+          const itemAccessible = canAccessRoute(item) || childActive || allowedChildren.length > 0
+
+          if (!itemAccessible) {
+            return null
+          }
+
+          const expandedState = expandedMenus[item.href]
+          const isExpanded = !collapsed && (expandedState !== undefined ? expandedState : childActive)
+          const showToggle = allowedChildren.length > 0
+
+          return (
+            <div key={item.name} className="space-y-1">
+              <div
                 className={cn(
-                  'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
-                  active
-                    ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  'flex items-center',
+                  collapsed ? 'justify-center' : 'justify-between'
                 )}
-                title={collapsed ? item.name : undefined}
               >
-                <Icon className={cn(
-                  'flex-shrink-0 h-5 w-5',
-                  active ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500',
-                  collapsed ? 'mx-auto' : 'mr-3'
-                )} />
-                {!collapsed && item.name}
-              </Link>
-            )
-          })}
+                <Link
+                  href={item.href}
+                  className={cn(
+                    'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors flex-1',
+                    itemActive
+                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  )}
+                  title={collapsed ? item.name : undefined}
+                >
+                  <Icon className={cn(
+                    'flex-shrink-0 h-5 w-5',
+                    itemActive ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500',
+                    collapsed ? 'mx-auto' : 'mr-3'
+                  )} />
+                  {!collapsed && item.name}
+                </Link>
+                {showToggle && !collapsed && (
+                  <button
+                    type="button"
+                    onClick={() => toggleSubmenu(item.href, isExpanded)}
+                    className={cn(
+                      'ml-2 p-1 rounded-md hover:bg-gray-100 text-gray-500 transition-transform'
+                    )}
+                    aria-label={isExpanded ? t('items.collapseSection', 'Replier la section') : t('items.expandSection', 'Déplier la section')}
+                  >
+                    <ChevronDown
+                      className={cn(
+                        'h-4 w-4 transition-transform duration-200',
+                        isExpanded ? 'rotate-180' : 'rotate-0'
+                      )}
+                    />
+                  </button>
+                )}
+              </div>
+              {showToggle && isExpanded && (
+                <div className="space-y-1 pl-9">
+                  {allowedChildren.map((child) => {
+                    const childIsActive = isActiveRoute(child.href)
+
+                    return (
+                      <Link
+                        key={child.name}
+                        href={child.href}
+                        className={cn(
+                          'flex items-center px-2 py-1.5 text-sm font-medium rounded-md transition-colors',
+                          childIsActive
+                            ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        )}
+                      >
+                        {child.name}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </nav>
 
       {/* Bottom navigation */}
