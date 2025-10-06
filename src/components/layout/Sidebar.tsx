@@ -20,24 +20,26 @@ import {
   User,
   Building
 } from 'lucide-react'
+import { useTranslations } from '@/hooks/useTranslations'
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const permissions = useAuthPermissions()
   const { user } = useAuth()
+  const { t } = useTranslations('sidebar')
 
   // Déterminer le lien et le label pour la section client
   const getClientNavItem = () => {
     if (user?.role === 'client' && user?.client_id) {
       return {
-        name: 'Mon Entreprise',
+        name: t('items.myCompany'),
         href: `/my-company`,
         icon: Building,
       }
     }
     return {
-      name: 'Clients',
+      name: t('items.clients'),
       href: '/clients',
       icon: Users,
     }
@@ -47,36 +49,36 @@ export function Sidebar() {
 
   const navigationItems = [
     {
-      name: 'Tableau de bord',
+      name: t('items.dashboard'),
       href: '/dashboard',
       icon: LayoutDashboard,
       permissions: { resource: 'dashboard', action: 'read' }
     },
     clientNavItem, // Utiliser l'item dynamique
     {
-      name: 'Licences',
+      name: t('items.licenses'),
       href: '/licenses',
       icon: Shield,
     },
     {
-      name: 'Équipements',
+      name: t('items.equipment'),
       href: '/equipment',
       icon: Server,
     },
     {
-      name: 'Notifications',
+      name: t('items.notifications'),
       href: '/notifications',
       icon: Bell,
       permissions: { resource: 'notifications', action: 'read' }
     },
     {
-      name: 'Rapports',
+      name: t('items.reports'),
       href: '/reports',
       icon: FileText,
       permissions: { resource: 'reports', action: 'read' }
     },
     {
-      name: 'Utilisateurs',
+      name: t('items.users'),
       href: '/users',
       icon: User,
       permissions: { resource: 'users', action: 'read' }
@@ -85,12 +87,12 @@ export function Sidebar() {
 
   const bottomNavItems = [
     {
-      name: 'Aide',
+      name: t('items.help'),
       href: '/help',
       icon: HelpCircle,
     },
     {
-      name: 'Paramètres',
+      name: t('items.settings'),
       href: '/settings',
       icon: Settings,
     },

@@ -1,9 +1,10 @@
-// app/layout.tsx
+
+// src\app\layout.tsx
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { Toaster } from 'sonner'
 import './globals.css'
-import { AuthProvider } from './context/auth' // Importez le AuthProvider
+
+import { Providers } from '@/components/layout/Providers' // <-- Importez le nouveau composant
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -17,7 +18,6 @@ export const metadata: Metadata = {
     // apple: '/apple-touch-icon.png', // Icône pour les appareils Apple
   },
 }
-
 export default function RootLayout({
   children,
 }: {
@@ -27,26 +27,12 @@ export default function RootLayout({
     <html lang="fr" className="h-full">
       <body className={`${inter.className} h-full bg-gray-50 antialiased`}>
         <div id="root" className="min-h-full">
-          {/* Enveloppez les enfants dans le AuthProvider.
-            Cela rend l'état de la session (utilisateur, chargement)
-            disponible pour tous les composants client dans votre application.
-          */}
-          <AuthProvider>
+          {/* Utilisez le composant Providers ici */}
+          <Providers>
             {children}
-          </AuthProvider>
+          </Providers> 
         </div>
-        
-        {/* Notifications toast */}
-        <Toaster
-          position="top-right"
-          expand={true}
-          richColors
-          closeButton
-          toastOptions={{
-            duration: 4000,
-            className: 'text-sm',
-          }}
-        />
+
       </body>
     </html>
   )

@@ -6,8 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '@/lib/react-query/client';
+
 
 export default function DashboardLayout({
   children,
@@ -39,7 +38,6 @@ export default function DashboardLayout({
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
 
       <div className="flex h-screen bg-gray-50">
         {/* Sidebar */}
@@ -56,7 +54,6 @@ export default function DashboardLayout({
           </main>
         </div>
       </div>
-  </QueryClientProvider>
 
   )
 }

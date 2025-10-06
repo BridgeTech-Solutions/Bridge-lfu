@@ -70,9 +70,9 @@ export function useStablePermissions() {
       canManageLicenses: permissions.canManageLicenses,
       canManageEquipment: permissions.canManageEquipment,
       canViewReports: permissions.canViewReports,
-      can: (action: string, resource: string) => {
+      can: (action: string, resource: string, resourceData?: Record<string, unknown>) => {
         const checker = new PermissionChecker(user)
-        return checker.can(action, resource)
+        return checker.can(action, resource, resourceData)
       }
     }
   }, [user?.id, user?.role, user?.client_id, permissions])

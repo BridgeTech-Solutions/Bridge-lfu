@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, Search, Filter, MoreHorizontal, Edit, Trash2, Eye, Mail, Phone, MapPin, Building2 } from 'lucide-react'
+import { Plus, MoreHorizontal, Edit, Trash2, Eye, Mail, Phone, MapPin, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import {
   Table,
@@ -20,7 +20,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
 import { useAuthPermissions } from '@/hooks'
-import { useClientActions  } from '@/hooks/useClients'
+import { useClientActions } from '@/hooks/useClients'
+import { useTranslations } from '@/hooks/useTranslations'
 import type { Client } from '@/types'
 import { toast } from 'sonner'
 // import { deleteClient } from '@/lib/supabase/client'
@@ -31,26 +32,32 @@ interface ClientsTableProps {
 
 export function ClientsTable({ clients }: ClientsTableProps) {
   const { can } = useAuthPermissions()
+  const tableTranslations = useTranslations('clients.table')
+  const tableColumns = useTranslations('clients.table.columns')
+  const tableActions = useTranslations('clients.table.actions')
   // Utilisation du nouveau hook pour les actions sur les clients
   const { deleteClient, isDeleting } = useClientActions({
     onSuccess: () => {
-      toast.success('Client supprimé avec succès')
+      toast.success(tableTranslations.t('toastSuccess'))
     },
-    onError: (error) => {
-      toast.error(`Erreur: ${error}`)
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error)
+      toast.error(tableTranslations.t('toastError').replace('{{message}}', message))
     }
   })
 
   const handleDelete = async (clientId: string, clientName: string) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer le client "${clientName}" ?\n\nCette action supprimera également toutes les licences et équipements associés.`)) {
+    if (isDeleting) return
+    const confirmMessage = tableTranslations.t('confirmMessage').replace('{{name}}', clientName)
+    const confirmWarning = tableTranslations.t('confirmWarning')
+    if (window.confirm(`${confirmMessage}\n\n${confirmWarning}`)) {
       try {
         await deleteClient(clientId)
       } catch (error) {
-        console.error('Erreur lors de la suppression:', error)
+        console.error(`${tableTranslations.t('deleteError')} ${error}`)
       }
     }
   }
-
 
   const getInitials = (name: string) => {
     return name
@@ -62,15 +69,15 @@ export function ClientsTable({ clients }: ClientsTableProps) {
   }
 
   const getSectorColor = (sector: string) => {
-    const colors = {
-      'Technologie': 'bg-blue-100 text-blue-800 border-blue-200',
-      'Finance': 'bg-green-100 text-green-800 border-green-200',
-      'Santé': 'bg-red-100 text-red-800 border-red-200',
-      'Éducation': 'bg-purple-100 text-purple-800 border-purple-200',
-      'Commerce': 'bg-orange-100 text-orange-800 border-orange-200',
-      'default': 'bg-slate-100 text-slate-800 border-slate-200'
+    const colors: Record<string, string> = {
+      Technologie: 'bg-blue-100 text-blue-800 border-blue-200',
+      Finance: 'bg-green-100 text-green-800 border-green-200',
+      Santé: 'bg-red-100 text-red-800 border-red-200',
+      Éducation: 'bg-purple-100 text-purple-800 border-purple-200',
+      Commerce: 'bg-orange-100 text-orange-800 border-orange-200',
     }
-    return colors[sector as keyof typeof colors] || colors.default
+
+    return colors[sector] ?? 'bg-slate-100 text-slate-800 border-slate-200'
   }
 
   if (!clients || clients.length === 0) {
@@ -79,14 +86,12 @@ export function ClientsTable({ clients }: ClientsTableProps) {
         <div className="mx-auto w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
           <Building2 className="h-10 w-10 text-slate-400" />
         </div>
-        <h3 className="text-lg font-semibold text-slate-700 mb-2">Aucun client trouvé</h3>
-        <p className="text-slate-500 mb-6">
-          Commencez par ajouter votre premier client pour voir apparaître vos données ici.
-        </p>
+        <h3 className="text-lg font-semibold text-slate-700 mb-2">{tableTranslations.t('emptyTitle')}</h3>
+        <p className="text-slate-500 mb-6">{tableTranslations.t('emptyDescription')}</p>
         {can('create', 'clients') && (
           <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
             <Plus className="mr-2 h-4 w-4" />
-            <Link href="/clients/new">Ajouter un client</Link>
+            <Link href="/clients/new">{tableTranslations.t('emptyButton')}</Link>
           </Button>
         )}
       </div>
@@ -98,20 +103,20 @@ export function ClientsTable({ clients }: ClientsTableProps) {
       <Table>
         <TableHeader>
           <TableRow className="bg-slate-50/80 hover:bg-slate-50/80 border-b border-slate-200">
-            <TableHead className="font-semibold text-slate-700 py-4">Client</TableHead>
-            <TableHead className="font-semibold text-slate-700">Contact</TableHead>
-            <TableHead className="font-semibold text-slate-700">Secteur</TableHead>
-            <TableHead className="font-semibold text-slate-700">Localisation</TableHead>
-            <TableHead className="font-semibold text-slate-700">Création</TableHead>
+            <TableHead className="font-semibold text-slate-700 py-4">{tableColumns.t('client')}</TableHead>
+            <TableHead className="font-semibold text-slate-700">{tableColumns.t('contact')}</TableHead>
+            <TableHead className="font-semibold text-slate-700">{tableColumns.t('sector')}</TableHead>
+            <TableHead className="font-semibold text-slate-700">{tableColumns.t('location')}</TableHead>
+            <TableHead className="font-semibold text-slate-700">{tableColumns.t('created')}</TableHead>
             {can('update', 'clients') && (
-              <TableHead className="font-semibold text-slate-700 text-right">Actions</TableHead>
+              <TableHead className="font-semibold text-slate-700 text-right">{tableColumns.t('actions')}</TableHead>
             )}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {clients.map((client, index) => (
-            <TableRow 
-              key={client.id} 
+          {clients?.map((client, index) => (
+            <TableRow
+              key={client.id}
               className={`
                 hover:bg-slate-50/50 transition-colors duration-200 border-b border-slate-100
                 ${index % 2 === 0 ? 'bg-white/50' : 'bg-slate-25/30'}
@@ -190,48 +195,47 @@ export function ClientsTable({ clients }: ClientsTableProps) {
                 </div>
               </TableCell>
               
-              
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-slate-100 data-[state=open]:bg-slate-100"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Ouvrir le menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 bg-white/95 backdrop-blur-sm shadow-xl border-slate-200">
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-slate-100 data-[state=open]:bg-slate-100"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span className="sr-only">{tableActions.t('openMenu')}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 bg-white/95 backdrop-blur-sm shadow-xl border-slate-200">
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link href={`/clients/${client.id}`} className="flex items-center">
+                        <Eye className="mr-2 h-4 w-4 text-blue-500" />
+                        <span>{tableActions.t('view')}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    
+                    {can('update', 'clients') && (
                       <DropdownMenuItem asChild className="cursor-pointer">
-                        <Link href={`/clients/${client.id}`} className="flex items-center">
-                          <Eye className="mr-2 h-4 w-4 text-blue-500" />
-                          <span>Voir détails</span>
+                        <Link href={`/clients/${client.id}/edit`} className="flex items-center">
+                          <Edit className="mr-2 h-4 w-4 text-amber-500" />
+                          <span>{tableActions.t('edit')}</span>
                         </Link>
                       </DropdownMenuItem>
-                      
-                      {can('update', 'clients') && (
-                        <DropdownMenuItem asChild className="cursor-pointer">
-                          <Link href={`/clients/${client.id}/edit`} className="flex items-center">
-                            <Edit className="mr-2 h-4 w-4 text-amber-500" />
-                            <span>Modifier</span>
-                          </Link>
-                        </DropdownMenuItem>
-                      )}
-                      
-                      {can('delete', 'clients') && (
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(client.id,client.name)}
-                          className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          <span>Supprimer</span>
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+                    )}
+                    
+                    {can('delete', 'clients') && (
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(client.id, client.name)}
+                        className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        <span>{tableActions.t('delete')}</span>
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
               
             </TableRow>
           ))}

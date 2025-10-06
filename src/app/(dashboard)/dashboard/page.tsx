@@ -1,47 +1,53 @@
-  // Mise à jour de votre Dashboard existant
-  'use client'
+// Mise à jour de votre Dashboard existant
+'use client'
 
-  import { 
-    useEquipmentStats, 
-    useLicenseStats, 
-    useStatsAlerts 
-  } from '@/hooks/useStats'
-  import { 
-    useAuthPermissions, 
-    useStablePermissions,
-  } from '@/hooks/index'
-  import { 
-    useDashboard, 
+import {
+  useEquipmentStats,
+  useLicenseStats,
+  useStatsAlerts,
+} from '@/hooks/useStats'
+import { useStablePermissions } from '@/hooks/index'
+import { useDashboard } from '@/hooks/useDashboard'
 
-  } from '@/hooks/useDashboard'
-
-
-  import { LoadingSpinner } from '@/components/ui/loading-spinner'
-  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-  import { Badge } from '@/components/ui/badge'
-  import { Alert, AlertDescription } from '@/components/ui/alert'
-  import { 
-    Users, 
-    Shield, 
-    Server, 
-    AlertTriangle, 
-    TrendingUp,
-    TrendingDown,
-    Calendar,
-    ArrowRight,
-    CheckCircle,
-    XCircle,
-    Clock,
-    Activity,
-    DollarSign,
-    Zap,
-    Bell
-  } from 'lucide-react'
-  import Link from 'next/link'
-  import { cn } from '@/lib/utils'
-  import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts'
-  import { useEffect, useMemo } from 'react'
-  // ... autres imports
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  Users,
+  Shield,
+  Server,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  ArrowRight,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Activity,
+  DollarSign,
+  Zap,
+  Bell,
+} from 'lucide-react'
+import Link from 'next/link'
+import { cn } from '@/lib/utils'
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  BarChart,
+  Bar,
+} from 'recharts'
+import { useMemo } from 'react'
+import { useTranslations } from '@/hooks/useTranslations'
 
   interface StatCardProps {
     title: string
@@ -54,8 +60,9 @@
     }
     href?: string
     subtitle?: string
+    trendLabel?: string
   }
-  function StatCard({ title, value, icon: Icon, color, trend, href, subtitle }: StatCardProps) {
+  function StatCard({ title, value, icon: Icon, color, trend, href, subtitle, trendLabel }: StatCardProps) {
     const colorClasses = {
       blue: 'bg-blue-50 text-blue-600 border-blue-200',
       green: 'bg-green-50 text-green-600 border-green-200',
@@ -87,7 +94,9 @@
                   )}>
                     {trend.isPositive ? '+' : ''}{trend.value}%
                   </span>
-                  <span className="text-xs text-gray-500 ml-1">vs mois dernier</span>
+                  {trendLabel && (
+                    <span className="text-xs text-gray-500 ml-1">{trendLabel}</span>
+                  )}
                 </div>
               )}
             </div>
@@ -115,7 +124,7 @@
     }
   }
 
-  function AlertItem({ alert }: AlertItemProps) {
+function AlertItem({ alert }: AlertItemProps) {
     const getAlertIcon = (alertType: string) => {
       switch (alertType) {
         case 'license_expiry':
@@ -198,9 +207,9 @@
     )
   }
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8']
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8']
 
-  function ChartCard({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
+function ChartCard({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -265,9 +274,16 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
     </Card>
   )
 }
-  export default function DashboardPage() {
-    // Hooks existants
-    const { stats, loading, error } = useDashboard()
+export default function DashboardPage() {
+  const { stats, loading, error } = useDashboard()
+  const { t } = useTranslations('dashboard')
+  const statsTranslations = useTranslations('dashboard.stats')
+  const chartsTranslations = useTranslations('dashboard.charts')
+  const alertsTranslations = useTranslations('dashboard.alerts')
+  const quickActionsTranslations = useTranslations('dashboard.quickActions')
+  const clientSummaryTranslations = useTranslations('dashboard.clientSummary')
+  const overviewTranslations = useTranslations('dashboard.overview')
+  const errorsTranslations = useTranslations('dashboard.errors')
     
     // NOUVEAUX hooks pour les statistiques
     const { stats: equipmentStats, loading: equipmentLoading, error: equipmentError } = useEquipmentStats()
@@ -309,41 +325,32 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
     // Permissions stabilisées
     const stablePermissions = useStablePermissions()
 
-    // Gestion des erreurs améliorée
-    if (error || equipmentError || licenseError) {
-      return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Alert variant="destructive">
-            <AlertDescription>
-              Erreur lors du chargement: {error || equipmentError || licenseError}
-            </AlertDescription>
-          </Alert>
-        </div>
-      )
-    }
-
-    // // État de chargement global
-    // const isLoading = loading || equipmentLoading || licenseLoading 
-
-    // if (isLoading) {
-    //   return (
-    //     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    //       <div className="flex items-center justify-center min-h-96">
-    //         <LoadingSpinner size="lg" />
-    //       </div>
-    //     </div>
-    //   )
-    // }
-
+  if (error || equipmentError || licenseError) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
-          <p className="text-gray-600 mt-2">
-            Vue d&apos;ensemble de votre {stablePermissions.canViewAllData ? 'plateforme' : 'compte'}
-          </p>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Alert variant="destructive">
+          <AlertDescription>
+            {errorsTranslations.t('loading')}: {error || equipmentError || licenseError}
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
+        <p className="text-gray-600 mt-2">
+          {overviewTranslations.t('subtitle').replace(
+            '{{context}}',
+            overviewTranslations.t(
+              `context.${stablePermissions.canViewAllData ? 'platform' : 'account'}`
+            )
+          )}
+        </p>
+      </div>
 
         {/* Stats Grid - AMÉLIORÉ avec les nouvelles données */}
         <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${stablePermissions.canViewAllData ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
@@ -352,7 +359,7 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
               <StatCardSkeleton />
             ) : (
               <StatCard
-                title="Total Clients"
+                title={statsTranslations.t('totalClients')}
                 value={stats?.total_clients || 0}
                 icon={Users}
                 color="blue"
@@ -364,35 +371,41 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
             <StatCardSkeleton />
           ) : (
             <StatCard
-              title="Licences Actives"
+              title={statsTranslations.t('activeLicenses')}
               value={(operationalLicenseCount)}
               icon={Shield}
               color="green"
               href="/licenses"
-              subtitle={`${licenseStats?.by_status.expired || 0} expirées`}
+              subtitle={statsTranslations
+                .t('activeLicensesSubtitle')
+                .replace('{{count}}', String(licenseStats?.by_status.expired || 0))}
             />
           )}
           {equipmentLoading ? (
             <StatCardSkeleton />
           ) : (
             <StatCard
-              title="Équipements Actifs"
+              title={statsTranslations.t('activeEquipment')}
               value={(operationalEquipmentCount)}
               icon={Server}
               color="blue"
               href="/equipment"
-              subtitle={`${equipmentStats?.by_status.obsolete || 0} obsolètes`}
+              subtitle={statsTranslations
+                .t('activeEquipmentSubtitle')
+                .replace('{{count}}', String(equipmentStats?.by_status.obsolete || 0))}
             />
           )}
           {licenseLoading || equipmentLoading ? (
             <StatCardSkeleton />
           ) : (
             <StatCard
-              title="Alertes Critiques"
+              title={statsTranslations.t('criticalAlerts')}
               value={statsAlerts.criticalCount}
               icon={AlertTriangle}
               color="red"
-              subtitle={`${statsAlerts.warningCount} avertissements`}
+              subtitle={statsTranslations
+                .t('criticalAlertsSubtitle')
+                .replace('{{count}}', String(statsAlerts.warningCount))}
             />
           )}
         </div>
@@ -402,9 +415,9 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
           {/* Équipements - Utilise les nouvelles données */}
           {/*  eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain */}
          {equipmentLoading || !equipmentStats?.chart_data?.types?.length ? (
-            <ChartCardSkeleton title="Répartition des Équipements par Type" />
+            <ChartCardSkeleton title={chartsTranslations.t('equipmentByType')} />
           ) : (
-            <ChartCard title="Répartition des Équipements par Type">
+            <ChartCard title={chartsTranslations.t('equipmentByType')}>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -431,9 +444,9 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
           {/* Licences - Utilise les nouvelles données */}
 
           {licenseLoading || !licenseStats?.chart_data?.statuses?.length ? (
-            <ChartCardSkeleton title="Statut des Licences" />
+            <ChartCardSkeleton title={chartsTranslations.t('licenseStatus')} />
           ) : (
-            <ChartCard title="Statut des Licences">
+            <ChartCard title={chartsTranslations.t('licenseStatus')}>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={licenseStats.chart_data.statuses}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -447,9 +460,9 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
           )}
           {/* Nouveau graphique - Évolution des expirations */}
           {licenseLoading || !licenseStats?.chart_data.expiry || licenseStats.chart_data.expiry.length === 0 ? (
-            <ChartCardSkeleton title="Expirations à venir (6 mois)" />
+            <ChartCardSkeleton title={chartsTranslations.t('upcomingExpirations')} />
           ) : (
-            <ChartCard title="Expirations à venir (6 mois)">
+            <ChartCard title={chartsTranslations.t('upcomingExpirations')}>
               {/* ... Contenu du ResponsiveContainer LineChart existant ... */}
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={licenseStats.chart_data.expiry}>
@@ -463,7 +476,7 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
                     dataKey="count" 
                     stroke="#FF8042" 
                     strokeWidth={2}
-                    name="Expirations"
+                    name={chartsTranslations.t('expirationsSeries')}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -473,9 +486,9 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
 
           {/* Statuts des équipements */}
           {equipmentLoading || !equipmentStats?.chart_data?.statuses?.length ? (
-            <ChartCardSkeleton title="Statut des Équipements" />
+            <ChartCardSkeleton title={chartsTranslations.t('equipmentStatus')} />
           ) : (
-            <ChartCard title="Statut des Équipements">
+            <ChartCard title={chartsTranslations.t('equipmentStatus')}>
               {/* ... Contenu du ResponsiveContainer BarChart existant ... */}
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={equipmentStats.chart_data.statuses}>
@@ -501,7 +514,7 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-lg font-semibold text-gray-900">
-                      Alertes Récentes
+                      {alertsTranslations.t('title')}
                       {( statsAlerts.totalCount > 0) && (
                         <Badge variant="destructive" className="ml-2">
                           { statsAlerts.totalCount}
@@ -512,7 +525,7 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
                       href="/notifications"
                       className="text-sm text-blue-600 hover:text-blue-500 font-medium flex items-center"
                     >
-                      Voir tout
+                      {alertsTranslations.t('viewAll')}
                       <ArrowRight className="h-4 w-4 ml-1" />
                     </Link>
                   </CardHeader>
@@ -539,11 +552,13 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium text-gray-900">{alert.message}</p>
-                                  <p className="text-xs text-gray-500">Alerte système</p>
+                                  <p className="text-xs text-gray-500">{alertsTranslations.t('systemLabel')}</p>
                                 </div>
                               </div>
                               <Badge variant={alert.level === 'danger' ? 'destructive' : 'warning'}>
-                                {alert.level === 'danger' ? 'Critique' : 'Attention'}
+                                {alert.level === 'danger'
+                                  ? alertsTranslations.t('badgeCritical')
+                                  : alertsTranslations.t('badgeWarning')}
                               </Badge>
                             </div>
                           </div>
@@ -553,8 +568,8 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
                     ) : (
                       <div className="p-6 text-center text-gray-500">
                         <CheckCircle className="h-12 w-12 mx-auto text-green-300 mb-4" />
-                        <p className="text-lg font-medium text-gray-900 mb-2">Tout va bien !</p>
-                        <p>Aucune alerte critique à signaler</p>
+                        <p className="text-lg font-medium text-gray-900 mb-2">{alertsTranslations.t('emptyTitle')}</p>
+                        <p>{alertsTranslations.t('emptyDescription')}</p>
                       </div>
                     )}
                   </CardContent>
@@ -580,7 +595,7 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
                     <div className="flex items-center">
                       <Users className="h-5 w-5 text-blue-600 mr-3" />
                       <span className="text-sm font-medium text-blue-900">
-                        Nouveau Client
+                        {quickActionsTranslations.t('newClient')}
                       </span>
                     </div>
                     <ArrowRight className="h-4 w-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
@@ -595,7 +610,7 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
                     <div className="flex items-center">
                       <Shield className="h-5 w-5 text-green-600 mr-3" />
                       <span className="text-sm font-medium text-green-900">
-                        Nouvelle Licence
+                        {quickActionsTranslations.t('newLicense')}
                       </span>
                     </div>
                     <ArrowRight className="h-4 w-4 text-green-600 group-hover:translate-x-1 transition-transform" />
@@ -610,7 +625,7 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
                     <div className="flex items-center">
                       <Server className="h-5 w-5 text-purple-600 mr-3" />
                       <span className="text-sm font-medium text-purple-900">
-                        Nouvel Équipement
+                        {quickActionsTranslations.t('newEquipment')}
                       </span>
                     </div>
                     <ArrowRight className="h-4 w-4 text-purple-600 group-hover:translate-x-1 transition-transform" />
@@ -625,7 +640,7 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
                     <div className="flex items-center">
                       <Calendar className="h-5 w-5 text-orange-600 mr-3" />
                       <span className="text-sm font-medium text-orange-900">
-                        Générer un Rapport
+                        {quickActionsTranslations.t('reports')}
                       </span>
                     </div>
                     <ArrowRight className="h-4 w-4 text-orange-600 group-hover:translate-x-1 transition-transform" />
@@ -641,28 +656,28 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold text-gray-900">
-                    Mes Données
+                    {clientSummaryTranslations.t('title')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                     <div className="flex items-center">
                       <Shield className="h-5 w-5 text-blue-600 mr-3" />
-                      <span className="text-sm font-medium text-blue-900">Licences</span>
+                      <span className="text-sm font-medium text-blue-900">{clientSummaryTranslations.t('licenses')}</span>
                     </div>
                     <Badge variant="secondary">{licenseStats?.total || 0}</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
                     <div className="flex items-center">
                       <Server className="h-5 w-5 text-purple-600 mr-3" />
-                      <span className="text-sm font-medium text-purple-900">Équipements</span>
+                      <span className="text-sm font-medium text-purple-900">{clientSummaryTranslations.t('equipment')}</span>
                     </div>
                     <Badge variant="secondary">{equipmentStats?.total || 0}</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                     <div className="flex items-center">
                       <AlertTriangle className="h-5 w-5 text-orange-600 mr-3" />
-                      <span className="text-sm font-medium text-orange-900">Alertes</span>
+                      <span className="text-sm font-medium text-orange-900">{clientSummaryTranslations.t('alerts')}</span>
                     </div>
                     <Badge variant={statsAlerts.totalCount > 0 ? "destructive" : "secondary"}>
                       {statsAlerts.totalCount}
@@ -672,7 +687,7 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
                     <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                       <div className="flex items-center">
                         <DollarSign className="h-5 w-5 text-green-600 mr-3" />
-                        <span className="text-sm font-medium text-green-900">Valeur totale</span>
+                        <span className="text-sm font-medium text-green-900">{clientSummaryTranslations.t('totalValue')}</span>
                       </div>
                       <Badge variant="secondary">
                         {totalAssetValue.toLocaleString('fr-FR')} FCFA

@@ -6,66 +6,69 @@ import { useRouter } from 'next/navigation';
 import { useLicenses } from '@/hooks/useLicenses';
 import { useEquipments } from '@/hooks/useEquipments';
 import { useStablePermissions } from '@/hooks/index';
+import { useTranslations } from '@/hooks/useTranslations';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Building,
-  Edit,
-  ArrowLeft,
-  Calendar,
-  FileText,
-  Monitor,
-  AlertTriangle,
-  CheckCircle,
-  Clock
-} from 'lucide-react';
+import { User, Mail, Phone, MapPin, CheckCircle, AlertTriangle, Clock, Monitor, ArrowLeft, Building, Edit, FileText, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { LicenseWithClientView, Client } from '@/types';
 
+const formatMessage = (template: string, values: Record<string, string>) =>
+  Object.entries(values).reduce(
+    (result, [key, value]) => result.replace(new RegExp(`{{${key}}}`, 'g'), value),
+    template
+  );
+
 // Composant pour afficher une ligne de licence
 const LicenseItem = ({ license }: { license: LicenseWithClientView }) => {
+  const { t } = useTranslations('clients.detail.licenseItem');
+  const { t: licenseStatusT } = useTranslations('clients.detail.licenseStatus');
   const statusBadge = useMemo(() => {
-    const statusConfig = {
-      'active': { label: 'Actif', variant: 'default' as const, icon: CheckCircle },
-      'expired': { label: 'Expiré', variant: 'destructive' as const, icon: AlertTriangle },
-      'about_to_expire': { label: 'Expire bientôt', variant: 'secondary' as const, icon: Clock },
-      'actif': { label: 'Actif', variant: 'default' as const, icon: CheckCircle },
+    const mappings: Record<string, { variant: 'default' | 'destructive' | 'secondary' | 'outline'; icon: typeof CheckCircle }> = {
+      active: { variant: 'default', icon: CheckCircle },
+      expired: { variant: 'destructive', icon: AlertTriangle },
+      about_to_expire: { variant: 'secondary', icon: Clock },
+      actif: { variant: 'default', icon: CheckCircle },
     };
-    const config = statusConfig[license.status as keyof typeof statusConfig] || {
-      label: license.status,
-      variant: 'outline' as const,
-      icon: CheckCircle
-    };
+    const key = (license.status ?? '').toString();
+    const config = mappings[key] ?? { variant: 'outline', icon: CheckCircle };
     const Icon = config.icon;
+    const label = mappings[key]
+      ? licenseStatusT(key)
+      : formatMessage(licenseStatusT('unknown'), { status: key });
     return (
       <Badge variant={config.variant} className="flex items-center gap-1">
         <Icon className="h-3 w-3" />
-        {config.label}
+        {label}
       </Badge>
     );
-  }, [license.status]);
+  }, [license.status, licenseStatusT]);
+
+  const expiryDate = license.expiry_date
+    ? new Date(license.expiry_date).toLocaleDateString('fr-FR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    : '';
+  const editorLabel = license.editor || t('unknownEditor');
+  const expiryLabel = expiryDate ? formatMessage(t('expiry'), { date: expiryDate }) : '';
+  const description = expiryLabel
+    ? formatMessage(t('description'), { editor: editorLabel, expiry: expiryLabel })
+    : editorLabel;
+  const costLabel = license.cost != null ? formatMessage(t('cost'), { amount: license.cost.toLocaleString('fr-FR') }) : '';
 
   return (
-    <div key={license.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
       <div className="flex-1">
         <h4 className="font-medium text-slate-800">{license.name}</h4>
-        <p className="text-sm text-slate-600">
-          {license.editor} • Expire le {new Date(license.expiry_date!).toLocaleDateString('fr-FR')}
-        </p>
+        <p className="text-sm text-slate-600">{description}</p>
       </div>
       <div className="flex items-center gap-3">
         {statusBadge}
-        {license.cost && (
-          <Badge variant="outline">
-            {license.cost.toLocaleString('fr-FR')} FCFA
-          </Badge>
-        )}
+        {costLabel && <Badge variant="outline">{costLabel}</Badge>}
       </div>
     </div>
   );
@@ -74,46 +77,63 @@ const LicenseItem = ({ license }: { license: LicenseWithClientView }) => {
 // Composant pour afficher une ligne d'équipement
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const EquipmentItem = ({ item }: { item: any }) => {
+  const { t } = useTranslations('clients.detail.equipmentItem');
+  const { t: equipmentStatusT } = useTranslations('clients.detail.equipmentStatus');
+
   const statusBadge = useMemo(() => {
-    const statusConfig = {
-      'actif': { label: 'Actif', variant: 'default' as const, icon: CheckCircle },
-      'obsolete': { label: 'Obsolète', variant: 'destructive' as const, icon: AlertTriangle },
-      'bientot_obsolete': { label: 'Bientôt obsolète', variant: 'secondary' as const, icon: Clock },
-      'en_maintenance': { label: 'En maintenance', variant: 'warning' as const, icon: Clock },
-      'retire': { label: 'Retiré', variant: 'destructive' as const, icon: AlertTriangle },
+    const statusConfig: Record<string, { variant: 'default' | 'destructive' | 'secondary' | 'outline' | 'warning'; icon: typeof CheckCircle }> = {
+      actif: { variant: 'default', icon: CheckCircle },
+      obsolete: { variant: 'destructive', icon: AlertTriangle },
+      bientot_obsolete: { variant: 'secondary', icon: Clock },
+      en_maintenance: { variant: 'warning', icon: Clock },
+      retire: { variant: 'destructive', icon: AlertTriangle },
     };
-    const config = statusConfig[item.status as keyof typeof statusConfig] || {
-      label: item.status,
-      variant: 'outline' as const,
-      icon: CheckCircle
-    };
+
+    const key = (item.status ?? '').toString();
+    const config = statusConfig[key] ?? { variant: 'outline', icon: CheckCircle };
     const Icon = config.icon;
+    const label = statusConfig[key]
+      ? equipmentStatusT(key)
+      : formatMessage(equipmentStatusT('unknown'), { status: key });
+
     return (
       <Badge variant={config.variant} className="flex items-center gap-1">
         <Icon className="h-3 w-3" />
-        {config.label}
+        {label}
       </Badge>
     );
-  }, [item.status]);
+  }, [equipmentStatusT, item.status]);
+
+  const description = formatMessage(t('description'), {
+    type: item.type || t('unknownType'),
+    brand: item.brand || t('unknownBrand'),
+    model: item.model || '',
+  });
+
+  const obsolescenceLabel = item.estimated_obsolescence_date
+    ? formatMessage(t('obsolescence'), {
+        date: new Date(item.estimated_obsolescence_date).toLocaleDateString('fr-FR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }),
+      })
+    : '';
+
+  const costLabel = item.cost != null ? formatMessage(t('cost'), { amount: item.cost.toLocaleString('fr-FR') }) : '';
 
   return (
-    <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
       <div className="flex-1">
         <h4 className="font-medium text-slate-800">{item.name}</h4>
         <p className="text-sm text-slate-600">
-          {item.type} • {item.brand} {item.model}
-          {item.estimated_obsolescence_date && (
-            <> • Obsolescence prévue le {new Date(item.estimated_obsolescence_date).toLocaleDateString('fr-FR')}</>
-          )}
+          {description}
+          {obsolescenceLabel && <> • {obsolescenceLabel}</>}
         </p>
       </div>
       <div className="flex items-center gap-3">
         {item.status && statusBadge}
-        {item.cost && (
-          <Badge variant="outline">
-            {item.cost.toLocaleString('fr-FR')} FCFA
-          </Badge>
-        )}
+        {costLabel && <Badge variant="outline">{costLabel}</Badge>}
       </div>
     </div>
   );
@@ -128,6 +148,11 @@ interface ClientDetailProps {
 export function ClientDetailPage({ client, showBackButton = true, showEditButton = true }: ClientDetailProps) {
   const router = useRouter();
   const { can } = useStablePermissions();
+  const headerTranslations = useTranslations('clients.detail.header');
+  const contactCardTranslations = useTranslations('clients.detail.contactCard');
+  const statsCardTranslations = useTranslations('clients.detail.statsCard');
+  const infoCardTranslations = useTranslations('clients.detail.infoCard');
+  const tabsTranslations = useTranslations('clients.detail.tabs');
 
   // Hook pour les licences du client
   const {
@@ -162,7 +187,7 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
                   className="hover:bg-slate-100"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Retour
+                  {headerTranslations.t('back')}
                 </Button>
               )}
               <div>
@@ -171,7 +196,7 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
                 </h1>
                 <p className="text-slate-600 text-lg flex items-center gap-2">
                   <Building className="h-5 w-5" />
-                  {client.sector || 'Secteur non spécifié'}
+                  {client.sector || headerTranslations.t('sectorFallback')}
                 </p>
               </div>
             </div>
@@ -180,7 +205,7 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
               >
                 <Edit className="mr-2 h-4 w-4" />
-                <Link href={`/clients/${client.id}/edit`}>Modifier</Link>
+                <Link href={`/clients/${client.id}/edit`}>{headerTranslations.t('edit')}</Link>
               </Button>
             )}
           </div>
@@ -193,10 +218,10 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5 text-blue-600" />
-                Informations de contact
+                {contactCardTranslations.t('title')}
               </CardTitle>
               <CardDescription>
-                Coordonnées et informations principales
+                {contactCardTranslations.t('description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -205,16 +230,16 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
                   <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                     <Mail className="h-5 w-5 text-slate-500" />
                     <div>
-                      <p className="text-sm font-medium text-slate-600">Email</p>
-                      <p className="text-slate-800">{client.contact_email || 'Non renseigné'}</p>
+                      <p className="text-sm font-medium text-slate-600">{contactCardTranslations.t('email')}</p>
+                      <p className="text-slate-800">{client.contact_email || contactCardTranslations.t('fieldFallback')}</p>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                     <Phone className="h-5 w-5 text-slate-500" />
                     <div>
-                      <p className="text-sm font-medium text-slate-600">Téléphone</p>
-                      <p className="text-slate-800">{client.contact_phone || 'Non renseigné'}</p>
+                      <p className="text-sm font-medium text-slate-600">{contactCardTranslations.t('phone')}</p>
+                      <p className="text-slate-800">{client.contact_phone || contactCardTranslations.t('fieldFallback')}</p>
                     </div>
                   </div>
                 </div>
@@ -223,15 +248,15 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
                   <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                     <User className="h-5 w-5 text-slate-500" />
                     <div>
-                      <p className="text-sm font-medium text-slate-600">Contact principal</p>
-                      <p className="text-slate-800">{client.contact_person || 'Non renseigné'}</p>
+                      <p className="text-sm font-medium text-slate-600">{contactCardTranslations.t('contact')}</p>
+                      <p className="text-slate-800">{client.contact_person || contactCardTranslations.t('fieldFallback')}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                     <MapPin className="h-5 w-5 text-slate-500" />
                     <div>
-                      <p className="text-sm font-medium text-slate-600">Adresse</p>
+                      <p className="text-sm font-medium text-slate-600">{contactCardTranslations.t('address')}</p>
                       <p className="text-slate-800">
                         {client.address ? (
                           <>
@@ -241,7 +266,7 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
                             {client.country && <><br />{client.country}</>}
                           </>
                         ) : (
-                          'Non renseignée'
+                          contactCardTranslations.t('addressFallback')
                         )}
                       </p>
                     </div>
@@ -255,13 +280,13 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
           <div className="space-y-6">
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
-                <CardTitle className="text-lg">Statistiques</CardTitle>
+                <CardTitle className="text-lg">{statsCardTranslations.t('title')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-blue-600" />
-                    <span className="font-medium">Licences</span>
+                    <span className="font-medium">{statsCardTranslations.t('licenses')}</span>
                   </div>
                   <Badge variant="outline" className="bg-white">
                     {licensesPagination?.count || 0}
@@ -271,7 +296,7 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
                 <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <Monitor className="h-5 w-5 text-green-600" />
-                    <span className="font-medium">Équipements</span>
+                    <span className="font-medium">{statsCardTranslations.t('equipment')}</span>
                   </div>
                   <Badge variant="outline" className="bg-white">
                     {equipmentPagination?.count || 0}
@@ -284,12 +309,12 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
-                  Informations
+                  {infoCardTranslations.t('title')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Créé le</p>
+                  <p className="text-sm font-medium text-slate-600">{infoCardTranslations.t('created')}</p>
                   <p className="text-slate-800">
                     {new Date(client.created_at!).toLocaleDateString('fr-FR', {
                       year: 'numeric',
@@ -299,7 +324,7 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Dernière mise à jour</p>
+                  <p className="text-sm font-medium text-slate-600">{infoCardTranslations.t('updated')}</p>
                   <p className="text-slate-800">
                     {new Date(client.updated_at!).toLocaleDateString('fr-FR', {
                       year: 'numeric',
@@ -320,11 +345,15 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
               <TabsList className="grid w-full grid-cols-2 bg-slate-100">
                 <TabsTrigger value="licenses" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
-                  Licences ({licensesPagination?.count || 0})
+                  {tabsTranslations
+                    .t('licensesWithCount')
+                    .replace('{{count}}', String(licensesPagination?.count || 0))}
                 </TabsTrigger>
                 <TabsTrigger value="equipment" className="flex items-center gap-2">
                   <Monitor className="h-4 w-4" />
-                  Équipements ({equipmentPagination?.count || 0})
+                  {tabsTranslations
+                    .t('equipmentWithCount')
+                    .replace('{{count}}', String(equipmentPagination?.count || 0))}
                 </TabsTrigger>
               </TabsList>
             </CardHeader>
@@ -334,7 +363,7 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
                 {licenses.length === 0 ? (
                   <div className="text-center py-8 text-slate-500">
                     <FileText className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                    <p>Aucune licence enregistrée</p>
+                    <p>{tabsTranslations.t('licensesEmpty')}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -345,7 +374,9 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
                       <div className="text-center pt-4">
                         <Button variant="outline" size="sm">
                           <Link href={`/licenses?clientId=${client.id}`}>
-                            Voir toutes les licences ({licensesPagination.count})
+                            {tabsTranslations
+                              .t('viewAllLicenses')
+                              .replace('{{count}}', String(licensesPagination.count))}
                           </Link>
                         </Button>
                       </div>
@@ -358,7 +389,7 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
                 {equipment.length === 0 ? (
                   <div className="text-center py-8 text-slate-500">
                     <Monitor className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                    <p>Aucun équipement enregistré</p>
+                    <p>{tabsTranslations.t('equipmentEmpty')}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -369,7 +400,9 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
                       <div className="text-center pt-4">
                         <Button variant="outline" size="sm">
                           <Link href={`/equipment?clientId=${client.id}`}>
-                            Voir tous les équipements ({equipmentPagination.count})
+                            {tabsTranslations
+                              .t('viewAllEquipment')
+                              .replace('{{count}}', String(equipmentPagination.count))}
                           </Link>
                         </Button>
                       </div>

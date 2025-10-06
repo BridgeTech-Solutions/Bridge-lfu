@@ -1,7 +1,7 @@
 // app/(dashboard)/clients/[id]/edit/page.tsx ou /new/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
 import { ArrowLeft, Save, Building, User, Mail, Phone, MapPin, Globe, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface ClientFormPageProps {
   mode: 'create' | 'edit';
@@ -27,13 +28,12 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
   const params = useParams();
   const router = useRouter();
   const { can } = useAuthPermissions();
+  const { t } = useTranslations('clients.form');
   
   const clientId = mode === 'edit' ? params.id as string : null;
   
-  // Utilisation du nouveau hook useClient pour récupérer les données existantes
   const { data: existingClient, isLoading: loadingClient } = useClient(clientId || '');
   
-  // Utilisation du hook useClientActions pour les mutations
   const { updateClient, isUpdating } = useClientActions({
     onSuccess: () => {
       if (mode === 'edit' && clientId) {
@@ -57,7 +57,6 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
     }
   });
 
-  // Charger les données existantes en mode édition
   useEffect(() => {
     if (mode === 'edit' && existingClient) {
       form.reset({
@@ -74,7 +73,6 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
     }
   }, [existingClient, form, mode]);
 
-  // Vérification des permissions
   const requiredPermission = mode === 'create' ? 'create' : 'update';
   if (!can(requiredPermission, 'clients')) {
     return (
@@ -82,7 +80,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
         <div className="max-w-2xl mx-auto pt-20">
           <Alert variant="destructive">
             <AlertDescription>
-              Vous n&apos;avez pas les permissions nécessaires pour {mode === 'create' ? 'créer' : 'modifier'} un client.
+              {t(`permission.${mode}`)}
             </AlertDescription>
           </Alert>
         </div>
@@ -96,7 +94,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
         <div className="flex justify-center items-center h-screen">
           <div className="text-center space-y-4">
             <Spinner size="lg" className="mx-auto" />
-            <p className="text-slate-600 font-medium">Chargement du client...</p>
+            <p className="text-slate-600 font-medium">{t('loading')}</p>
           </div>
         </div>
       </div>
@@ -106,10 +104,8 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
   const onSubmit = async (data: ClientInput) => {
     try {
       if (mode === 'edit' && clientId) {
-        // Utilisation du hook pour la mise à jour
         await updateClient({ id: clientId, data });
       } else {
-        // Pour la création, appel direct à l'API
         const response = await fetch('/api/clients', {
           method: 'POST',
           headers: {
@@ -120,12 +116,12 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.message || 'Erreur lors de la création');
+          throw new Error(errorData.message || t('notifications.errorDefault'));
         }
 
         const result = await response.json();
         
-        toast.success('Client créé avec succès !');
+        toast.success(t('notifications.createSuccess'));
         router.push(`/clients/${result.id}`);
       }
     } catch (error) {
@@ -133,7 +129,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
       toast.error(
         error instanceof Error 
           ? error.message 
-          : 'Une erreur est survenue lors de la sauvegarde'
+          : t('notifications.errorDefault')
       );
     }
   };
@@ -147,20 +143,20 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
   };
 
   const secteurOptions = [
-    'Informatique',
-    'Santé',
-    'Education',
-    'Finance',
-    'Commerce',
-    'Industrie',
-    'Services',
-    'Agriculture',
-    'Transport',
-    'Télécommunications',
-    'Energie',
-    'Immobilier',
-    'Tourisme',
-    'Autre'
+    { value: 'Informatique', label: t('options.sectors.informatique') },
+    { value: 'Santé', label: t('options.sectors.sante') },
+    { value: 'Education', label: t('options.sectors.education') },
+    { value: 'Finance', label: t('options.sectors.finance') },
+    { value: 'Commerce', label: t('options.sectors.commerce') },
+    { value: 'Industrie', label: t('options.sectors.industrie') },
+    { value: 'Services', label: t('options.sectors.services') },
+    { value: 'Agriculture', label: t('options.sectors.agriculture') },
+    { value: 'Transport', label: t('options.sectors.transport') },
+    { value: 'Télécommunications', label: t('options.sectors.telecommunications') },
+    { value: 'Energie', label: t('options.sectors.energie') },
+    { value: 'Immobilier', label: t('options.sectors.immobilier') },
+    { value: 'Tourisme', label: t('options.sectors.tourisme') },
+    { value: 'Autre', label: t('options.sectors.autre') }
   ];
 
   const isSubmitting = isUpdating;
@@ -178,16 +174,14 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
               className="hover:bg-slate-100"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Retour
+              {t('back')}
             </Button>
             <div>
               <h1 className="text-4xl font-bold text-slate-800 mb-2">
-                {mode === 'create' ? 'Nouveau client' : 'Modifier le client'}
+                {t(`headings.${mode}Title`)}
               </h1>
               <p className="text-slate-600 text-lg">
-                {mode === 'create' 
-                  ? 'Ajoutez un nouveau client à votre portefeuille' 
-                  : 'Modifiez les informations du client'}
+                {t(`headings.${mode}Subtitle`)}
               </p>
             </div>
           </div>
@@ -200,10 +194,10 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building className="h-5 w-5 text-blue-600" />
-                  Informations générales
+                  {t('sections.general.title')}
                 </CardTitle>
                 <CardDescription>
-                  Renseignez les informations principales du client
+                  {t('sections.general.description')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -215,17 +209,17 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                       <FormItem className="md:col-span-2">
                         <FormLabel className="flex items-center gap-2">
                           <Building className="h-4 w-4" />
-                          Nom du client *
+                          {t('sections.general.fields.name.label')}
                         </FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Ex: TechCorp SARL" 
+                            placeholder={t('sections.general.fields.name.placeholder')}
                             className="bg-white/80"
                             {...field} 
                           />
                         </FormControl>
                         <FormDescription>
-                          Nom de l&apos;entreprise ou de l&apos;organisation
+                          {t('sections.general.fields.name.description')}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -239,18 +233,18 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
                           <Briefcase className="h-4 w-4" />
-                          Secteur d&apos;activité
+                          {t('sections.general.fields.sector.label')}
                         </FormLabel>
                         <Select onValueChange={field.onChange} value={field.value ?? undefined}>
                           <FormControl>
                             <SelectTrigger className="bg-white/80">
-                              <SelectValue placeholder="Sélectionnez un secteur" />
+                              <SelectValue placeholder={t('sections.general.fields.sector.placeholder')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {secteurOptions.map((secteur) => (
-                              <SelectItem key={secteur} value={secteur}>
-                                {secteur}
+                              <SelectItem key={secteur.value} value={secteur.value}>
+                                {secteur.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -267,11 +261,11 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
                           <Globe className="h-4 w-4" />
-                          Pays
+                          {t('sections.general.fields.country.label')}
                         </FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Cameroun" 
+                            placeholder={t('sections.general.fields.country.placeholder')}
                             className="bg-white/80"
                             {...field} 
                             value={field.value ?? ""}
@@ -290,10 +284,10 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5 text-green-600" />
-                  Informations de contact
+                  {t('sections.contact.title')}
                 </CardTitle>
                 <CardDescription>
-                  Coordonnées du contact principal
+                  {t('sections.contact.description')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -305,11 +299,11 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
                           <User className="h-4 w-4" />
-                          Contact principal
+                          {t('sections.contact.fields.contactPerson.label')}
                         </FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Ex: Jean Dupont" 
+                            placeholder={t('sections.contact.fields.contactPerson.placeholder')}
                             className="bg-white/80"
                             {...field}
                             value={field.value ?? ""} 
@@ -327,12 +321,12 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
                           <Mail className="h-4 w-4" />
-                          Email
+                          {t('sections.contact.fields.contactEmail.label')}
                         </FormLabel>
                         <FormControl>
                           <Input 
                             type="email"
-                            placeholder="contact@exemple.com" 
+                            placeholder={t('sections.contact.fields.contactEmail.placeholder')}
                             className="bg-white/80"
                             {...field} 
                             value={field.value ?? ""}
@@ -350,18 +344,18 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                       <FormItem className="md:col-span-2">
                         <FormLabel className="flex items-center gap-2">
                           <Phone className="h-4 w-4" />
-                          Téléphone
+                          {t('sections.contact.fields.contactPhone.label')}
                         </FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Ex: +237 6XX XX XX XX" 
+                            placeholder={t('sections.contact.fields.contactPhone.placeholder')}
                             className="bg-white/80"
                             {...field} 
                             value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormDescription>
-                          Format: +237 6XXXXXXXX ou 6XXXXXXXX
+                          {t('sections.contact.fields.contactPhone.description')}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -376,10 +370,10 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-purple-600" />
-                  Adresse
+                  {t('sections.address.title')}
                 </CardTitle>
                 <CardDescription>
-                  Adresse physique du client
+                  {t('sections.address.description')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -388,10 +382,10 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                   name="address"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Adresse complète</FormLabel>
+                      <FormLabel>{t('sections.address.fields.address.label')}</FormLabel>
                       <FormControl>
                         <Textarea 
-                          placeholder="Ex: 123 Rue de la Technologie, Quartier des Affaires"
+                          placeholder={t('sections.address.fields.address.placeholder')}
                           className="bg-white/80 min-h-[100px]"
                           {...field} 
                           value={field.value ?? ""}
@@ -408,10 +402,10 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                     name="city"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Ville</FormLabel>
+                        <FormLabel>{t('sections.address.fields.city.label')}</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Ex: Douala" 
+                            placeholder={t('sections.address.fields.city.placeholder')}
                             className="bg-white/80"
                             {...field} 
                             value={field.value ?? ""}
@@ -427,10 +421,10 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                     name="postalCode"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Code postal</FormLabel>
+                        <FormLabel>{t('sections.address.fields.postalCode.label')}</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Ex: BP 1234" 
+                            placeholder={t('sections.address.fields.postalCode.placeholder')}
                             className="bg-white/80"
                             {...field} 
                             value={field.value ?? ""}
@@ -455,7 +449,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                     disabled={isSubmitting}
                     className="order-2 sm:order-1"
                   >
-                    Annuler
+                    {t('actions.cancel')}
                   </Button>
                   <Button
                     type="submit"
@@ -465,12 +459,12 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                     {isSubmitting ? (
                       <>
                         <Spinner size="sm" className="mr-2" />
-                        {mode === 'create' ? 'Création...' : 'Modification...'}
+                        {t(`actions.${mode === 'create' ? 'creating' : 'updating'}`)}
                       </>
                     ) : (
                       <>
                         <Save className="mr-2 h-4 w-4" />
-                        {mode === 'create' ? 'Créer le client' : 'Enregistrer les modifications'}
+                        {t(`actions.${mode === 'create' ? 'create' : 'update'}`)}
                       </>
                     )}
                   </Button>

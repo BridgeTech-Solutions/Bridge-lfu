@@ -2,10 +2,10 @@
 'use client';
 
 import { useState } from 'react';
-import {  useDebounce } from '@/hooks/index';
-import {   useSectors } from '@/hooks/useClients';
-import {  useClients } from '@/hooks/useClients';
+import { useDebounce } from '@/hooks/index';
+import { useSectors, useClients } from '@/hooks/useClients';
 import { useAuthPermissions } from '@/hooks/index';
+import { useTranslations } from '@/hooks/useTranslations';
 import { ClientsTable } from '@/components/tables/ClientsTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export default function ClientsPage() {
   const { can } = useAuthPermissions();
+  const { t } = useTranslations('clients');
+  const statsTranslations = useTranslations('clients.stats');
+  const filtersTranslations = useTranslations('clients.filters');
+  const errorsTranslations = useTranslations('clients.errors');
+  const paginationTranslations = useTranslations('clients.pagination');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSector, setSelectedSector] = useState('');
@@ -78,9 +83,9 @@ export default function ClientsPage() {
           <Alert variant="destructive" className="shadow-lg border-red-200">
             <RocketIcon className="h-5 w-5" />
             <div>
-              <h3 className="font-bold text-lg">Erreur de chargement</h3>
+              <h3 className="font-bold text-lg">{errorsTranslations.t('loadingTitle')}</h3>
               <p className="mt-2 text-sm">
-                Une erreur est survenue lors du chargement des clients ou des secteurs.
+                {errorsTranslations.t('loadingDescription')}
                 {error && (
                   <span className="block mt-1 font-mono text-xs bg-red-50 p-2 rounded">
                     {error}
@@ -105,10 +110,10 @@ export default function ClientsPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-4xl font-bold text-slate-800 mb-2">
-                Gestion des Clients
+                {t('title')}
               </h1>
               <p className="text-slate-600 text-lg">
-                Gérez votre portefeuille client efficacement
+                {t('subtitle')}
               </p>
             </div>
             {can('create', 'clients') && (
@@ -117,7 +122,7 @@ export default function ClientsPage() {
                 size="lg"
               >
                 <Plus className="mr-2 h-5 w-5" />
-                <Link href="/clients/new">Nouveau client</Link>
+                <Link href="/clients/new">{t('button')}</Link>
               </Button>
             )}
           </div>
@@ -128,7 +133,7 @@ export default function ClientsPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-600">Total Clients</p>
+                    <p className="text-sm font-medium text-slate-600">{statsTranslations.t('total')}</p>
                     <p className="text-3xl font-bold text-slate-800">{stats.total}</p>
                   </div>
                   <Users className="h-12 w-12 text-blue-500" />
@@ -140,7 +145,7 @@ export default function ClientsPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-600">Secteurs</p>
+                    <p className="text-sm font-medium text-slate-600">{statsTranslations.t('sectors')}</p>
                     <p className="text-3xl font-bold text-slate-800">{Object.keys(stats.bySector).length}</p>
                   </div>
                   <Filter className="h-12 w-12 text-green-500" />
@@ -152,9 +157,9 @@ export default function ClientsPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-600">Clients Récents</p>
+                    <p className="text-sm font-medium text-slate-600">{statsTranslations.t('recent')}</p>
                     <p className="text-3xl font-bold text-slate-800">{stats.recent}</p>
-                    <p className="text-xs text-slate-500 mt-1">30 derniers jours</p>
+                    <p className="text-xs text-slate-500 mt-1">{statsTranslations.t('recentDescription')}</p>
                   </div>
                   <TrendingUp className="h-12 w-12 text-purple-500" />
                 </div>
@@ -167,10 +172,10 @@ export default function ClientsPage() {
         <Card className="mb-8 bg-white/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg font-semibold text-slate-700">
-              Recherche et Filtres
+              {filtersTranslations.t('title')}
             </CardTitle>
             <CardDescription>
-              Trouvez rapidement le client que vous recherchez
+              {filtersTranslations.t('description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -178,7 +183,7 @@ export default function ClientsPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
                 <Input
-                  placeholder="Rechercher par nom de client..."
+                  placeholder={filtersTranslations.t('searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 bg-white/80 border-slate-200 focus:border-blue-400 focus:ring-blue-400/20"
@@ -191,10 +196,10 @@ export default function ClientsPage() {
               >
                 <SelectTrigger className="w-full sm:w-[220px] bg-white/80 border-slate-200">
                   <Filter className="mr-2 h-4 w-4 text-slate-500" />
-                  <SelectValue placeholder="Secteur d'activité" />
+                  <SelectValue placeholder={filtersTranslations.t('sectorPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous les secteurs</SelectItem>
+                  <SelectItem value="all">{filtersTranslations.t('allSectors')}</SelectItem>
                   {sectors?.map((sector) => (
                     <SelectItem key={sector} value={sector}>
                       {sector}
@@ -219,7 +224,11 @@ export default function ClientsPage() {
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="text-sm text-slate-600 font-medium">
-                  Affichage de {((currentPage - 1) * 10) + 1} à {Math.min(currentPage * 10, totalItems)} sur {totalItems} clients
+                  {paginationTranslations
+                    .t('range')
+                    .replace('{{start}}', String(((currentPage - 1) * 10) + 1))
+                    .replace('{{end}}', String(Math.min(currentPage * 10, totalItems)))
+                    .replace('{{total}}', String(totalItems))}
                 </div>
                 <Pagination>
                   <PaginationContent>

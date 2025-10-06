@@ -1,7 +1,6 @@
 // hooks/useUserPreferences.ts
 import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useSession } from '@/app/context/auth'; 
 import { useAuth } from './useAuth';
 
 interface UserPreferences {
