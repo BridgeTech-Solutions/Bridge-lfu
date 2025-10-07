@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const checker = new PermissionChecker(user);
     const supabase = createSupabaseServerClient();
     const { searchParams } = new URL(request.url);
     
@@ -112,10 +111,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const checker = new PermissionChecker(user);
-
     // Vérifier les permissions - seuls les admins peuvent créer des utilisateurs
-    if (!checker.can('create', 'users')) {
+    if (!new PermissionChecker(user).can('create', 'users')) {
       return NextResponse.json(
         { message: 'Permissions insuffisantes' },
         { status: 403 }
@@ -150,23 +147,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer le profil
-const { data: profile, error: profileError } = await supabaseAdmin
-  .from('profiles')
-  .upsert({
-    id: authUser.user.id,
-    email: validatedData.email,
-    first_name: validatedData.firstName,
-    last_name: validatedData.lastName,
-    role: validatedData.role || 'client',
-    company: validatedData.company,
-    phone: validatedData.phone,
-    client_id: body.clientId || null
-  })
-  .select()
-  .single();
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .upsert({
+        id: authUser.user.id,
+        email: validatedData.email,
+        first_name: validatedData.firstName,
+        last_name: validatedData.lastName,
+        role: validatedData.role || 'client',
+        company: validatedData.company,
+        phone: validatedData.phone,
+        client_id: body.clientId || null,
+      })
+      .select()
+      .single();
 
-
-    if (profileError) {
+    if (profileError || !profile) {
       // Si la création du profil échoue, supprimer l'utilisateur auth
       await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
       console.error('Erreur lors de la création du profil:', profileError);
@@ -187,23 +183,55 @@ const { data: profile, error: profileError } = await supabaseAdmin
       user_agent: userAgent
     });
 
+    // Récupérer les paramètres d'alertes par défaut configurés
+    const { data: alertSettingsData, error: alertSettingsError } = await supabaseAdmin
+      .from('app_settings')
+      .select('key, value')
+      .in('key', ['default_license_alert_days', 'default_equipment_alert_days', 'email_notifications']);
+
+    if (alertSettingsError) {
+      console.error("Erreur lors de la récupération des paramètres d'alertes par défaut:", alertSettingsError);
+    }
+
+    const alertDefaults = {
+      licenseAlertDays: [7, 30] as number[],
+      equipmentAlertDays: [30, 90] as number[],
+      emailEnabled: true,
+    };
+
+    if (alertSettingsData) {
+      for (const setting of alertSettingsData) {
+        const { key, value } = setting as { key: string; value: unknown };
+
+        if (key === 'default_license_alert_days' && Array.isArray(value)) {
+          alertDefaults.licenseAlertDays = value as number[];
+        }
+
+        if (key === 'default_equipment_alert_days' && Array.isArray(value)) {
+          alertDefaults.equipmentAlertDays = value as number[];
+        }
+
+        if (key === 'email_notifications' && typeof value === 'boolean') {
+          alertDefaults.emailEnabled = value;
+        }
+      }
+    }
+
     // Créer les paramètres de notification par défaut
-    await supabaseAdmin.from('notification_settings').insert({
+    const { error: notificationSettingsError } = await supabaseAdmin.from('notification_settings').insert({
       user_id: profile.id,
-      license_alert_days: [7, 30],
-      equipment_alert_days: [30, 90],
-      email_enabled: true
+      license_alert_days: alertDefaults.licenseAlertDays,
+      equipment_alert_days: alertDefaults.equipmentAlertDays,
+      email_enabled: alertDefaults.emailEnabled,
     });
+
+    if (notificationSettingsError) {
+      console.error('Erreur lors de la création des paramètres de notification par défaut:', notificationSettingsError);
+    }
 
     return NextResponse.json(profile, { status: 201 });
 
   } catch (error) {
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { message: 'Données invalides', errors: error },
-        { status: 400 }
-      );
-    }
 
     console.error('Erreur API POST /users:', error);
     return NextResponse.json(

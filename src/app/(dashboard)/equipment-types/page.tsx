@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useEquipmentTypes } from '@/hooks/useEquipmentTypes'
-import { useAuthPermissions } from '@/hooks'
+import { useAuthPermissions, useDebounce } from '@/hooks'
 import { useTranslations } from '@/hooks/useTranslations'
 import { 
   Plus, 
@@ -80,7 +80,8 @@ const AVAILABLE_ICONS: { name: string; icon: LucideIcon }[] = [
 
 export default function EquipmentTypesPage() {
   const { t } = useTranslations('equipmentTypes')
-  const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
+  const debouncedSearch = useDebounce(searchInput, 500)
   const [showInactive, setShowInactive] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [showIconPicker, setShowIconPicker] = useState(false)
@@ -104,7 +105,7 @@ export default function EquipmentTypesPage() {
     isDeleting,
     refetch
   } = useEquipmentTypes({
-    search,
+    search: debouncedSearch,
     includeInactive: showInactive
   })
 
@@ -216,8 +217,8 @@ export default function EquipmentTypesPage() {
             <input
               type="text"
               placeholder={t('search.placeholder')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>

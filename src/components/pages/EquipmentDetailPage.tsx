@@ -42,15 +42,6 @@ import {
 } from 'lucide-react'
 import LucideIcon from '@/components/LucideIcon'
 
-const EQUIPMENT_TYPES = {
-  pc: 'PC',
-  serveur: 'Serveur',
-  routeur: 'Routeur',
-  switch: 'Switch',
-  imprimante: 'Imprimante',
-  autre: 'Autre',
-}
-
 const EQUIPMENT_STATUS = {
   actif: { label: 'Actif', variant: 'default', icon: CheckCircle, color: 'text-green-600' },
   en_maintenance: { label: 'En maintenance', variant: 'warning', icon: Wrench, color: 'text-yellow-600' },
