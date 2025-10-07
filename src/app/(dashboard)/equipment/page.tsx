@@ -18,7 +18,8 @@ import {
   XCircle,
   Server,
   CreditCard,
-  Wrench
+  Wrench,
+  Monitor,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -42,6 +43,10 @@ import {
 import { useAuthPermissions } from '@/hooks'
 import {  useClients } from '@/hooks/useClients'
 import { useEquipments } from '@/hooks/useEquipments'
+import { useEquipmentTypes } from '@/hooks/useEquipmentTypes' 
+import { SelectContent } from '@radix-ui/react-select'
+import { Select, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import LucideIcon from '@/components/LucideIcon'
 
 export default function EquipmentPage() {
   const router = useRouter()
@@ -49,7 +54,8 @@ export default function EquipmentPage() {
   
   // États locaux
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedType, setSelectedType] = useState<string>('')
+  // const [selectedType, setSelectedType] = useState<string>('')
+  const [typeIdFilter, setTypeIdFilter] = useState('') 
   const [selectedStatus, setSelectedStatus] = useState<string>('')
   const [selectedClient, setSelectedClient] = useState<string>('')
   const [page, setPage] = useState(1)
@@ -60,7 +66,10 @@ export default function EquipmentPage() {
     equipmentId: null,
     equipmentName: null
   })
-
+  const { types: equipmentTypes, loading: loadingTypes } = useEquipmentTypes({ 
+    activeOnly: true, 
+    limit: 1000 
+  })
   // Utilisation du hook useEquipments
   const { 
     equipment,
@@ -81,7 +90,7 @@ export default function EquipmentPage() {
     search: searchTerm,
     status: selectedStatus,
     clientId: selectedClient,
-    type: selectedType
+    typeId: typeIdFilter || undefined
   })
 
   // Récupération des clients pour le filtre
@@ -91,22 +100,21 @@ export default function EquipmentPage() {
   })
   const clients = clientsData || []
 
-
-const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
-  try {
-    await exportEquipment({
-      params: {
-        search: searchTerm,
-        status: selectedStatus,
-        clientId: selectedClient,
-        type: selectedType
-      },
-      format
-    })
-  } catch (error) {
-    // L'erreur est déjà gérée par le hook
+  const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
+    try {
+      await exportEquipment({
+        params: {
+          search: searchTerm,
+          status: selectedStatus,
+          clientId: selectedClient,
+          typeId: typeIdFilter || undefined
+        },
+        format
+      })
+    } catch (error) {
+      // L'erreur est déjà gérée par le hook
+    }
   }
-}
   // Fonction pour obtenir l'icône et la couleur du statut
   const getStatusDisplay = (status: string) => {
     switch (status) {
@@ -123,24 +131,6 @@ const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
         return { icon: Clock, color: 'warning', label: 'En maintenance' }
       default:
         return { icon: Server, color: 'default', label: status }
-    }
-  }
-
-  // Fonction pour obtenir l'icône du type
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'pc':
-        return '💻'
-      case 'serveur':
-        return '🖥️'
-      case 'routeur':
-        return '📡'
-      case 'switch':
-        return '🔀'
-      case 'imprimante':
-        return '🖨️'
-      default:
-        return '⚙️'
     }
   }
 
@@ -218,16 +208,16 @@ const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
   // Réinitialiser la page quand les filtres changent
   useEffect(() => {
     setPage(1)
-  }, [searchTerm, selectedType, selectedStatus, selectedClient])
+  }, [searchTerm, typeIdFilter, selectedStatus, selectedClient])
 
   const activeFiltersCount = useMemo(() => {
     let count = 0
     if (searchTerm) count++
-    if (selectedType) count++
+    if (typeIdFilter ) count++
     if (selectedStatus) count++
     if (selectedClient) count++
     return count
-  }, [searchTerm, selectedType, selectedStatus, selectedClient])
+  }, [searchTerm, typeIdFilter , selectedStatus, selectedClient])
   const totalCost = useMemo(
     () => equipment.reduce((sum, item) => sum + (item.cost ?? 0), 0),
     [equipment]
@@ -286,7 +276,7 @@ const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
 
   const clearFilters = () => {
     setSearchTerm('')
-    setSelectedType('')
+    setTypeIdFilter('')
     setSelectedStatus('')
     setSelectedClient('')
   }
@@ -431,21 +421,21 @@ const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
         {showFilters && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
             <div>
-              <Label htmlFor="type-filter">Type</Label>
-              <select
-                id="type-filter"
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full mt-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
-              >
-                <option value="">Tous les types</option>
-                <option value="pc">PC</option>
-                <option value="serveur">Serveur</option>
-                <option value="routeur">Routeur</option>
-                <option value="switch">Switch</option>
-                <option value="imprimante">Imprimante</option>
-                <option value="autre">Autre</option>
-              </select>
+            <Label htmlFor="type-filter">Type</Label>
+            <select
+              id="type-filter"
+              value={typeIdFilter}
+              onChange={(event) => setTypeIdFilter(event.target.value)}
+              className="w-full mt-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
+              disabled={loadingTypes}
+            >
+              <option value="">Tous les types</option>
+              {equipmentTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
             </div>
 
             <div>
@@ -553,12 +543,23 @@ const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
                 {equipment.map((item) => {
                   const statusDisplay = getStatusDisplay(item.status)
                   const StatusIcon = statusDisplay.icon
-
+                  console.log('Icon data:', { 
+                    name: item.type_name, 
+                    icon: item.type_icon,
+                    exists: item.type_icon && item.type_icon in LucideIcon
+                  }) 
+                  
                   return (
                     <tr key={item.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <span className="text-2xl mr-3">{getTypeIcon(item.type)}</span>
+                        {/* <Router size={14} className="mr-1" /> */}
+
+                          <LucideIcon 
+                            name={item.type_icon} 
+                            size={25} 
+                            className="mr-1"
+                          />
                           <div>
                             <div className="text-sm font-medium text-gray-900">
                               {item.name}
@@ -572,7 +573,7 @@ const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
                       
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm text-gray-900 capitalize">
-                          {item.type}
+                          {item.type_name || 'Non défini'}
                         </span>
                       </td>
 

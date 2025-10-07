@@ -7,7 +7,7 @@ import { useAuth } from './useAuth'
 // Types spécifiques pour la gestion des équipements
 interface EquipmentFormData {
   name: string
-  type: 'pc' | 'serveur' | 'routeur' | 'switch' | 'imprimante' | 'autre'
+  type_id: string 
   brand?: string
   model?: string
   serial_number?: string
@@ -40,13 +40,16 @@ interface EquipmentParams {
   search?: string
   status?: string
   clientId?: string
-  type?: string
+  typeId?: string 
 }
 
 interface EquipmentWithClient {
   id: string
   name: string
-  type: string
+  type_id: string
+  type_name: string 
+  type_code: string 
+  type_icon: string | null // Le nom de l'icône (ex: 'Monitor')
   brand?: string
   model?: string
   serial_number?: string
@@ -84,7 +87,7 @@ const fetchEquipment = async (params: EquipmentParams): Promise<EquipmentRespons
   if (params.search) url.searchParams.set('search', params.search)
   if (params.status && params.status !== 'all') url.searchParams.set('status', params.status)
   if (params.clientId && params.clientId !== 'all') url.searchParams.set('client_id', params.clientId)
-  if (params.type && params.type !== 'all') url.searchParams.set('type', params.type)
+  if (params.typeId && params.typeId !== 'all') url.searchParams.set('type_id', params.typeId)
 
   const response = await fetch(url.toString())
   
@@ -244,7 +247,7 @@ const exportEquipment = async (params: EquipmentParams, format: 'xlsx' | 'csv' |
   if (params.search) url.searchParams.set('search', params.search)
   if (params.status && params.status !== 'all') url.searchParams.set('status', params.status)
   if (params.clientId && params.clientId !== 'all') url.searchParams.set('client_id', params.clientId)
-  if (params.type && params.type !== 'all') url.searchParams.set('type', params.type)
+  if (params.typeId && params.typeId !== 'all') url.searchParams.set('type_id', params.typeId)
   url.searchParams.set('format', format)
 
   const response = await fetch(url.toString())
@@ -287,7 +290,7 @@ export function useEquipments(params: EquipmentParams = {}) {
     params.search, 
     params.status, 
     params.clientId, 
-    params.type
+    params.typeId
   ]
 
   const { data, isLoading, error, refetch } = useQuery({

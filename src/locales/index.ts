@@ -83,6 +83,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         settings: 'Paramètres',
         expandSection: 'Déplier la section',
         collapseSection: 'Replier la section',
+        equipmentTypes: 'Types d\'équipement',
       },
     },
     header: {
@@ -410,6 +411,77 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           },
         },
       },
+
+    },
+    equipmentTypes: {
+      title: 'Types d\'équipement',
+      subtitle: 'Gérez les différents types d\'équipements de votre système',
+      stats: {
+        total: 'Total',
+        active: 'Actifs',
+        inactive: 'Inactifs',
+      },
+      search: {
+        placeholder: 'Rechercher un type...',
+      },
+      buttons: {
+        showInactive: 'Afficher inactifs',
+        hideInactive: 'Masquer inactifs',
+        newType: 'Nouveau type',
+      },
+      table: {
+        columns: {
+          name: 'Nom',
+          code: 'Code',
+          description: 'Description',
+          status: 'Statut',
+          actions: 'Actions',
+        },
+        empty: 'Aucun type trouvé',
+        actions: {
+          edit: 'Modifier',
+          disable: 'Désactiver',
+          delete: 'Supprimer',
+        },
+      },
+      status: {
+        active: 'Actif',
+        inactive: 'Inactif',
+      },
+      modal: {
+        createTitle: 'Nouveau type',
+        editTitle: 'Modifier le type',
+        fields: {
+          name: {
+            label: 'Nom',
+            placeholder: 'PC / Ordinateur',
+            required: '*',
+          },
+          code: {
+            label: 'Code',
+            placeholder: 'PC',
+            required: '*',
+          },
+          description: {
+            label: 'Description',
+            placeholder: 'Description du type d\'équipement',
+          },
+          icon: {
+            label: 'Icône',
+            placeholder: 'Sélectionner une icône',
+          },
+          isActive: 'Type actif',
+        },
+        actions: {
+          cancel: 'Annuler',
+          save: 'Enregistrer',
+          saving: 'Enregistrement...',
+        },
+      },
+      confirmations: {
+        disable: 'Êtes-vous sûr de vouloir désactiver le type "{{name}}" ?',
+        delete: 'Êtes-vous sûr de vouloir supprimer définitivement le type "{{name}}" ?',
+      },
     },
   },
   en: {
@@ -488,6 +560,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         settings: 'Settings',
         expandSection: 'Expand section',
         collapseSection: 'Collapse section',
+        equipmentTypes: 'Equipment types',
       },
     },
     header: {
@@ -814,6 +887,77 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
             autre: 'Other',
           },
         },
+      },
+
+    },
+    equipmentTypes: {
+      title: 'Equipment Types',
+      subtitle: 'Manage your system\'s equipment types',
+      stats: {
+        total: 'Total',
+        active: 'Active',
+        inactive: 'Inactive',
+      },
+      search: {
+        placeholder: 'Search for a type...',
+      },
+      buttons: {
+        showInactive: 'Show inactive',
+        hideInactive: 'Hide inactive',
+        newType: 'New type',
+      },
+      table: {
+        columns: {
+          name: 'Name',
+          code: 'Code',
+          description: 'Description',
+          status: 'Status',
+          actions: 'Actions',
+        },
+        empty: 'No types found',
+        actions: {
+          edit: 'Edit',
+          disable: 'Disable',
+          delete: 'Delete',
+        },
+      },
+      status: {
+        active: 'Active',
+        inactive: 'Inactive',
+      },
+      modal: {
+        createTitle: 'New type',
+        editTitle: 'Edit type',
+        fields: {
+          name: {
+            label: 'Name',
+            placeholder: 'PC / Computer',
+            required: '*',
+          },
+          code: {
+            label: 'Code',
+            placeholder: 'PC',
+            required: '*',
+          },
+          description: {
+            label: 'Description',
+            placeholder: 'Equipment type description',
+          },
+          icon: {
+            label: 'Icon',
+            placeholder: 'Select an icon',
+          },
+          isActive: 'Active type',
+        },
+        actions: {
+          cancel: 'Cancel',
+          save: 'Save',
+          saving: 'Saving...',
+        },
+      },
+      confirmations: {
+        disable: 'Are you sure you want to disable the type "{{name}}"?',
+        delete: 'Are you sure you want to permanently delete the type "{{name}}"?',
       },
     },
   },

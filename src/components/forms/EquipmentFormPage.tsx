@@ -34,17 +34,10 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import { equipmentSchema } from '@/lib/validations'
+import { useEquipmentTypes } from '@/hooks/useEquipmentTypes' 
 
 type EquipmentFormData = z.infer<typeof equipmentSchema>
 
-const EQUIPMENT_TYPES = [
-  { value: 'pc', label: 'PC' },
-  { value: 'serveur', label: 'Serveur' },
-  { value: 'routeur', label: 'Routeur' },
-  { value: 'switch', label: 'Switch' },
-  { value: 'imprimante', label: 'Imprimante' },
-  { value: 'autre', label: 'Autre' },
-]
 
 const EQUIPMENT_STATUS = [
   { value: 'actif', label: 'Actif' },
@@ -69,10 +62,14 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
 
   // Hook pour récupérer la liste des clients
   const { clients: clientsData, loading: clientsLoading } = useClients({
-  page: 1,
-  limit: 100,
-})
-
+    page: 1,
+    limit: 100,
+  })
+  // On récupère tous les types actifs (avec une limite élevée pour les sélections de formulaire)
+  const { 
+    types: equipmentTypes, 
+    loading: loadingTypes 
+  } = useEquipmentTypes({ activeOnly: true, limit: 1000 })
   // Form hook
   const {
     register,
@@ -103,7 +100,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
     if (equipment && isEditing) {
       reset({
         name: equipment.name || '',
-        type: equipment.type as any || 'autre',
+        type_id: equipment.type_id   || '',
         brand: equipment.brand || '',
         model: equipment.model || '',
         serial_number: equipment.serial_number || '',
@@ -125,7 +122,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
 
     const formData = {
       name: data.name,
-      type: data.type,
+      type_id: data.type_id, 
       brand: data.brand,
       model: data.model,
       serial_number: data.serial_number,
@@ -165,7 +162,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
     }
   }
 
-  if (equipmentLoading || clientsLoading) {
+  if (equipmentLoading || clientsLoading || loadingTypes) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner />
@@ -229,22 +226,22 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                   <div>
                     <Label htmlFor="type">Type *</Label>
                     <Select
-                      value={watch('type')}
-                      onValueChange={(value) => setValue('type', value as any)}
+                      value={watch('type_id') || ''}
+                      onValueChange={(value) => setValue('type_id', value as any, { shouldValidate: true })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner un type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {EQUIPMENT_TYPES.map(type => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
+                        {equipmentTypes.map(type => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {errors.type && (
-                      <p className="text-sm text-red-600 mt-1">{errors.type.message}</p>
+                    {errors.type_id && (
+                      <p className="text-sm text-red-600 mt-1">{errors.type_id.message}</p>
                     )}
                   </div>
 

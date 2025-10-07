@@ -28,7 +28,9 @@ export async function GET(request: NextRequest) {
     // Paramètres de recherche
     const search = searchParams.get('search');
     const clientId = searchParams.get('client_id');
-    const type = searchParams.get('type');
+    const typeId = searchParams.get('type_id');
+    const typeCode = searchParams.get('type_code');
+    const typeLegacy = searchParams.get('type');
     const status = searchParams.get('status');
     const brand = searchParams.get('brand');
 
@@ -50,11 +52,12 @@ export async function GET(request: NextRequest) {
       query = query.eq('client_id', clientId);
     }
 
-    const validTypes = ['pc', 'serveur', 'routeur', 'switch', 'imprimante', 'autre'] as const;
-    type EquipementType = typeof validTypes[number];
-
-    if (type && validTypes.includes(type as EquipementType)) {
-      query = query.eq('type', type as EquipementType);
+    if (typeId) {
+      query = query.eq('type_id', typeId);
+    } else if (typeCode) {
+      query = query.eq('type_code', typeCode);
+    } else if (typeLegacy) {
+      query = query.ilike('type_code', `%${typeLegacy}%`);
     }
 
     const allowedStatuses = ['actif', 'en_maintenance', 'bientot_obsolete', 'obsolete', 'retire'] as const;
@@ -127,10 +130,68 @@ export async function POST(request: NextRequest) {
 
     // Validation des données
     const validatedData = equipmentSchema.parse(body);
-    console.log('Données validées:', validatedData); // Debug
 
     const supabase = createSupabaseServerClient();
-    
+
+    // Résoudre le type_id si seulement type_code est fourni
+    let resolvedTypeId = validatedData.type_id ?? null;
+
+    if (!resolvedTypeId && validatedData.type_code) {
+      const { data: typeMatch, error: typeError } = await supabase
+        .from('equipment_types')
+        .select('id, is_active')
+        .eq('code', validatedData.type_code)
+        .maybeSingle();
+
+      if (typeError || !typeMatch) {
+        return NextResponse.json(
+          { message: "Type d'équipement introuvable" },
+          { status: 400 }
+        );
+      }
+
+      if (typeMatch.is_active === false) {
+        return NextResponse.json(
+          { message: "Ce type d'équipement est inactif" },
+          { status: 400 }
+        );
+      }
+
+      resolvedTypeId = typeMatch.id;
+    }
+
+    if (!resolvedTypeId && validatedData.type) {
+      const { data: legacyType, error: legacyError } = await supabase
+        .from('equipment_types')
+        .select('id, is_active')
+        .eq('code', validatedData.type.toUpperCase())
+        .maybeSingle();
+
+      if (legacyError || !legacyType) {
+        return NextResponse.json(
+          { message: "Type d'équipement invalide" },
+          { status: 400 }
+        );
+      }
+
+      if (legacyType.is_active === false) {
+        return NextResponse.json(
+          { message: "Ce type d'équipement est inactif" },
+          { status: 400 }
+        );
+      }
+
+      resolvedTypeId = legacyType.id;
+    }
+
+    if (!resolvedTypeId) {
+      return NextResponse.json(
+        { message: "Type d'équipement requis" },
+        { status: 400 }
+      );
+    }
+    console.log('Données validées:', validatedData); // Debug
+
     // Vérifier que le client existe et que l'utilisateur y a accès
     if (!checker.canAccessClient(validatedData.client_id)) {
       return NextResponse.json(
@@ -144,7 +205,7 @@ export async function POST(request: NextRequest) {
       .from('equipment')
       .insert({
         name: validatedData.name,
-        type: validatedData.type,
+        type_id: resolvedTypeId,
         brand: validatedData.brand,
         model: validatedData.model,
         serial_number: validatedData.serial_number,

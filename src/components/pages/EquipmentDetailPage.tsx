@@ -40,6 +40,7 @@ import {
   Download,
   Upload
 } from 'lucide-react'
+import LucideIcon from '@/components/LucideIcon'
 
 const EQUIPMENT_TYPES = {
   pc: 'PC',
@@ -339,8 +340,8 @@ export default function EquipmentDetailPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">{equipment.name}</h1>
-            <p className="text-gray-500">
-              {EQUIPMENT_TYPES[equipment.type as keyof typeof EQUIPMENT_TYPES]} • {equipment.client_name}
+            <p className="text-gray-500 flex justify-center items-center gap-2">
+               <LucideIcon name={equipment.type_icon} size={18} className="text-primary" /> {equipment.type_name} • {equipment.client_name}
             </p>
           </div>
         </div>
@@ -441,7 +442,7 @@ export default function EquipmentDetailPage() {
                   <Label className="text-sm font-medium text-gray-500">Type</Label>
                   <div className="text-sm">
                     <Badge variant="outline">
-                      {EQUIPMENT_TYPES[equipment.type as keyof typeof EQUIPMENT_TYPES]}
+                       {equipment.type_name}
                     </Badge>
                   </div>
                 </div>

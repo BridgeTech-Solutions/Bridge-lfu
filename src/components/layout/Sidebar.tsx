@@ -130,6 +130,11 @@ export function Sidebar() {
           name: t('items.equipmentCreate'),
           href: '/equipment/new',
           permissions: { resource: 'equipment', action: 'create' }
+        },
+        {
+          name: t('items.equipmentTypes'), // Ou 'Types d\'équipement' en dur
+          href: '/equipment-types',
+          permissions: { resource: 'equipment', action: 'read' }
         }
       ]
     },

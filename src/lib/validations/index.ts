@@ -6,16 +6,14 @@ const phoneSchema = z
   .string()
   .regex(/^(\+237[6-9][0-9]{8}|[6-9][0-9]{8})$/, 'Numéro de téléphone invalide (ex: +237612345678 ou 612345678)')
   .optional()
-  .or(z.literal('')).nullable();
-  const passwordSchema = z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères')
-  const equipmentTypeEnum = z.enum(["pc","serveur","routeur","switch","imprimante","autre"], 
-    { message: "Le type d'équipement est requis et doit être valide" }
-  )
+  .or(z.literal(''))
+  .nullable()
 
-  const equipmentStatusEnum = z.enum(
-    ["actif","en_maintenance","obsolete","bientot_obsolete","retire"],
-    { message: "Le statut de l'équipement est requis et doit être valide" }
-  )
+const passwordSchema = z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères')
+const equipmentStatusEnum = z.enum(
+  ['actif', 'en_maintenance', 'obsolete', 'bientot_obsolete', 'retire'],
+  { message: "Le statut de l'équipement est requis et doit être valide" },
+)
 
 // Schéma d'authentification
 export const loginSchema = z.object({
@@ -96,7 +94,9 @@ export const licenseSchema = z.object({
 // Schéma équipement
 export const equipmentSchema = z.object({
   name: z.string().min(2, "Nom requis"),
-  type: equipmentTypeEnum,
+  type_id: z.string().uuid("Type d'équipement requis").optional(),
+  type_code: z.string().optional(),
+  type: z.string().optional(),
   brand: z.string().optional(),
   model: z.string().optional(),
   serial_number: z.string().optional(),
@@ -118,6 +118,11 @@ export const equipmentSchema = z.object({
   description: z.string().optional(),
   warranty_end_date: z.string().optional()
 }).refine(data => {
+  // Au moins un identifiant de type doit être fourni
+  if (!data.type_id && !data.type_code && !data.type) {
+    return false
+  }
+
   // Vérification des dates cohérentes
   const purchaseDate = data.purchase_date ? new Date(data.purchase_date) : null
   const obsolescenceDate = data.estimated_obsolescence_date ? new Date(data.estimated_obsolescence_date) : null
@@ -143,6 +148,28 @@ export const equipmentSchema = z.object({
 }, {
   message: 'Les dates doivent être cohérentes',
   path: ['estimatedObsolescenceDate']
+}).refine(data => !!data.type_id || !!data.type_code || !!data.type, {
+  message: "Le type d'équipement est requis",
+  path: ['type_id']
+})
+
+// Schémas types d'équipement
+export const equipmentTypeCreateSchema = z.object({
+	name: z
+		.string()
+		.min(2, 'Le nom doit contenir au moins 2 caractères'),
+	code: z
+		.string()
+		.min(2, 'Le code doit contenir au moins 2 caractères')
+		.max(10, 'Le code ne doit pas dépasser 10 caractères')
+		.regex(/^[A-Z0-9_-]+$/, 'Le code doit être en majuscules sans espaces'),
+	description: z.string().optional().nullable(),
+	icon: z.string().optional().nullable(),
+	is_active: z.boolean().optional().default(true),
+})
+
+export const equipmentTypeUpdateSchema = equipmentTypeCreateSchema.partial().extend({
+	id: z.string().uuid('Identifiant du type requis'),
 })
 
 // Schéma de paramètres de notification
@@ -175,7 +202,9 @@ export const licenseFiltersSchema = searchSchema.extend({
 
 export const equipmentFiltersSchema = searchSchema.extend({
   clientId: z.string().uuid().optional(),
-  type: z.enum(['pc', 'serveur', 'routeur', 'switch', 'imprimante', 'autre']).optional(),
+  typeId: z.string().uuid().optional(),
+  typeCode: z.string().optional(),
+  type: z.string().optional(),
   status: z.enum(['actif', 'en_maintenance', 'obsolete', 'bientot_obsolete', 'retire']).optional(),
   brand: z.string().optional()
 })

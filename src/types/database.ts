@@ -179,7 +179,7 @@ export type Database = {
           purchase_date: string | null
           serial_number: string | null
           status: Database["public"]["Enums"]["equipment_status"] | null
-          type: Database["public"]["Enums"]["equipment_type"]
+          type_id: string
           updated_at: string | null
           warranty_end_date: string | null
         }
@@ -200,7 +200,7 @@ export type Database = {
           purchase_date?: string | null
           serial_number?: string | null
           status?: Database["public"]["Enums"]["equipment_status"] | null
-          type: Database["public"]["Enums"]["equipment_type"]
+          type_id: string
           updated_at?: string | null
           warranty_end_date?: string | null
         }
@@ -221,7 +221,7 @@ export type Database = {
           purchase_date?: string | null
           serial_number?: string | null
           status?: Database["public"]["Enums"]["equipment_status"] | null
-          type?: Database["public"]["Enums"]["equipment_type"]
+          type_id?: string
           updated_at?: string | null
           warranty_end_date?: string | null
         }
@@ -238,6 +238,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_types"
             referencedColumns: ["id"]
           },
         ]
@@ -291,6 +298,50 @@ export type Database = {
           {
             foreignKeyName: "equipment_attachments_uploaded_by_fkey"
             columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_types: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_types_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -646,7 +697,10 @@ export type Database = {
           purchase_date: string | null
           serial_number: string | null
           status: Database["public"]["Enums"]["equipment_status"] | null
-          type: Database["public"]["Enums"]["equipment_type"] | null
+          type_code: string | null
+          type_icon: string | null
+          type_id: string | null
+          type_name: string | null
           updated_at: string | null
           warranty_end_date: string | null
         }
@@ -663,6 +717,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_types"
             referencedColumns: ["id"]
           },
         ]
@@ -759,7 +820,7 @@ export type Database = {
           model: string
           obsolescence_date: string
           status: Database["public"]["Enums"]["equipment_status"]
-          type: Database["public"]["Enums"]["equipment_type"]
+          type_name: string
         }[]
       }
       get_client_licenses_report: {
@@ -784,6 +845,18 @@ export type Database = {
           equipment_id: string
           equipment_name: string
           model: string
+        }[]
+      }
+      get_equipment_stats_by_type: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          active_count: number
+          obsolete_count: number
+          percentage: number
+          total_count: number
+          type_code: string
+          type_id: string
+          type_name: string
         }[]
       }
       get_equipment_status_stats: {
@@ -813,6 +886,10 @@ export type Database = {
           total_licenses_with_duration: number
         }[]
       }
+      get_notification_stats: {
+        Args: { user_uuid: string }
+        Returns: Json
+      }
       get_obsolete_equipment_report: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -822,12 +899,16 @@ export type Database = {
           equipment_name: string
           model: string
           obsolescence_date: string
-          type: Database["public"]["Enums"]["equipment_type"]
+          type_name: string
         }[]
       }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      mark_all_notifications_read: {
+        Args: { user_uuid: string }
+        Returns: Json
       }
       refresh_all_equipment_status: {
         Args: Record<PropertyKey, never>
@@ -839,6 +920,16 @@ export type Database = {
           updated: boolean
         }[]
       }
+      refresh_all_license_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          license_id: string
+          license_name: string
+          new_status: Database["public"]["Enums"]["license_status"]
+          old_status: Database["public"]["Enums"]["license_status"]
+          updated: boolean
+        }[]
+      }
     }
     Enums: {
       equipment_status:
@@ -847,13 +938,6 @@ export type Database = {
         | "obsolete"
         | "bientot_obsolete"
         | "retire"
-      equipment_type:
-        | "pc"
-        | "serveur"
-        | "routeur"
-        | "switch"
-        | "imprimante"
-        | "autre"
       license_status: "active" | "expired" | "about_to_expire" | "cancelled"
       notification_type:
         | "license_expiry"
@@ -994,14 +1078,6 @@ export const Constants = {
         "obsolete",
         "bientot_obsolete",
         "retire",
-      ],
-      equipment_type: [
-        "pc",
-        "serveur",
-        "routeur",
-        "switch",
-        "imprimante",
-        "autre",
       ],
       license_status: ["active", "expired", "about_to_expire", "cancelled"],
       notification_type: [

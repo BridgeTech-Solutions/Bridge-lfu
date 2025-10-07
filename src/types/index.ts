@@ -22,18 +22,21 @@ export type ClientInsert = TablesInsert<'clients'>
 export type LicenseInsert = TablesInsert<'licenses'>
 export type EquipmentInsert = TablesInsert<'equipment'>
 export type AppSettingInsert = TablesInsert<'app_settings'>
+export type EquipmentTypeInsert = TablesInsert<'equipment_types'>
 // Types pour les mises à jour
 export type ProfileUpdate = TablesUpdate<'profiles'>
 export type ClientUpdate = TablesUpdate<'clients'>
 export type LicenseUpdate = TablesUpdate<'licenses'>
 export type EquipmentUpdate = TablesUpdate<'equipment'>
 export type AppSettingUpdate = TablesUpdate<'app_settings'>
+export type EquipmentTypeUpdate = TablesUpdate<'equipment_types'>
+
 // Types d'énumérations
 export type UserRole = Enums<'user_role'>
 export type EquipmentStatus = Enums<'equipment_status'>
-export type EquipmentType = Enums<'equipment_type'>
 export type LicenseStatus = Enums<'license_status'>
 export type NotificationType = Enums<'notification_type'>
+export type EquipmentType = Tables<'equipment_types'>
 
 // Types étendus avec relations
 export interface ClientWithStats extends Client {

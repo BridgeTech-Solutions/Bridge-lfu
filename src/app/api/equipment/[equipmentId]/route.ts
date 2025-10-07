@@ -110,6 +110,64 @@ export async function PUT(request: NextRequest, context: any) {
     const body = await request.json();
     const validatedData = equipmentSchema.parse(body);
 
+    // Résoudre le type_id à partir des différents champs possibles
+    let resolvedTypeId = validatedData.type_id ?? existingEquipment.type_id ?? null;
+
+    if (!resolvedTypeId && validatedData.type_code) {
+      const { data: typeMatch, error: typeError } = await supabase
+        .from('equipment_types')
+        .select('id, is_active')
+        .eq('code', validatedData.type_code)
+        .maybeSingle();
+
+      if (typeError || !typeMatch) {
+        return NextResponse.json(
+          { message: "Type d'équipement introuvable" },
+          { status: 400 }
+        );
+      }
+
+      if (typeMatch.is_active === false) {
+        return NextResponse.json(
+          { message: "Ce type d'équipement est inactif" },
+          { status: 400 }
+        );
+      }
+
+      resolvedTypeId = typeMatch.id;
+    }
+
+    if (!resolvedTypeId && validatedData.type) {
+      const { data: legacyType, error: legacyError } = await supabase
+        .from('equipment_types')
+        .select('id, is_active')
+        .eq('code', validatedData.type.toUpperCase())
+        .maybeSingle();
+
+      if (legacyError || !legacyType) {
+        return NextResponse.json(
+          { message: "Type d'équipement invalide" },
+          { status: 400 }
+        );
+      }
+
+      if (legacyType.is_active === false) {
+        return NextResponse.json(
+          { message: "Ce type d'équipement est inactif" },
+          { status: 400 }
+        );
+      }
+
+      resolvedTypeId = legacyType.id;
+    }
+
+    if (!resolvedTypeId) {
+      return NextResponse.json(
+        { message: "Type d'équipement requis" },
+        { status: 400 }
+      );
+    }
+
     // Vérifier que le client existe et que l'utilisateur y a accès
     if (!checker.canAccessClient(validatedData.client_id)) {
       return NextResponse.json(
@@ -127,8 +185,14 @@ export async function PUT(request: NextRequest, context: any) {
         purchase_date: validatedData.purchase_date,
         warranty_end_date: validatedData.warranty_end_date,
         status: validatedData.status,
-        type: validatedData.type,
+        type_id: resolvedTypeId,
+        brand: validatedData.brand,
+        model: validatedData.model,
+        estimated_obsolescence_date: validatedData.estimated_obsolescence_date,
+        end_of_sale: validatedData.end_of_sale,
+        cost: validatedData.cost,
         client_id: validatedData.client_id,
+        location: validatedData.location,
         description: validatedData.description,
         updated_at: new Date().toISOString()
       })

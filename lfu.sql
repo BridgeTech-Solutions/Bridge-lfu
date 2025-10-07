@@ -1328,3 +1328,262 @@ CREATE TRIGGER update_license_status_trigger
 -- Étape 4: Tester la fonction (optionnel)
 -- UPDATE licenses SET status = 'cancelled' WHERE id = 'votre-id-licence';
 -- SELECT * FROM licenses WHERE id = 'votre-id-licence';
+CREATE OR REPLACE FUNCTION get_client_equipment_report(client_uuid UUID)
+RETURNS TABLE (
+    equipment_name TEXT,
+    type_name TEXT, -- Changement de type : TEXT au lieu de equipment_type
+    brand TEXT,
+    model TEXT,
+    status equipment_status,
+    obsolescence_date DATE,
+    end_of_sale DATE,
+    days_until_obsolescence INTEGER,
+    days_until_end_of_sale INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        e.name,
+        et.name, -- Nouvelle jointure pour récupérer le nom du type
+        e.brand,
+        e.model,
+        e.status,
+        e.estimated_obsolescence_date,
+        e.end_of_sale,
+        (e.estimated_obsolescence_date - CURRENT_DATE)::INTEGER,
+        (e.end_of_sale - CURRENT_DATE)::INTEGER
+    FROM public.equipment e
+    -- NOUVEAU : Jointure avec la table des types
+    LEFT JOIN public.equipment_types et ON e.type_id = et.id
+    WHERE e.client_id = client_uuid
+    ORDER BY e.estimated_obsolescence_date ASC;
+END;
+$$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION get_obsolete_equipment_report()
+RETURNS TABLE (
+    equipment_name TEXT,
+    client_name TEXT,
+    type_name TEXT, -- Changement de type : TEXT au lieu de equipment_type
+    brand TEXT,
+    model TEXT,
+    obsolescence_date DATE,
+    days_obsolete INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        e.name,
+        c.name,
+        et.name, -- Nouvelle jointure pour récupérer le nom du type
+        e.brand,
+        e.model,
+        e.estimated_obsolescence_date,
+        (CURRENT_DATE - e.estimated_obsolescence_date)::INTEGER
+    FROM public.equipment e
+    LEFT JOIN public.clients c ON e.client_id = c.id
+    -- NOUVEAU : Jointure avec la table des types
+    LEFT JOIN public.equipment_types et ON e.type_id = et.id 
+    -- La condition de filtre reste la même
+    WHERE e.estimated_obsolescence_date < CURRENT_DATE
+    ORDER BY e.estimated_obsolescence_date DESC;
+END;
+$$ LANGUAGE plpgsql;
+-- ==================================================================
+-- AJOUT DE LA TABLE EQUIPMENT_TYPES POUR REMPLACER L'ENUM
+-- ==================================================================
+
+-- 1. Créer la nouvelle table pour les types d'équipements
+CREATE TABLE public.equipment_types (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    code TEXT UNIQUE NOT NULL, -- Code court (ex: 'PC', 'SRV', 'RTR')
+    description TEXT,
+    icon TEXT, -- Nom de l'icône (pour l'UI)
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by UUID REFERENCES public.profiles(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 2. Index pour optimiser les recherches
+CREATE INDEX idx_equipment_types_code ON public.equipment_types(code);
+CREATE INDEX idx_equipment_types_is_active ON public.equipment_types(is_active);
+CREATE INDEX idx_equipment_types_name ON public.equipment_types(name);
+
+-- 3. Trigger pour updated_at
+CREATE TRIGGER update_equipment_types_updated_at
+    BEFORE UPDATE ON public.equipment_types
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- 4. Insérer les types par défaut (correspondant aux valeurs ENUM actuelles)
+INSERT INTO public.equipment_types (name, code, description, icon) VALUES
+('PC / Ordinateur', 'PC', 'Ordinateur de bureau ou portable', 'Monitor'),
+('Serveur', 'SRV', 'Serveur physique ou virtuel', 'Server'),
+('Routeur', 'RTR', 'Équipement de routage réseau', 'Router'),
+('Switch', 'SWT', 'Commutateur réseau', 'Network'),
+('Imprimante', 'PRT', 'Imprimante ou multifonction', 'Printer'),
+('Firewall', 'FWL', 'Pare-feu matériel ou logiciel', 'Shield'),
+('Point d''accès WiFi', 'WAP', 'Borne WiFi', 'Wifi'),
+('Téléphone IP', 'TEL', 'Téléphonie VoIP', 'Phone'),
+('Tablette', 'TAB', 'Tablette tactile', 'Tablet'),
+('Autre', 'OTH', 'Autre type d''équipement', 'HelpCircle');
+
+-- 5. Activation de RLS
+ALTER TABLE public.equipment_types ENABLE ROW LEVEL SECURITY;
+
+-- 6. Policies RLS pour equipment_types
+
+-- Policy 1: Tout le monde peut lire les types actifs (lecture publique)
+CREATE POLICY "Everyone can view active equipment types" 
+ON public.equipment_types
+FOR SELECT 
+USING (is_active = TRUE);
+
+-- Policy 2: Les admins et techniciens peuvent tout voir (même les types inactifs)
+CREATE POLICY "Admins and technicians can view all equipment types" 
+ON public.equipment_types
+FOR SELECT 
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles 
+        WHERE id = auth.uid() AND role IN ('admin', 'technicien')
+    )
+);
+
+-- Policy 3: Les admins et techniciens peuvent créer des types
+CREATE POLICY "Admins and technicians can create equipment types" 
+ON public.equipment_types
+FOR INSERT 
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.profiles 
+        WHERE id = auth.uid() AND role IN ('admin', 'technicien')
+    )
+);
+
+-- Policy 4: Les admins et techniciens peuvent modifier des types
+CREATE POLICY "Admins and technicians can update equipment types" 
+ON public.equipment_types
+FOR UPDATE 
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles 
+        WHERE id = auth.uid() AND role IN ('admin', 'technicien')
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.profiles 
+        WHERE id = auth.uid() AND role IN ('admin', 'technicien')
+    )
+);
+
+-- Policy 5: Les admins et techniciens peuvent supprimer des types (soft delete recommandé)
+CREATE POLICY "Admins and technicians can delete equipment types" 
+ON public.equipment_types
+FOR DELETE 
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles 
+        WHERE id = auth.uid() AND role IN ('admin', 'technicien')
+    )
+);
+
+-- 7. Modifier la table equipment pour utiliser la nouvelle référence
+-- IMPORTANT: À exécuter seulement après avoir migré les données existantes
+
+-- Ajouter la nouvelle colonne type_id
+ALTER TABLE public.equipment 
+ADD COLUMN type_id UUID REFERENCES public.equipment_types(id);
+
+-- Créer un index sur type_id
+CREATE INDEX idx_equipment_type_id ON public.equipment(type_id);
+
+-- 8. Migration des données existantes (mapper l'ancien ENUM vers les nouveaux IDs)
+-- Cette requête doit être adaptée selon vos données réelles
+
+UPDATE public.equipment e
+SET type_id = (
+    SELECT et.id 
+    FROM public.equipment_types et 
+    WHERE 
+        (e.type = 'pc' AND et.code = 'PC') OR
+        (e.type = 'serveur' AND et.code = 'SRV') OR
+        (e.type = 'routeur' AND et.code = 'RTR') OR
+        (e.type = 'switch' AND et.code = 'SWT') OR
+        (e.type = 'imprimante' AND et.code = 'PRT') OR
+        (e.type = 'autre' AND et.code = 'OTH')
+    LIMIT 1
+);
+
+-- 9. Après vérification que toutes les données sont migrées:
+-- Rendre type_id obligatoire
+ALTER TABLE public.equipment 
+ALTER COLUMN type_id SET NOT NULL;
+
+-- 10. (Optionnel) Supprimer l'ancienne colonne type après migration complète
+-- ATTENTION: À faire seulement quand vous êtes sûr que tout fonctionne
+-- ALTER TABLE public.equipment DROP COLUMN type;
+-- DROP TYPE equipment_type;
+
+-- 11. Mettre à jour la vue v_equipment_with_client
+DROP VIEW IF EXISTS v_equipment_with_client;
+CREATE VIEW v_equipment_with_client AS
+SELECT 
+    e.*,
+    et.name as type_name,
+    et.code as type_code,
+    et.icon as type_icon,
+    c.name as client_name,
+    c.contact_email as client_email,
+    p.first_name || ' ' || p.last_name as created_by_name
+FROM public.equipment e
+LEFT JOIN public.equipment_types et ON e.type_id = et.id
+LEFT JOIN public.clients c ON e.client_id = c.id
+LEFT JOIN public.profiles p ON e.created_by = p.id;
+
+-- 12. Commentaires pour documentation
+COMMENT ON TABLE public.equipment_types IS 'Table des types d''équipements (remplace l''ENUM equipment_type)';
+COMMENT ON COLUMN public.equipment_types.code IS 'Code court unique pour identifier le type';
+COMMENT ON COLUMN public.equipment_types.icon IS 'Nom de l''icône à utiliser dans l''interface (lucide-react)';
+COMMENT ON COLUMN public.equipment_types.is_active IS 'Indique si le type est actif et utilisable';
+COMMENT ON COLUMN public.equipment.type_id IS 'Référence vers le type d''équipement (remplace la colonne type)';
+
+-- 13. Fonction utilitaire pour obtenir les statistiques par type
+CREATE OR REPLACE FUNCTION get_equipment_stats_by_type()
+RETURNS TABLE (
+    type_id UUID,
+    type_name TEXT,
+    type_code TEXT,
+    total_count BIGINT,
+    active_count BIGINT,
+    obsolete_count BIGINT,
+    percentage NUMERIC
+) AS $$
+DECLARE
+    total_equipment BIGINT;
+BEGIN
+    SELECT COUNT(*) INTO total_equipment FROM public.equipment;
+    
+    RETURN QUERY
+    SELECT 
+        et.id,
+        et.name,
+        et.code,
+        COUNT(e.id)::BIGINT AS total_count,
+        COUNT(e.id) FILTER (WHERE e.status = 'actif')::BIGINT AS active_count,
+        COUNT(e.id) FILTER (WHERE e.status = 'obsolete')::BIGINT AS obsolete_count,
+        CASE 
+            WHEN total_equipment = 0 THEN 0.00
+            ELSE ROUND((COUNT(e.id) * 100.0 / total_equipment), 2)::NUMERIC
+        END AS percentage
+    FROM public.equipment_types et
+    LEFT JOIN public.equipment e ON et.id = e.type_id
+    WHERE et.is_active = TRUE
+    GROUP BY et.id, et.name, et.code
+    ORDER BY total_count DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION get_equipment_stats_by_type() IS 'Fonction retournant les statistiques d''équipements par type';
