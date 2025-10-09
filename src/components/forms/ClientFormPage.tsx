@@ -19,6 +19,8 @@ import { Spinner } from '@/components/ui/spinner';
 import { ArrowLeft, Save, Building, User, Mail, Phone, MapPin, Globe, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from '@/hooks/useTranslations';
+import { getCountryOptions } from '@/lib/utils/countryData';
+import { getCode } from 'country-list';
 
 interface ClientFormPageProps {
   mode: 'create' | 'edit';
@@ -33,7 +35,8 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
   const clientId = mode === 'edit' ? params.id as string : null;
   
   const { data: existingClient, isLoading: loadingClient } = useClient(clientId || '');
-  
+    // Initialisation de la liste des pays (une fois au montage)
+  const countryOptions = getCountryOptions();
   const { updateClient, isUpdating } = useClientActions({
     onSuccess: () => {
       if (mode === 'edit' && clientId) {
@@ -49,16 +52,24 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
       address: '',
       city: '',
       postalCode: '',
-      country: 'Cameroun',
+      country: '',
       contactEmail: '',
       contactPhone: '',
       contactPerson: '',
-      sector: ''
+      sector:undefined
     }
   });
-
+  const normalizeSector = (sectorName?: string | null) => {
+    if (!sectorName) return undefined
+    const match = secteurOptions.find(
+      (option) => option.value.localeCompare(sectorName, 'fr', { sensitivity: 'base' }) === 0
+    )
+    return match?.value
+  }
   useEffect(() => {
+
     if (mode === 'edit' && existingClient) {
+      console.log(existingClient?.sector)
       form.reset({
         name: existingClient.name || '',
         address: existingClient.address || '',
@@ -68,7 +79,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
         contactEmail: existingClient.contact_email || '',
         contactPhone: existingClient.contact_phone || '',
         contactPerson: existingClient.contact_person || '',
-        sector: existingClient.sector || ''
+        sector: normalizeSector(existingClient.sector),
       });
     }
   }, [existingClient, form, mode]);
@@ -253,28 +264,32 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="country"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Globe className="h-4 w-4" />
-                          {t('sections.general.fields.country.label')}
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder={t('sections.general.fields.country.placeholder')}
-                            className="bg-white/80"
-                            {...field} 
-                            value={field.value ?? ""}
-                          />
-                        </FormControl>
+                      <FormItem className="sm:col-span-1">
+                        <FormLabel>{t('sections.general.fields.country.label')}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                          <FormControl>
+                            <SelectTrigger className="bg-white/80">
+                              <Globe className="mr-2 h-4 w-4 text-muted-foreground" />
+                              <SelectValue placeholder={t('sections.general.fields.country.placeholder')} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {countryOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
                 </div>
               </CardContent>
             </Card>
