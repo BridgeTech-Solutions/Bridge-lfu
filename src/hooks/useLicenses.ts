@@ -123,6 +123,20 @@ const deleteLicense = async (licenseId: string): Promise<void> => {
     throw new Error(error.message || 'Erreur lors de la suppression de la licence')
   }
 }
+const revealLicenseKey = async (licenseId: string, password: string) => {
+  const response = await fetch(`/api/licenses/${licenseId}/reveal-key`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.message || 'Échec de la vérification')
+  }
+
+  return response.json() as Promise<{ licenseKey: string }>
+}
 
 // Fonction pour récupérer les pièces jointes d'une licence
 const fetchLicenseAttachments = async (licenseId: string): Promise<LicenseAttachment[]> => {
@@ -394,13 +408,20 @@ export function useLicenseActions() {
     }
   })
 
+  const revealKeyMutation = useMutation({
+    mutationFn: ({ licenseId, password }: { licenseId: string; password: string }) =>
+      revealLicenseKey(licenseId, password),
+    onError: (error: Error) => toast.error(error.message)
+  })
   return {
     updateLicense: updateMutation.mutateAsync,
     deleteLicense: deleteMutation.mutateAsync,
     updateStatus: updateStatusMutation.mutateAsync,
+    revealLicenseKey: revealKeyMutation.mutateAsync,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isUpdatingStatus: updateStatusMutation.isPending,
+    isRevealing: revealKeyMutation.isPending
   }
 }
 

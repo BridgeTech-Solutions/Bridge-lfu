@@ -1,7 +1,7 @@
 // app/licenses/[id]/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, 
@@ -36,6 +36,7 @@ import { useStablePermissions } from '@/hooks'
 import { useAuth } from '@/hooks/useAuth'
 import { useLicense, useLicenseAttachments, useLicenseActions, useAttachmentActions } from '@/hooks/useLicenses'
 import type { LicenseStatus } from '@/types'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 export default function LicenseDetailPage() {
   const params = useParams()
@@ -47,6 +48,12 @@ export default function LicenseDetailPage() {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileType, setFileType] = useState('other')
+
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const [showKey, setShowKey] = useState(false)
+  const [password, setPassword] = useState('')
+  const [revealedKey, setRevealedKey] = useState<string | null>(null)
+  const autoHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const licenseId = params.id as string
 
@@ -64,7 +71,7 @@ export default function LicenseDetailPage() {
     refetch: refetchAttachments
   } = useLicenseAttachments(licenseId)
 
-  const { deleteLicense, isDeleting } = useLicenseActions()
+  const { deleteLicense, isDeleting , revealLicenseKey, isRevealing } = useLicenseActions()
 
   const { 
     uploadAttachment, 
@@ -120,6 +127,52 @@ export default function LicenseDetailPage() {
       // L'erreur est déjà gérée par le hook
     }
   }
+  const handleHideKey = () => {
+    setShowKey(false)
+    setRevealedKey(null)
+    if (autoHideTimer.current) {
+      clearTimeout(autoHideTimer.current)
+      autoHideTimer.current = null
+    }
+  }
+  
+  const handleRevealKey = async () => {
+    if (!licenseId || !password || isRevealing) return
+  
+    try {
+      const { licenseKey } = await revealLicenseKey({ licenseId, password })
+      setRevealedKey(licenseKey)
+      setShowKey(true)
+      setConfirmDialogOpen(false)
+      toast.success('Clé visible pendant 60 secondes')
+  
+      if (autoHideTimer.current) {
+        clearTimeout(autoHideTimer.current)
+      }
+  
+      autoHideTimer.current = setTimeout(() => {
+        handleHideKey()
+      }, 60_000)
+    } catch {
+      // toast géré par le hook
+    } finally {
+      setPassword('')
+    }
+  }
+  
+  useEffect(() => {
+    if (!confirmDialogOpen) {
+      setPassword('')
+    }
+  }, [confirmDialogOpen])
+  
+  useEffect(() => {
+    return () => {
+      if (autoHideTimer.current) {
+        clearTimeout(autoHideTimer.current)
+      }
+    }
+  }, [])
 
   // Fonctions utilitaires
   const getStatusBadge = (status: LicenseStatus | null) => {
@@ -331,14 +384,45 @@ export default function LicenseDetailPage() {
               </div>
 
               {license.license_key && (
-                <div>
+                <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-500 flex items-center gap-1">
                     <Key className="w-4 h-4" />
                     Clé de licence
                   </Label>
-                  <div className="mt-1 p-2 bg-gray-50 rounded border font-mono text-sm">
-                    {license.license_key}
+
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type={showKey ? 'text' : 'password'}
+                      value={showKey ? revealedKey ?? '' : '************'}
+                      readOnly
+                      className="font-mono"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setConfirmDialogOpen(true)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      {showKey ? 'Masquer' : 'Afficher'}
+                    </Button>
                   </div>
+                  {showKey && (
+                      <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isRevealing}
+                      onClick={() => {
+                        if (showKey) {
+                          handleHideKey()
+                        } else {
+                          setConfirmDialogOpen(true)
+                        }
+                      }}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      {showKey ? 'Masquer' : 'Afficher'}
+                    </Button>
+                  )}
                 </div>
               )}
 
@@ -590,7 +674,39 @@ export default function LicenseDetailPage() {
           </Card>
         </div>
       </div>
-
+      {/* Dialog show license_key */}
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer votre identité</DialogTitle>
+            <DialogDescription>
+              Entrez votre mot de passe pour afficher la clé.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Label htmlFor="license-password">Mot de passe</Label>
+            <Input
+              id="license-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={handleRevealKey}
+              disabled={!password || isRevealing}
+            >
+              {isRevealing && <LoadingSpinner size="sm" className="mr-2" />}
+              Afficher
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Dialog de suppression */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
