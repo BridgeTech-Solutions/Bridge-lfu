@@ -28,14 +28,14 @@ import {
   NotificationSettings
 } from '@/hooks/useNotifications'
 import { useAuth } from '@/hooks/useAuth'
-// import { useSession } from '@/app/context/auth' 
 import { cn } from '@/lib/utils'
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 
 // Composant principal
 export default function NotificationsPage() {
+
   const { user,loading: userLoading } = useAuth()
-  // const { user, loading: userLoading } = useSession(); // Utilisez le hook de session
 
   
   // États
@@ -73,7 +73,7 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
     equipmentAlertDays: settings.equipment_alert_days ?? [], // Provide a default empty array
     emailEnabled: settings.email_enabled ?? false, // Provide a default false value
   };
-
+  
   // Now, call the useMutation function with the complete object
   updateSettings(completeSettings);
 };

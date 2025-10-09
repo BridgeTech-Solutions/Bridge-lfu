@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
+import { useUserPreferences } from './useUserPreferences'
 
 export interface NotificationFilters {
   page: number
@@ -334,9 +335,12 @@ export function useNotificationSettings() {
 
 // Hook pour gérer les filtres de notifications avec fonctions optimisées
 export function useNotificationFilters() {
+  const { preferences } = useUserPreferences(); // Ajouter cet import
+  const itemsPerPage = preferences?.dashboard?.itemsPerPage ?? 10;
+
   const [filters, setFilters] = useState<NotificationFilters>({
     page: 1,
-    limit: 20,
+    limit: itemsPerPage,
     is_read: undefined,
     type: '',
     search: ''
@@ -354,7 +358,7 @@ export function useNotificationFilters() {
   const resetFilters = useCallback(() => {
     setFilters({
       page: 1,
-      limit: 20,
+      limit: itemsPerPage,
       is_read: undefined,
       type: '',
       search: ''

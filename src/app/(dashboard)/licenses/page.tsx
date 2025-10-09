@@ -22,9 +22,10 @@ import { LicenseTable } from '@/components/tables/LicenseTable'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 export default function LicensesPage() {
+
   const router = useRouter()
   const permissions = useStablePermissions()
-  const { page, limit, goToPage } = usePagination(1, 10)
+  const { page, limit, goToPage } = usePagination(1)
 
   // États des filtres
   const [search, setSearch] = useState('')
@@ -50,7 +51,7 @@ export default function LicensesPage() {
     isExporting
   } = useLicenses({
     page,
-    limit,
+    limit: limit,
     search: debouncedSearch,
     status: statusFilter === 'all' ? undefined : statusFilter,
     clientId: clientFilter === 'all' ? undefined : clientFilter,

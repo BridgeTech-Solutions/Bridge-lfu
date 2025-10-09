@@ -178,7 +178,6 @@ export async function POST(request: NextRequest) {
       action: 'create',
       table_name: 'profiles',
       record_id: profile.id,
-      new_values: profile,
       ip_address: ipAddress,
       user_agent: userAgent
     });
@@ -187,17 +186,18 @@ export async function POST(request: NextRequest) {
     const { data: alertSettingsData, error: alertSettingsError } = await supabaseAdmin
       .from('app_settings')
       .select('key, value')
-      .in('key', ['default_license_alert_days', 'default_equipment_alert_days', 'email_notifications']);
+      .in('key', ['default_license_alert_days', 'default_equipment_alert_days', 'email_notifications', 'default_language']);
 
     if (alertSettingsError) {
       console.error("Erreur lors de la récupération des paramètres d'alertes par défaut:", alertSettingsError);
     }
 
     const alertDefaults = {
-      licenseAlertDays: [7, 30] as number[],
-      equipmentAlertDays: [30, 90] as number[],
+      licenseAlertDays: [7, 30] as number [],
+      equipmentAlertDays: [30, 90] as number [],
       emailEnabled: true,
     };
+    let defaultLanguage = 'fr';
 
     if (alertSettingsData) {
       for (const setting of alertSettingsData) {
@@ -214,6 +214,10 @@ export async function POST(request: NextRequest) {
         if (key === 'email_notifications' && typeof value === 'boolean') {
           alertDefaults.emailEnabled = value;
         }
+
+        if (key === 'default_language' && typeof value === 'string') {
+          defaultLanguage = value;
+        }
       }
     }
 
@@ -227,6 +231,26 @@ export async function POST(request: NextRequest) {
 
     if (notificationSettingsError) {
       console.error('Erreur lors de la création des paramètres de notification par défaut:', notificationSettingsError);
+    }
+
+    // Créer les préférences utilisateur avec la langue par défaut configurée
+    const { error: userPreferencesError } = await supabaseAdmin
+      .from('user_preferences')
+      .upsert(
+        {
+          user_id: profile.id,
+          theme: 'system',
+          language: defaultLanguage,
+          email_notifications: alertDefaults.emailEnabled,
+          push_notifications: false,
+          sms_notifications: false,
+          items_per_page: 10,
+        },
+        { onConflict: 'user_id' }
+      );
+
+    if (userPreferencesError) {
+      console.error('Erreur lors de la création des préférences utilisateur par défaut:', userPreferencesError);
     }
 
     return NextResponse.json(profile, { status: 201 });

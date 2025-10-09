@@ -32,6 +32,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslations } from '@/hooks/useTranslations'
 
 interface ProfileFormData {
   firstName: string
@@ -59,6 +60,7 @@ export default function ProfilePage() {
     getFullName, 
     getRoleDisplayName 
   } = useProfile()
+  const { t } = useTranslations('profile')
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)

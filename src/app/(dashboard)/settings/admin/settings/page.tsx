@@ -195,6 +195,9 @@ function GeneralSettings({ settings, onSave, isLoading }: Omit<SettingFormProps,
           value={formData.app_name}
           onChange={(e) => setFormData(prev => ({ ...prev, app_name: e.target.value }))}
           placeholder="Bridge LFU"
+          readOnly 
+          className="bg-gray-100 cursor-not-allowed" // Style visuel
+
         />
       </div>
 
@@ -205,6 +208,8 @@ function GeneralSettings({ settings, onSave, isLoading }: Omit<SettingFormProps,
           value={formData.app_version}
           onChange={(e) => setFormData(prev => ({ ...prev, app_version: e.target.value }))}
           placeholder="1.0.0"
+          readOnly
+          className="bg-gray-100 cursor-not-allowed" // Style visuel
         />
       </div>
 

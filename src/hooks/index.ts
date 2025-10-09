@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSupabase as createSupabaseClient} from '@/lib/supabase/client'
 import { PermissionChecker, usePermissions } from '@/lib/auth/permissions'
 import { useAuthContext } from '@/app/context/auth'
+import { useUserPreferences } from './useUserPreferences'
 
 // Hook pour les permissions - STABILISÉ
 export function useAuthPermissions() {
@@ -112,39 +113,38 @@ export function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue
 }
 
-export function usePagination(initialPage: number = 1, initialLimit: number = 10) {
-  const [page, setPage] = useState(initialPage)
-  const [limit, setLimit] = useState(initialLimit)
+export function usePagination(initialPage = 1, customLimit?: number) {
+  const { preferences } = useUserPreferences();
+  const defaultLimit = preferences?.dashboard?.itemsPerPage ?? 10;
+  const limit = customLimit ?? defaultLimit;
+
+  const [page, setPage] = useState(initialPage);
 
   const goToPage = useCallback((newPage: number) => {
-    setPage(newPage)
-  }, [])
+    setPage(Math.max(1, newPage));
+  }, []);
 
   const goToNextPage = useCallback(() => {
-    setPage(prev => prev + 1)
-  }, [])
+    setPage(prev => prev + 1);
+  }, []);
 
   const goToPreviousPage = useCallback(() => {
-    setPage(prev => Math.max(1, prev - 1))
-  }, [])
+    setPage(prev => Math.max(1, prev - 1));
+  }, []);
 
   const changeLimit = useCallback((newLimit: number) => {
-    setLimit(newLimit)
-    setPage(1)
-  }, [])
-
-  const reset = useCallback(() => {
-    setPage(initialPage)
-    setLimit(initialLimit)
-  }, [initialPage, initialLimit])
+    setPage(1); // Reset à la première page quand on change la limite
+  }, []);
 
   return {
     page,
-    limit,
+    limit, // Maintenant basé sur les préférences utilisateur
     goToPage,
     goToNextPage,
     goToPreviousPage,
     changeLimit,
-    reset
-  }
+    reset: () => {
+      setPage(initialPage);
+    }
+  };
 }

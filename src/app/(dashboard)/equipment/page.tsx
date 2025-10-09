@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Search, 
@@ -23,7 +23,6 @@ import {
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { 
   DropdownMenu,
@@ -39,14 +38,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useAuthPermissions } from '@/hooks'
+import { useAuthPermissions, usePagination } from '@/hooks'
 import { useClients } from '@/hooks/useClients'
 import { useEquipments } from '@/hooks/useEquipments'
 import { useEquipmentTypes } from '@/hooks/useEquipmentTypes' 
 import LucideIcon from '@/components/LucideIcon'
 import { useTranslations } from '@/hooks/useTranslations'
+import { PaginationInfo, PaginationWithLogic } from '@/components/ui/pagination'
+import { Label } from '@/components/ui/label'
 
 export default function EquipmentPage() {
+  const { page, limit, goToPage } = usePagination(1);
   const { t: tList } = useTranslations('equipment.list')
   const { t: tStatus } = useTranslations('equipment.status')
   const router = useRouter()
@@ -57,8 +59,6 @@ export default function EquipmentPage() {
   const [typeIdFilter, setTypeIdFilter] = useState('') 
   const [selectedStatus, setSelectedStatus] = useState<string>('')
   const [selectedClient, setSelectedClient] = useState<string>('')
-  const [page, setPage] = useState(1)
-  const [limit] = useState(10)
   const [showFilters, setShowFilters] = useState(false)
   const [deleteDialog, setDeleteDialog] = useState<{ 
     open: boolean
@@ -214,10 +214,28 @@ export default function EquipmentPage() {
   )
 
   // Réinitialiser la page quand les filtres changent
-  useEffect(() => {
-    setPage(1)
-  }, [searchTerm, typeIdFilter, selectedStatus, selectedClient])
-
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    goToPage(1); // Plus cohérent avec Licenses
+  };
+  
+  // Handler pour le type d'équipement
+  const handleTypeFilterChange = (value: string) => {
+    setTypeIdFilter(value); 
+    goToPage(1); // Plus cohérent avec Licenses
+  };
+  
+  // Handler pour le statut
+  const handleStatusChange = (value: string) => {
+    setSelectedStatus(value);
+    goToPage(1); // Plus cohérent avec Licenses
+  };
+  
+  // Handler pour le client
+  const handleClientChange = (value: string) => {
+    setSelectedClient(value);
+    goToPage(1); // Plus cohérent avec Licenses
+  };
   const activeFiltersCount = useMemo(() => {
     let count = 0
     if (searchTerm) count++
@@ -412,7 +430,7 @@ export default function EquipmentPage() {
               <Input
                 placeholder={tList('search.placeholder')}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -441,7 +459,7 @@ export default function EquipmentPage() {
               <select
                 id="type-filter"
                 value={typeIdFilter}
-                onChange={(event) => setTypeIdFilter(event.target.value)}
+                onChange={(event) => handleTypeFilterChange(event.target.value)}
                 className="w-full mt-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
                 disabled={loadingTypes}
               >
@@ -459,7 +477,7 @@ export default function EquipmentPage() {
               <select
                 id="status-filter"
                 value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                onChange={(e) => handleStatusChange(e.target.value)}
                 className="w-full mt-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
               >
                 <option value="">{tList('filters.status.label')}</option>
@@ -477,7 +495,7 @@ export default function EquipmentPage() {
                 <select
                   id="client-filter"
                   value={selectedClient}
-                  onChange={(e) => setSelectedClient(e.target.value)}
+                  onChange={(e) => handleClientChange(e.target.value)}
                   className="w-full mt-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
                 >
                   <option value="">{tList('filters.client.all')}</option>
@@ -663,42 +681,18 @@ export default function EquipmentPage() {
         )}
 
         {/* Pagination */}
-        {equipment.length > 0 && pagination && (
-          <div className="px-6 py-4 border-t bg-gray-50">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                {tList('pagination.summary')
-                  .replace('{{start}}', String(((page - 1) * limit) + 1))
-                  .replace('{{end}}', String(Math.min(page * limit, pagination.count)))
-                  .replace('{{total}}', String(pagination.count))}
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(page - 1)}
-                  disabled={page <= 1}
-                >
-                  {tList('pagination.previous')}
-                </Button>
-                
-                <span className="text-sm text-gray-700">
-                  {tList('pagination.page')
-                    .replace('{{page}}', String(page))
-                    .replace('{{total}}', String(pagination.totalPages))}
-                </span>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(page + 1)}
-                  disabled={page >= pagination.totalPages}
-                >
-                  {tList('pagination.next')}
-                </Button>
-              </div>
-            </div>
+        {(pagination?.count || 0) > limit && pagination && (
+          <div className="flex items-center justify-between mt-6">
+            <PaginationInfo
+              currentPage={page}
+              itemsPerPage={limit}
+              totalItems={pagination?.count || 0}
+            />
+            <PaginationWithLogic
+              currentPage={page}
+              totalPages={pagination?.totalPages || 1}
+              onPageChange={goToPage}
+            />
           </div>
         )}
       </div>
@@ -713,15 +707,15 @@ export default function EquipmentPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end space-x-2 pt-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setDeleteDialog({ open: false, equipmentId: null, equipmentName: null })}
               disabled={isDeleting}
             >
               {tList('deleteDialog.cancel')}
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={confirmDelete}
               disabled={isDeleting}
             >

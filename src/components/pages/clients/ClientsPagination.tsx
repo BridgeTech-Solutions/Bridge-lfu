@@ -6,6 +6,7 @@ interface ClientsPaginationProps {
   currentPage: number;
   totalPages: number;
   totalItems: number;
+  itemsPerPage: number; // Réajouter cette prop
   onPageChange: (page: number) => void;
 }
 
@@ -13,14 +14,16 @@ export function ClientsPagination({
   currentPage,
   totalPages,
   totalItems,
+  itemsPerPage, // Réajouter
   onPageChange
 }: ClientsPaginationProps) {
   const paginationTranslations = useTranslations('clients.pagination');
+  const effectiveItemsPerPage = Math.max(itemsPerPage, 1);
 
-  if (totalItems <= 10) return null;
+  if (totalItems <= effectiveItemsPerPage) return null;
 
-  const startItem = (currentPage - 1) * 10 + 1;
-  const endItem = Math.min(currentPage * 10, totalItems);
+  const startItem = (currentPage - 1) * effectiveItemsPerPage + 1;
+  const endItem = Math.min(currentPage * effectiveItemsPerPage, totalItems);
 
   return (
     <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">

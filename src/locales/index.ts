@@ -56,6 +56,82 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       advancedAccessDescription: 'Vous devez être administrateur pour accéder à cette page.',
       loading: 'Chargement en cours...',
     },
+    profile: {
+      header: {
+        title: 'Mon Profil',
+        subtitle: 'Gérez vos informations personnelles et vos paramètres de compte.',
+      },
+      status: {
+        notFoundTitle: 'Profil non trouvé',
+        notFoundDescription: 'Impossible de charger les informations du profil.',
+      },
+      cards: {
+        personalInfo: {
+          title: 'Informations personnelles',
+          description: 'Vos informations de base et de contact',
+          fields: {
+            fullName: 'Nom complet',
+            email: 'Email',
+            phone: 'Téléphone',
+            phoneFallback: 'Non renseigné',
+            company: 'Entreprise',
+            companyFallback: 'Non renseignée',
+          },
+        },
+        security: {
+          title: 'Sécurité',
+          description: 'Gérez votre mot de passe et vos paramètres de sécurité',
+          passwordLabel: 'Mot de passe',
+          maskedValue: '••••••••••••',
+        },
+        account: {
+          title: 'Informations du compte',
+          memberSince: 'Membre depuis',
+          memberSinceFallback: 'Non disponible',
+          client: 'Client associé',
+          clientFallback: 'Non associé',
+        },
+      },
+      dialogs: {
+        edit: {
+          title: 'Modifier le profil',
+          description: 'Modifiez vos informations personnelles. Les modifications seront sauvegardées automatiquement.',
+          fields: {
+            firstName: { label: 'Prénom', placeholder: 'Votre prénom' },
+            lastName: { label: 'Nom', placeholder: 'Votre nom' },
+            email: { label: 'Email', placeholder: 'votre@email.com' },
+            phone: { label: 'Téléphone', placeholder: '+237 6XX XXX XXX' },
+            company: { label: 'Entreprise', placeholder: 'Nom de votre entreprise' },
+          },
+          actions: {
+            cancel: 'Annuler',
+            save: 'Enregistrer',
+            saving: 'Enregistrement...',
+          },
+        },
+        password: {
+          title: 'Changer le mot de passe',
+          description: 'Saisissez votre mot de passe actuel puis votre nouveau mot de passe.',
+          fields: {
+            current: { label: 'Mot de passe actuel', placeholder: 'Votre mot de passe actuel' },
+            new: { label: 'Nouveau mot de passe', placeholder: 'Au moins 8 caractères' },
+            confirm: { label: 'Confirmer le nouveau mot de passe', placeholder: 'Confirmez votre nouveau mot de passe' },
+          },
+          actions: {
+            cancel: 'Annuler',
+            submit: 'Changer le mot de passe',
+            submitting: 'Modification...',
+          },
+          validations: {
+            mismatch: 'Les mots de passe ne correspondent pas',
+            minLength: 'Le mot de passe doit contenir au moins 6 caractères',
+          },
+        },
+      },
+      common: {
+        edit: 'Modifier',
+      },
+    },
     sidebar: {
       sections: {
         general: 'Général',
@@ -743,6 +819,82 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       advancedAccessRequired: 'Administrator access required',
       advancedAccessDescription: 'You must be an administrator to access this page.',
       loading: 'Loading...',
+    },
+    profile: {
+      header: {
+        title: 'My Profile',
+        subtitle: 'Manage your personal information and account settings.',
+      },
+      status: {
+        notFoundTitle: 'Profile not found',
+        notFoundDescription: 'Unable to load profile information.',
+      },
+      cards: {
+        personalInfo: {
+          title: 'Personal information',
+          description: 'Your basic details and contact information',
+          fields: {
+            fullName: 'Full name',
+            email: 'Email',
+            phone: 'Phone',
+            phoneFallback: 'Not provided',
+            company: 'Company',
+            companyFallback: 'Not provided',
+          },
+        },
+        security: {
+          title: 'Security',
+          description: 'Manage your password and security settings',
+          passwordLabel: 'Password',
+          maskedValue: '••••••••••••',
+        },
+        account: {
+          title: 'Account information',
+          memberSince: 'Member since',
+          memberSinceFallback: 'Not available',
+          client: 'Linked client',
+          clientFallback: 'Not linked',
+        },
+      },
+      dialogs: {
+        edit: {
+          title: 'Edit profile',
+          description: 'Update your personal information. Changes will be saved automatically.',
+          fields: {
+            firstName: { label: 'First name', placeholder: 'Your first name' },
+            lastName: { label: 'Last name', placeholder: 'Your last name' },
+            email: { label: 'Email', placeholder: 'you@example.com' },
+            phone: { label: 'Phone', placeholder: '+237 XXX XXX XXX' },
+            company: { label: 'Company', placeholder: 'Your company name' },
+          },
+          actions: {
+            cancel: 'Cancel',
+            save: 'Save',
+            saving: 'Saving...',
+          },
+        },
+        password: {
+          title: 'Change password',
+          description: 'Enter your current password then your new password.',
+          fields: {
+            current: { label: 'Current password', placeholder: 'Your current password' },
+            new: { label: 'New password', placeholder: 'At least 8 characters' },
+            confirm: { label: 'Confirm new password', placeholder: 'Confirm your new password' },
+          },
+          actions: {
+            cancel: 'Cancel',
+            submit: 'Change password',
+            submitting: 'Updating...',
+          },
+          validations: {
+            mismatch: 'Passwords do not match',
+            minLength: 'Password must contain at least 6 characters',
+          },
+        },
+      },
+      common: {
+        edit: 'Edit',
+      },
     },
     sidebar: {
       sections: {

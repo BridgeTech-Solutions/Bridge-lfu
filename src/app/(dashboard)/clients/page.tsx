@@ -2,10 +2,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useDebounce } from '@/hooks/index';
+import { useDebounce, usePagination } from '@/hooks/index';
 import { useSectors, useClients } from '@/hooks/useClients';
-import { useAuthPermissions } from '@/hooks/index';
-import { useTranslations } from '@/hooks/useTranslations';
+
 import { ClientsLoadingSkeleton } from '@/components/pages/clients/ClientsLoadingSkeleton';
 import { ClientsErrorState } from '@/components/pages/clients/ClientsErrorState';
 import { ClientsHeader } from '@/components/pages/clients/ClientsHeader';
@@ -20,7 +19,11 @@ export default function ClientsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSector, setSelectedSector] = useState('');
-
+  const { 
+    page, 
+    limit,
+    goToPage 
+  } = usePagination(1);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   // Utilisation du nouveau hook useClients
@@ -32,7 +35,7 @@ export default function ClientsPage() {
     pagination
   } = useClients({
     page: currentPage,
-    limit: 10,
+    limit: limit,
     search: debouncedSearchTerm,
     sector: selectedSector,
   });
@@ -77,6 +80,7 @@ export default function ClientsPage() {
         totalPages={totalPages}
         totalItems={totalItems}
         onPageChange={setCurrentPage}
+        itemsPerPage={limit}
       />
     </div>
   );

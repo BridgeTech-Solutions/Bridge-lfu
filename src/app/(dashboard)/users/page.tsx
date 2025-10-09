@@ -1,18 +1,16 @@
-// app/users/page.tsx
 'use client'
-
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { PaginationInfo, PaginationWithLogic } from '@/components/ui/pagination'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
 import Link from "next/link"
 import { useQuery } from '@tanstack/react-query'
 import { useAuthPermissions, usePagination } from '@/hooks'
@@ -32,8 +30,7 @@ import {
   Phone,
   Building,
   Calendar,
-  ChevronLeft,
-  ChevronRight
+
 } from 'lucide-react'
 import type { UserRole, Client } from '@/types'
 
@@ -97,7 +94,7 @@ function EditUserForm({
           <Input
             id="firstName"
             value={formData.firstName}
-            onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+            onChange={(e) => setFormData((prev: UserFormData) => ({ ...prev, firstName: e.target.value }))}
             required
           />
         </div>
@@ -106,7 +103,7 @@ function EditUserForm({
           <Input
             id="lastName"
             value={formData.lastName}
-            onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+            onChange={(e) => setFormData((prev: UserFormData) => ({ ...prev, lastName: e.target.value }))}
             required
           />
         </div>
@@ -540,7 +537,6 @@ function UserTableSkeleton({ count = 10 }: { count?: number }) {
 
 export default function UsersPage() {
   const permissions = useAuthPermissions()
-  const router = useRouter()
 
   // États locaux
   const [search, setSearch] = useState('')
@@ -550,7 +546,7 @@ export default function UsersPage() {
   const [validateDialogUser, setValidateDialogUser] = useState<UserWithClient | null>(null)
 
   // Pagination
-  const { page, limit, goToPage, goToNextPage, goToPreviousPage } = usePagination(1, 10)
+  const { page, limit, goToPage, goToNextPage, goToPreviousPage } = usePagination(1)
 
   // Utilisation du hook useUsers
   const { users, loading, error, stats, pagination, deleteUser, isDeleting } = useUsers({
@@ -772,42 +768,31 @@ export default function UsersPage() {
                           )}
                         </div>
                       </TableCell>
-                    </TableRow>
-                  ))}
+                      </TableRow>
+                ))}
                 </TableBody>
               </Table>
 
               {/* Pagination */}
-              {pagination && pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between px-2 py-4">
-                  <div className="text-sm text-gray-700">
-                    Page {pagination.page} sur {pagination.totalPages} ({pagination.count} utilisateurs au total)
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={goToPreviousPage}
-                      disabled={pagination.page <= 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={goToNextPage}
-                      disabled={pagination.page >= pagination.totalPages}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
+              {(pagination?.count || 0) > limit && pagination && (
+                <div className="flex items-center justify-between mt-6">
+                  <PaginationInfo
+                    currentPage={page}
+                    itemsPerPage={limit}
+                    totalItems={pagination?.count || 0}
+                  />
+                  <PaginationWithLogic
+                    currentPage={page}
+                    totalPages={pagination?.totalPages || 1}
+                    onPageChange={goToPage}
+                  />
                 </div>
               )}
+              
             </>
           )}
         </CardContent>
       </Card>
-
       {/* Dialog de création d'utilisateur */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="max-w-2xl">
