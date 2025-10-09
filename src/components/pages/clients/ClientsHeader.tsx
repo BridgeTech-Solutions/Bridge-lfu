@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthPermissions } from '@/hooks/index';
 import { useTranslations } from '@/hooks/useTranslations';
+import router from 'next/router';
 
 export function ClientsHeader() {
   const { can } = useAuthPermissions();
@@ -20,11 +21,12 @@ export function ClientsHeader() {
       </div>
       {can('create', 'clients') && (
         <Button
+          onClick={() => router.push(`/clients/new`)}
           className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200"
           size="lg"
         >
           <Plus className="mr-2 h-5 w-5" />
-          <Link href="/clients/new">{t('button')}</Link>
+          {t('button')}
         </Button>
       )}
     </div>

@@ -202,10 +202,11 @@ export function ClientDetailPage({ client, showBackButton = true, showEditButton
             </div>
             {showEditButton && can('update', 'clients') && (
               <Button
+              onClick={() => router.push(`/clients/${client.id}/edit`)}
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
               >
                 <Edit className="mr-2 h-4 w-4" />
-                <Link href={`/clients/${client.id}/edit`}>{headerTranslations.t('edit')}</Link>
+                {headerTranslations.t('edit')}
               </Button>
             )}
           </div>

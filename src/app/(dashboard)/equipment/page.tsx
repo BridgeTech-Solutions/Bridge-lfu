@@ -46,6 +46,7 @@ import LucideIcon from '@/components/LucideIcon'
 import { useTranslations } from '@/hooks/useTranslations'
 import { PaginationInfo, PaginationWithLogic } from '@/components/ui/pagination'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export default function EquipmentPage() {
   const { page, limit, goToPage } = usePagination(1);
@@ -455,56 +456,56 @@ export default function EquipmentPage() {
         {showFilters && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
             <div>
-              <Label htmlFor="type-filter">{tList('filters.type.label')}</Label>
-              <select
-                id="type-filter"
-                value={typeIdFilter}
-                onChange={(event) => handleTypeFilterChange(event.target.value)}
-                className="w-full mt-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
-                disabled={loadingTypes}
-              >
-                <option value="">{tList('filters.type.all')}</option>
-                {equipmentTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
-                  </option>
-                ))}
-              </select>
+            <Label htmlFor="status-filter">{tList('filters.status.label')}</Label>
+            <Select value={selectedStatus || 'all'}   onValueChange={(value) => handleStatusChange(value === 'all' ? '' : value)}
+            >
+              <SelectTrigger id="status-filter">
+                <SelectValue placeholder={tList('filters.status.label')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{tList('filters.status.label')}</SelectItem>
+                <SelectItem value="actif">{tList('filters.status.options.actif')}</SelectItem>
+                <SelectItem value="en_maintenance">{tList('filters.status.options.en_maintenance')}</SelectItem>
+                <SelectItem value="bientot_obsolete">{tList('filters.status.options.bientot_obsolete')}</SelectItem>
+                <SelectItem value="obsolete">{tList('filters.status.options.obsolete')}</SelectItem>
+                <SelectItem value="retire">{tList('filters.status.options.retire')}</SelectItem>
+              </SelectContent>
+            </Select>
             </div>
 
             <div>
-              <Label htmlFor="status-filter">{tList('filters.status.label')}</Label>
-              <select
-                id="status-filter"
-                value={selectedStatus}
-                onChange={(e) => handleStatusChange(e.target.value)}
-                className="w-full mt-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
-              >
-                <option value="">{tList('filters.status.label')}</option>
-                <option value="actif">{tList('filters.status.options.actif')}</option>
-                <option value="en_maintenance">{tList('filters.status.options.en_maintenance')}</option>
-                <option value="bientot_obsolete">{tList('filters.status.options.bientot_obsolete')}</option>
-                <option value="obsolete">{tList('filters.status.options.obsolete')}</option>
-                <option value="retire">{tList('filters.status.options.retire')}</option>
-              </select>
+            <Label htmlFor="status-filter">{tList('filters.status.label')}</Label>
+            <Select value={selectedStatus || 'all'} onValueChange={handleStatusChange}>
+              <SelectTrigger id="status-filter">
+                <SelectValue placeholder={tList('filters.status.label')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{tList('filters.status.label')}</SelectItem>
+                <SelectItem value="actif">{tList('filters.status.options.actif')}</SelectItem>
+                <SelectItem value="en_maintenance">{tList('filters.status.options.en_maintenance')}</SelectItem>
+                <SelectItem value="bientot_obsolete">{tList('filters.status.options.bientot_obsolete')}</SelectItem>
+                <SelectItem value="obsolete">{tList('filters.status.options.obsolete')}</SelectItem>
+                <SelectItem value="retire">{tList('filters.status.options.retire')}</SelectItem>
+              </SelectContent>
+            </Select>
             </div>
 
             {permissions.canViewAllData() && (
               <div>
-                <Label htmlFor="client-filter">{tList('filters.client.label')}</Label>
-                <select
-                  id="client-filter"
-                  value={selectedClient}
-                  onChange={(e) => handleClientChange(e.target.value)}
-                  className="w-full mt-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
-                >
-                  <option value="">{tList('filters.client.all')}</option>
+              <Label htmlFor="client-filter">{tList('filters.client.label')}</Label>
+              <Select value={selectedClient || 'all'} onValueChange={(value) => handleClientChange(value === 'all' ? '' : value)}>
+                <SelectTrigger id="client-filter">
+                  <SelectValue placeholder={tList('filters.client.all')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{tList('filters.client.all')}</SelectItem>
                   {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
+                    <SelectItem key={client.id} value={client.id}>
                       {client.name}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
+                </SelectContent>
+              </Select>
               </div>
             )}
 

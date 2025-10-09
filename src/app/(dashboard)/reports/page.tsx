@@ -14,6 +14,14 @@ import {
   type ReportConfig 
 } from '@/hooks/useReports'
 import { useClients } from '@/hooks/useClients'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={`bg-gray-200 rounded animate-pulse ${className}`} />;
@@ -338,14 +346,15 @@ export default function ReportsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Type de rapport
               </label>
-              <select
-                value={reportConfig.type}
-                onChange={(e) => updateConfig('type', e.target.value)}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              >
-                <option value="licenses">Licences</option>
-                <option value="equipment">Équipements</option>
-              </select>
+              <Select value={reportConfig.type} onValueChange={(value) => updateConfig('type', value)}>
+                <SelectTrigger id="report-type">
+                  <SelectValue placeholder="Choisir un type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="licenses">Licences</SelectItem>
+                  <SelectItem value="equipment">Équipements</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {permissions.canViewAllData() && (
@@ -353,18 +362,23 @@ export default function ReportsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Client
                 </label>
-                <select
-                  value={reportConfig.clientId}
-                  onChange={(e) => updateConfig('clientId', e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                <Select
+                  value={reportConfig.clientId ?? ''}
+                  onValueChange={(value) => updateConfig('clientId', value === '' ? '' : value)}
+                  disabled={clientsLoading || !permissions.canViewAllData()}
                 >
-                  <option value="">Tous les clients</option>
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="client-filter">
+                    <SelectValue placeholder="Tous les clients" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les clients</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
@@ -372,55 +386,65 @@ export default function ReportsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Statut
               </label>
-              <select
-                value={reportConfig.status}
-                onChange={(e) => updateConfig('status', e.target.value)}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              <Select
+                value={reportConfig.status || 'all'}
+                onValueChange={(value) =>
+                  updateConfig('status', value === 'all' ? '' : value)
+                }
               >
-                <option value="">Tous les statuts</option>
-                {reportConfig.type === 'licenses' ? (
-                  <>
-                    <option value="active">Actif</option>
-                    <option value="expired">Expiré</option>
-                    <option value="about_to_expire">Bientôt expiré</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="active">Actif</option>
-                    <option value="obsolete">Obsolète</option>
-                    <option value="bientot_obsolete">Bientôt obsolète</option>
-                    <option value="en_maintenance">En maintenance</option>
-                    <option value="retire">Retiré</option>
-                  </>
-                )}
-              </select>
+                <SelectTrigger id="report-status">
+                  <SelectValue placeholder="Tous les statuts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={'all'}>Tous les statuts</SelectItem>
+                  {reportConfig.type === 'licenses' ? (
+                    <>
+                      <SelectItem value="active">Actif</SelectItem>
+                      <SelectItem value="expired">Expiré</SelectItem>
+                      <SelectItem value="about_to_expire">Bientôt expiré</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="active">Actif</SelectItem>
+                      <SelectItem value="obsolete">Obsolète</SelectItem>
+                      <SelectItem value="bientot_obsolete">Bientôt obsolète</SelectItem>
+                      <SelectItem value="en_maintenance">En maintenance</SelectItem>
+                      <SelectItem value="retire">Retiré</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Format
               </label>
-              <select
+              <Select
                 value={reportConfig.format}
-                onChange={(e) => updateConfig('format', e.target.value)}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                onValueChange={(value) => updateConfig('format', value)}
               >
-                <option value="json">Aperçu (JSON)</option>
-                <option value="csv">Téléchargement CSV</option>
-                <option value="excel">Téléchargement Excel</option>
-                <option value="pdf">Téléchargement PDF</option>
-              </select>
+                <SelectTrigger id="report-format">
+                  <SelectValue placeholder="Choisir un format" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="json">Aperçu (JSON)</SelectItem>
+                  <SelectItem value="csv">Téléchargement CSV</SelectItem>
+                  <SelectItem value="excel">Téléchargement Excel</SelectItem>
+                  <SelectItem value="pdf">Téléchargement PDF</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Date de début
               </label>
-              <input
+              
+              <Input
                 type="date"
                 value={reportConfig.dateFrom}
                 onChange={(e) => updateConfig('dateFrom', e.target.value)}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
@@ -428,11 +452,10 @@ export default function ReportsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Date de fin
               </label>
-              <input
+              <Input
                 type="date"
                 value={reportConfig.dateTo}
                 onChange={(e) => updateConfig('dateTo', e.target.value)}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
           </div>
