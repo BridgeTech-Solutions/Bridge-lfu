@@ -59,13 +59,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
       sector:undefined
     }
   });
-  const normalizeSector = (sectorName?: string | null) => {
-    if (!sectorName) return undefined
-    const match = secteurOptions.find(
-      (option) => option.value.localeCompare(sectorName, 'fr', { sensitivity: 'base' }) === 0
-    )
-    return match?.value
-  }
+
   useEffect(() => {
 
     if (mode === 'edit' && existingClient) {
@@ -79,7 +73,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
         contactEmail: existingClient.contact_email || '',
         contactPhone: existingClient.contact_phone || '',
         contactPerson: existingClient.contact_person || '',
-        sector: normalizeSector(existingClient.sector),
+        sector: existingClient.sector || undefined
       });
     }
   }, [existingClient, form, mode]);

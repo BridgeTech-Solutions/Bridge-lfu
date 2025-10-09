@@ -56,6 +56,8 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
   const permissions = useAuthPermissions()
   const isEditing = !!equipmentId
   const [submitError, setSubmitError] = useState<string | null>(null)
+  // AJOUT: État pour s'assurer que le formulaire n'est réinitialisé qu'une fois
+  const [hasFormBeenReset, setHasFormBeenReset] = useState(false)
 
   // Hook pour récupérer l'équipement existant (en mode édition)
   const { data: equipment, isLoading: equipmentLoading } = useEquipment(equipmentId || '')
@@ -65,11 +67,12 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
     page: 1,
     limit: 100,
   })
-  // On récupère tous les types actifs (avec une limite élevée pour les sélections de formulaire)
+  // On récupère tous les types actifs
   const { 
     types: equipmentTypes, 
     loading: loadingTypes 
   } = useEquipmentTypes({ activeOnly: true, limit: 1000 })
+    
   // Form hook
   const {
     register,
@@ -82,12 +85,18 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
     resolver: zodResolver(equipmentSchema),
     defaultValues: {
       status: 'actif',
+      // Si on est en édition, on peut initialiser les valeurs à null ou undefined pour 
+      // éviter les problèmes de type si les données n'ont pas encore été chargées.
+      // Le reset dans l'useEffect prendra le relais.
+      client_id: '',
+      type_id: '',
     },
   })
 
   // Hook pour les actions (création et mise à jour)
   const equipmentActions = useEquipmentActions({
     onSuccess: () => {
+      // Redirection après succès.
       router.push(isEditing ? `/equipment/${equipmentId}` : '/equipment')
     },
     onError: (error) => {
@@ -96,29 +105,56 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
   })
 
   // Charger les données de l'équipement dans le formulaire (mode édition)
+  // MODIFICATION CRITIQUE : 
+  // 1. On vérifie que l'équipement est chargé.
+  // 2. On vérifie que les listes de SELECT sont chargées (clientsData et equipmentTypes).
+  // 3. On utilise l'état local hasFormBeenReset pour ne le faire qu'une seule fois.
   useEffect(() => {
-    if (equipment && isEditing) {
+    // S'assurer que les données existent, que nous sommes en édition, et que le reset n'a pas déjà eu lieu
+    if (
+        equipment && 
+        isEditing && 
+        clientsData && 
+        equipmentTypes.length > 0 && 
+        !hasFormBeenReset
+    ) {
+      // Formatage des dates si elles existent (pour les inputs type="date")
+      const formatDate = (dateString: string | undefined) => 
+        dateString ? new Date(dateString).toISOString().split('T')[0] : ''
+
       reset({
         name: equipment.name || '',
-        type_id: equipment.type_id   || '',
+        type_id: equipment.type_id || '',
         brand: equipment.brand || '',
         model: equipment.model || '',
         serial_number: equipment.serial_number || '',
-        purchase_date: equipment.purchase_date || '',
-        estimated_obsolescence_date: equipment.estimated_obsolescence_date || '',
-        end_of_sale: equipment.end_of_sale || '',
-        warranty_end_date: equipment.warranty_end_date || '',
+        // Assurez-vous que les dates sont formatées correctement pour les inputs type="date"
+        purchase_date: formatDate(equipment.purchase_date),
+        estimated_obsolescence_date: formatDate(equipment.estimated_obsolescence_date),
+        end_of_sale: formatDate(equipment.end_of_sale),
+        warranty_end_date: formatDate(equipment.warranty_end_date),
         cost: equipment.cost || undefined,
         client_id: equipment.client_id || '',
         location: equipment.location || '',
         description: equipment.description || '',
         status: equipment.status as any || 'actif',
       })
+
+      setHasFormBeenReset(true) // Marquer le formulaire comme réinitialisé
     }
-  }, [equipment, isEditing, reset])
+    // Dépendances étendues pour inclure les données des Selects
+  }, [
+    equipment, 
+    isEditing, 
+    reset, 
+    clientsData, 
+    equipmentTypes, 
+    hasFormBeenReset
+  ])
 
   const onSubmit = async (data: EquipmentFormData) => {
     setSubmitError(null)
+    // ... votre logique de soumission (inchangée) ...
 
     const formData = {
       name: data.name,
@@ -162,7 +198,13 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
     }
   }
 
-  if (equipmentLoading || clientsLoading || loadingTypes) {
+  // MISE À JOUR : On s'assure que TOUTES les données nécessaires sont là avant de continuer.
+  // Dans le cas de l'édition, on vérifie aussi que hasFormBeenReset est true, sinon on affiche le spinner 
+  // jusqu'à ce que le formulaire ait été réinitialisé avec les valeurs (pour éviter l'affichage vide).
+  const isDataLoading = equipmentLoading || clientsLoading || loadingTypes
+  const shouldShowSpinner = isDataLoading || (isEditing && !hasFormBeenReset)
+
+  if (shouldShowSpinner) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner />
@@ -225,6 +267,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
 
                   <div>
                     <Label htmlFor="type">Type *</Label>
+                    {/* Select Type */}
                     <Select
                       value={watch('type_id') || ''}
                       onValueChange={(value) => setValue('type_id', value as any, { shouldValidate: true })}
@@ -233,11 +276,17 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                         <SelectValue placeholder="Sélectionner un type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {equipmentTypes.map(type => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.name}
-                          </SelectItem>
-                        ))}
+                        {/* Vérification que equipmentTypes est prêt */}
+                        {equipmentTypes.length > 0 ? (
+                          equipmentTypes.map(type => (
+                            <SelectItem key={type.id} value={type.id}>
+                              {type.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          // Option par défaut si la liste est vide (ne devrait pas être affiché si le spinner fonctionne)
+                          <SelectItem value="" disabled>Aucun type disponible</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     {errors.type_id && (
@@ -284,6 +333,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                   {isEditing && (
                     <div>
                       <Label htmlFor="status">Statut</Label>
+                      {/* Select Statut */}
                       <Select
                         value={watch('status')}
                         onValueChange={(value) => setValue('status', value as any)}
@@ -370,6 +420,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                 <CardTitle>Client *</CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Select Client */}
                 <Select
                   value={watch('client_id')}
                   onValueChange={(value) => setValue('client_id', value)}
@@ -378,11 +429,17 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                     <SelectValue placeholder="Sélectionner un client" />
                   </SelectTrigger>
                   <SelectContent>
-                    {clientsData?.map((client: any) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
+                    {/* Vérification que clientsData est prêt */}
+                    {clientsData && clientsData.length > 0 ? (
+                      clientsData.map((client: any) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      // Option par défaut si la liste est vide
+                      <SelectItem value="" disabled>Aucun client disponible</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.client_id && (

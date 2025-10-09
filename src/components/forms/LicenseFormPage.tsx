@@ -44,6 +44,8 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
   const { user } = useAuth()
   const permissions = useAuthPermissions()
   const [submitError, setSubmitError] = useState<string | null>(null)
+  // AJOUT: État pour s'assurer que le composant est monté côté client
+  const [isMounted, setIsMounted] = useState(false) 
 
   const licenseId = mode === 'edit' ? (params.id as string) : ''
 
@@ -83,25 +85,31 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
       })
     }
   }, [license, mode, form])
+  
+  // NOUVEAU: Met à jour l'état isMounted après le montage initial
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Pré-sélectionner le client si utilisateur client
+  // Ajout de la dépendance isMounted pour ne pas s'exécuter avant l'hydration
   useEffect(() => {
-    if (user?.role === 'client' && user.client_id && mode === 'create') {
+    if (user?.role === 'client' && user.client_id && mode === 'create' && isMounted) {
       form.setValue('clientId', user.client_id)
     }
-  }, [user, mode, form])
+  }, [user, mode, form, isMounted])
 
   // Vérification des permissions
     const action = mode === 'create' ? 'create' : 'update'
     const resourceData = mode === 'edit' ? license : undefined
 
-    if (!permissions.can(action, 'licenses', resourceData)) {
-      // toast.error('Accès refusé. Vous n\'avez pas les permissions nécessaires')
-      // router.push('/licenses')
+    // On attend le montage complet et le chargement des données pour vérifier les permissions
+    if (isMounted && !licenseLoading && !clientsLoading && !permissions.can(action, 'licenses', resourceData)) {
           return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-6">
               <div className="max-w-2xl mx-auto pt-20">
                 <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
                     Vous n&apos;avez pas les permissions nécessaires pour {mode === 'create' ? 'créer' : 'modifier'} une licence.
                   </AlertDescription>
@@ -130,14 +138,17 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
 
       if (mode === 'create') {
         const result = await createLicense(formData)
+        toast.success('Licence créée avec succès.')
         router.push(`/licenses/${result.id}`)
       } else {
         const result = await updateLicense({ id: licenseId, data: formData })
+        toast.success('Licence mise à jour avec succès.')
         router.push(`/licenses/${result.id}`)
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue'
+      const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue lors de la soumission.'
       setSubmitError(errorMessage)
+      toast.error(errorMessage)
     }
   }
 
@@ -147,12 +158,16 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
 
     const expiry = new Date(expiryDate)
     const today = new Date()
+    // Réinitialiser les heures pour une comparaison en jours
+    expiry.setHours(0, 0, 0, 0)
+    today.setHours(0, 0, 0, 0)
+    
     const daysUntilExpiry = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
     if (daysUntilExpiry < 0) {
       return { type: 'error', message: 'Cette licence est déjà expirée' }
     } else if (daysUntilExpiry <= 7) {
-      return { type: 'warning', message: `Cette licence expire dans ${daysUntilExpiry} jours` }
+      return { type: 'warning', message: `Cette licence expire dans ${daysUntilExpiry} jour${daysUntilExpiry !== 1 ? 's' : ''}` }
     } else if (daysUntilExpiry <= 30) {
       return { type: 'info', message: `Cette licence expire dans ${daysUntilExpiry} jours` }
     }
@@ -163,12 +178,14 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
   const expiryDateValue = form.watch('expiryDate')
   const expiryAlert = checkExpiryDate(expiryDateValue)
 
-  // État de chargement initial
+  // État de chargement initial (pour la récupération des données)
   const initialLoading = (mode === 'edit' && licenseLoading) || clientsLoading
 
-  if (initialLoading) {
+  // MODIFICATION: Ajout du contrôle !isMounted. Cela garantit que le code complexe (y compris le Select)
+  // n'est exécuté qu'après l'étape de l'hydratation, évitant ainsi les erreurs de portail.
+  if (initialLoading || !isMounted) {
     return (
-      <div className="space-y-6 mx-auto px-6">
+      <div className="space-y-6 mx-auto px-6 pt-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" disabled>
             <ArrowLeft className="w-4 h-4" />
@@ -194,7 +211,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
   }
 
   return (
-    <div className="space-y-6 mx-auto px-6">
+    <div className="space-y-6 mx-auto px-6 pt-6">
       {/* En-tête */}
       <div className="flex items-center gap-4">
         <Button 
@@ -452,7 +469,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
             >
               Annuler
             </Button>
-            <Button type="submit" disabled={isCreating || isUpdating}>
+            <Button type="submit" disabled={form.formState.isSubmitting || isCreating || isUpdating}>
               {(isCreating || isUpdating) ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
