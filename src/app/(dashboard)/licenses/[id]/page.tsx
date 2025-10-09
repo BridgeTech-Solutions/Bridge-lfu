@@ -400,29 +400,13 @@ export default function LicenseDetailPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setConfirmDialogOpen(true)}
+                      disabled={isRevealing}
+                      onClick={() => (showKey ? handleHideKey() : setConfirmDialogOpen(true))}
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       {showKey ? 'Masquer' : 'Afficher'}
                     </Button>
                   </div>
-                  {showKey && (
-                      <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={isRevealing}
-                      onClick={() => {
-                        if (showKey) {
-                          handleHideKey()
-                        } else {
-                          setConfirmDialogOpen(true)
-                        }
-                      }}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      {showKey ? 'Masquer' : 'Afficher'}
-                    </Button>
-                  )}
                 </div>
               )}
 
