@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
         expiry_date: validatedData.expiryDate,
         cost: validatedData.cost,
         client_id: validatedData.clientId,
+        supplier_id: validatedData.supplierId || null,
         description: validatedData.description,
         created_by: user.id
       })

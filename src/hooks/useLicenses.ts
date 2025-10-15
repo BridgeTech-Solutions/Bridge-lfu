@@ -15,6 +15,7 @@ interface LicenseFormData {
   expiryDate: string
   cost?: number
   clientId: string
+  supplierId?: string | null
   description?: string
 }
 
@@ -85,7 +86,10 @@ const createLicense = async (licenseData: LicenseFormData): Promise<LicenseWithC
   const response = await fetch('/api/licenses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(licenseData)
+    body: JSON.stringify({
+      ...licenseData,
+      supplierId: licenseData.supplierId || null,
+    })
   })
 
   if (!response.ok) {
@@ -101,7 +105,10 @@ const updateLicense = async (id: string, data: LicenseFormData): Promise<License
   const response = await fetch(`/api/licenses/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
+    body: JSON.stringify({
+      ...data,
+      supplierId: data.supplierId || null,
+    })
   })
 
   if (!response.ok) {

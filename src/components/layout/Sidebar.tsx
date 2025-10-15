@@ -112,6 +112,11 @@ export function Sidebar() {
           name: t('items.licensesCreate'),
           href: '/licenses/new',
           permissions: { resource: 'licenses', action: 'create' }
+        },
+        {
+          name: t('items.licenseSuppliers'),
+          href: '/licenses/suppliers',
+          permissions: { resource: 'license_suppliers', action: 'read' }
         }
       ]
     },

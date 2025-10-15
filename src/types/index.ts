@@ -16,6 +16,7 @@ export type Notification = Tables<'notifications'>
 export type NotificationSettings = Tables<'notification_settings'>
 export type ActivityLog = Tables<'activity_logs'>
 export type AppSetting = Tables<'app_settings'>
+export type LicenseSupplier = Tables<'license_suppliers'>
 // Types pour les insertions
 export type ProfileInsert = TablesInsert<'profiles'>
 export type ClientInsert = TablesInsert<'clients'>
@@ -23,6 +24,7 @@ export type LicenseInsert = TablesInsert<'licenses'>
 export type EquipmentInsert = TablesInsert<'equipment'>
 export type AppSettingInsert = TablesInsert<'app_settings'>
 export type EquipmentTypeInsert = TablesInsert<'equipment_types'>
+export type LicenseSupplierInsert = TablesInsert<'license_suppliers'>
 // Types pour les mises à jour
 export type ProfileUpdate = TablesUpdate<'profiles'>
 export type ClientUpdate = TablesUpdate<'clients'>
@@ -30,6 +32,7 @@ export type LicenseUpdate = TablesUpdate<'licenses'>
 export type EquipmentUpdate = TablesUpdate<'equipment'>
 export type AppSettingUpdate = TablesUpdate<'app_settings'>
 export type EquipmentTypeUpdate = TablesUpdate<'equipment_types'>
+export type LicenseSupplierUpdate = TablesUpdate<'license_suppliers'>
 
 // Types d'énumérations
 export type UserRole = Enums<'user_role'>
@@ -353,6 +356,8 @@ export interface LicenseWithClientView {
   client_name: string | null
   client_email: string | null
   created_by_name: string | null
+  supplier_id?: string | null
+  supplier_name?: string | null
 }
 
 export interface EquipmentWithClientView {

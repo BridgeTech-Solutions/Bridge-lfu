@@ -60,7 +60,29 @@ export async function GET(request: NextRequest,  context : any) {
       );
     }
 
-    return NextResponse.json(license);
+    const { data: licenseMeta } = await supabase
+      .from('licenses')
+      .select('supplier_id')
+      .eq('id', licenseId)
+      .maybeSingle();
+
+    let supplierName: string | null = null;
+    if (licenseMeta?.supplier_id) {
+      const { data: supplierData } = await supabase
+        .from('license_suppliers')
+        .select('name')
+        .eq('id', licenseMeta.supplier_id)
+        .maybeSingle();
+      supplierName = supplierData?.name ?? null;
+    }
+
+    const responseData = {
+      ...license,
+      supplier_id: licenseMeta?.supplier_id ?? null,
+      supplier_name: supplierName,
+    };
+
+    return NextResponse.json(responseData);
 
   } catch (error) {
     console.error('Erreur API GET /licenses/[licenseid]:', error);
@@ -138,6 +160,7 @@ export async function PUT(request: NextRequest,  context : any) {
         cost: validatedData.cost,
         client_id: validatedData.clientId,
         description: validatedData.description,
+        supplier_id: validatedData.supplierId || null,
         updated_at: new Date().toISOString()
       })
       .eq('id', licenseId)

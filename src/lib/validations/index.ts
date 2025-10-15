@@ -80,6 +80,7 @@ export const licenseSchema = z.object({
   expiryDate: z.string().min(1, 'Date d\'expiration requise'),
   cost: z.number().min(0, 'Le coût doit être positif').optional(),
   clientId: z.string().uuid('Client requis'),
+  supplierId: z.string().uuid('Fournisseur invalide').optional().or(z.literal('')).nullable(),
   description: z.string().optional()
 }).refine(data => {
   if (data.purchaseDate && data.expiryDate) {
@@ -172,6 +173,22 @@ export const equipmentTypeUpdateSchema = equipmentTypeCreateSchema.partial().ext
 	id: z.string().uuid('Identifiant du type requis'),
 })
 
+const licenseSupplierBaseSchema = z.object({
+	name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+	contactEmail: emailSchema.optional().or(z.literal('')).nullable(),
+	contactPhone: phoneSchema,
+	website: z.string().url('URL invalide').optional().or(z.literal('')).nullable(),
+	address: z.string().optional().nullable(),
+	notes: z.string().optional().nullable(),
+	isActive: z.boolean().optional().default(true),
+})
+
+export const licenseSupplierCreateSchema = licenseSupplierBaseSchema
+
+export const licenseSupplierUpdateSchema = licenseSupplierBaseSchema.partial().extend({
+	id: z.string().uuid('Identifiant du fournisseur requis'),
+})
+
 // Schéma de paramètres de notification
 export const notificationSettingsSchema = z.object({
   licenseAlertDays: z.array(z.number().min(1).max(365)).default([7, 30]),
@@ -257,7 +274,9 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>
 export type ProfileInput = z.infer<typeof profileSchema>
 export type ClientInput = z.infer<typeof clientSchema>
 export type LicenseInput = z.infer<typeof licenseSchema>
-export type EquipmentInput = z.infer<typeof equipmentSchema>
+export type EquipmentTypeUpdateInput = z.infer<typeof equipmentTypeUpdateSchema>
+export type LicenseSupplierCreateInput = z.infer<typeof licenseSupplierCreateSchema>
+export type LicenseSupplierUpdateInput = z.infer<typeof licenseSupplierUpdateSchema>
 export type NotificationSettingsInput = z.infer<typeof notificationSettingsSchema>
 export type SearchInput = z.infer<typeof searchSchema>
 export type ClientFiltersInput = z.infer<typeof clientFiltersSchema>

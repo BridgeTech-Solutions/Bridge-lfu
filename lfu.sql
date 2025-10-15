@@ -69,17 +69,33 @@ CREATE TABLE public.profiles (
 ALTER TABLE public.clients ADD CONSTRAINT fk_clients_created_by 
 FOREIGN KEY (created_by) REFERENCES public.profiles(id);
 
+-- Table des fournisseurs de licences
+CREATE TABLE public.license_suppliers (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name TEXT NOT NULL,
+    address TEXT,
+    city TEXT,
+    postal_code TEXT,
+    country TEXT DEFAULT 'Cameroun',
+    contact_email TEXT,
+    contact_phone TEXT,
+    contact_person TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Table des licences
 CREATE TABLE public.licenses (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     name TEXT NOT NULL,
-    editor TEXT, -- Éditeur/Fournisseur
+    editor TEXT, -- Éditeur/Fournisseur (fallback si pas de fournisseur lié)
     version TEXT,
     license_key TEXT,
     purchase_date DATE,
     expiry_date DATE NOT NULL,
     cost DECIMAL(10,2),
     client_id UUID REFERENCES public.clients(id) ON DELETE CASCADE,
+    supplier_id UUID REFERENCES public.license_suppliers(id),
     status license_status DEFAULT 'active',
     description TEXT,
     created_by UUID REFERENCES public.profiles(id),
@@ -520,15 +536,19 @@ WHERE purchase_date IS NOT NULL;
 COMMENT ON VIEW v_license_durations IS 'Vue calculant la durée des licences en jours entre la date d''achat et d''expiration';
 
 -- Vue pour les licences avec informations client
+DROP VIEW IF EXISTS v_licenses_with_client;
+
 CREATE VIEW v_licenses_with_client AS
-SELECT 
-    l.*,
-    c.name as client_name,
-    c.contact_email as client_email,
-    p.first_name || ' ' || p.last_name as created_by_name
+SELECT
+  l.*,
+  c.name AS client_name,
+  c.contact_email AS client_email,
+  p.first_name || ' ' || p.last_name AS created_by_name,
+  ls.name AS supplier_name
 FROM public.licenses l
 LEFT JOIN public.clients c ON l.client_id = c.id
-LEFT JOIN public.profiles p ON l.created_by = p.id;
+LEFT JOIN public.profiles p ON l.created_by = p.id
+LEFT JOIN public.license_suppliers ls ON l.supplier_id = ls.id;
 
 -- Vue pour les équipements avec informations client
 CREATE VIEW v_equipment_with_client AS
@@ -838,8 +858,12 @@ INSERT INTO public.clients (name, address, city, postal_code, contact_email, con
 -- Fonction pour générer un rapport des licences expirées
 CREATE OR REPLACE FUNCTION get_expired_licenses_report()
 RETURNS TABLE (
+    license_id UUID,
     license_name TEXT,
+    client_id UUID,
     client_name TEXT,
+    supplier_id UUID,
+    supplier_name TEXT,
     expiry_date DATE,
     days_expired INTEGER,
     cost DECIMAL(10,2)
@@ -847,13 +871,18 @@ RETURNS TABLE (
 BEGIN
     RETURN QUERY
     SELECT 
+        l.id,
         l.name,
+        l.client_id,
         c.name,
+        ls.id,
+        ls.name,
         l.expiry_date,
         (CURRENT_DATE - l.expiry_date)::INTEGER,
         l.cost
     FROM public.licenses l
     LEFT JOIN public.clients c ON l.client_id = c.id
+    LEFT JOIN public.license_suppliers ls ON l.supplier_id = ls.id
     WHERE l.expiry_date < CURRENT_DATE
     ORDER BY l.expiry_date DESC;
 END;
@@ -890,7 +919,10 @@ $$ LANGUAGE plpgsql;
 -- NOUVEAU : Fonction pour générer un rapport client spécifique
 CREATE OR REPLACE FUNCTION get_client_licenses_report(client_uuid UUID)
 RETURNS TABLE (
+    license_id UUID,
     license_name TEXT,
+    supplier_id UUID,
+    supplier_name TEXT,
     editor TEXT,
     expiry_date DATE,
     status license_status,
@@ -900,13 +932,17 @@ RETURNS TABLE (
 BEGIN
     RETURN QUERY
     SELECT 
+        l.id,
         l.name,
+        ls.id,
+        ls.name,
         l.editor,
         l.expiry_date,
         l.status,
         l.cost,
         (l.expiry_date - CURRENT_DATE)::INTEGER
     FROM public.licenses l
+    LEFT JOIN public.license_suppliers ls ON l.supplier_id = ls.id
     WHERE l.client_id = client_uuid
     ORDER BY l.expiry_date ASC;
 END;
@@ -1587,3 +1623,93 @@ END;
 $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION get_equipment_stats_by_type() IS 'Fonction retournant les statistiques d''équipements par type';
+
+
+-- 2. Déclencheur updated_at identique aux autres tables
+CREATE TRIGGER update_license_suppliers_updated_at
+    BEFORE UPDATE ON public.license_suppliers
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- 3. Index usuels
+CREATE INDEX idx_license_suppliers_name
+    ON public.license_suppliers (LOWER(name));
+
+CREATE INDEX idx_license_suppliers_is_active
+    ON public.license_suppliers (is_active);
+
+-- 4. Colonne de relation dans licenses
+ALTER TABLE public.licenses
+    ADD COLUMN supplier_id UUID REFERENCES public.license_suppliers(id);
+
+-- Optionnel : conserver l’ancien champ texte mais forcer l’un ou l’autre
+ALTER TABLE public.licenses
+    ADD CONSTRAINT licenses_supplier_presence_chk
+    CHECK (
+        supplier_id IS NOT NULL
+        OR editor IS NOT NULL
+    );
+
+-- 5. RLS
+ALTER TABLE public.license_suppliers ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins and technicians manage suppliers"
+    ON public.license_suppliers
+    FOR ALL
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid()
+              AND role IN ('admin', 'technicien')
+        )
+    );
+
+CREATE POLICY "Clients can view active suppliers"
+    ON public.license_suppliers
+    FOR SELECT
+    USING (
+        is_active = TRUE
+        AND EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid()
+              AND role = 'client'
+        )
+    );
+
+-- 6. Vue pratique (optionnel)
+CREATE VIEW v_license_suppliers AS
+SELECT
+    s.*,
+    p.first_name || ' ' || p.last_name AS created_by_name
+FROM public.license_suppliers s
+LEFT JOIN public.profiles p ON s.created_by = p.id;
+
+-- 1. Index d’unicité pour éviter les doublons d’orthographe
+CREATE UNIQUE INDEX IF NOT EXISTS uq_license_suppliers_name
+    ON public.license_suppliers (LOWER(name));
+
+-- 2. Insérer les fournisseurs uniques (adapter contacts si disponibles)
+INSERT INTO public.license_suppliers (name, created_by)
+VALUES
+    ('Microsoft', NULL),
+    ('Bel Solutions', NULL),
+    ('Mon Éditeur', NULL),
+    ('Nagia', NULL),
+    ('MicroSoft', NULL),  -- Gardé distinct si vous voulez suivre la casse exacte
+    ('eat', NULL),
+    ('juan', NULL)
+ON CONFLICT (LOWER(name)) DO NOTHING;
+
+-- 3. Rattacher les licences existantes
+UPDATE public.licenses l
+SET supplier_id = s.id
+FROM public.license_suppliers s
+WHERE LOWER(l.editor) = LOWER(s.name);
+
+-- 4. Vérifier les licences restant sans fournisseur (si certains noms n’étaient pas insérés)
+SELECT id, name, editor
+FROM public.licenses
+WHERE supplier_id IS NULL;
+
+-- 5. (Optionnel) si toutes les lignes sont rattachées, retirer l’ancien champ texte
+-- ALTER TABLE public.licenses DROP COLUMN editor;

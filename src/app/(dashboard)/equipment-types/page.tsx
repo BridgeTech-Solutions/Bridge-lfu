@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import { useEquipmentTypes } from '@/hooks/useEquipmentTypes'
 import { useAuthPermissions, useDebounce } from '@/hooks'
 import { useTranslations } from '@/hooks/useTranslations'
@@ -36,6 +37,15 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import  Textarea  from '@/components/ui/textarea'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import type { EquipmentTypeItem } from '@/hooks/useEquipmentTypes'
 
 interface FormData {
@@ -195,302 +205,267 @@ export default function EquipmentTypesPage() {
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-4">
-          <p className="text-sm text-gray-500">{t('stats.total')}</p>
-          <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <p className="text-sm text-gray-500">{t('stats.active')}</p>
-          <p className="text-2xl font-bold text-green-600">{stats.active}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <p className="text-sm text-gray-500">{t('stats.inactive')}</p>
-          <p className="text-2xl font-bold text-gray-400">{stats.inactive}</p>
-        </div>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('stats.total')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('stats.active')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('stats.inactive')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-muted-foreground">{stats.inactive}</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Barre d'actions */}
-      <div className="bg-white rounded-lg shadow mb-6">
-        <div className="p-4 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+      <Card className="mb-6">
+        <CardContent className="pt-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
               type="text"
               placeholder={t('search.placeholder')}
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onChange={(event: ChangeEvent<HTMLInputElement>) => setSearchInput(event.target.value)}
+              className="pl-10"
             />
           </div>
 
           <div className="flex gap-2">
-            <button
+            <Button
+              variant={showInactive ? 'secondary' : 'outline'}
               onClick={() => setShowInactive(!showInactive)}
-              className={cn(
-                "px-4 py-2 rounded-lg border transition-colors flex items-center gap-2",
-                showInactive
-                  ? "bg-blue-50 border-blue-200 text-blue-700"
-                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-              )}
             >
-              {showInactive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              {showInactive ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
               {showInactive ? t('buttons.hideInactive') : t('buttons.showInactive')}
-            </button>
+            </Button>
 
             {canCreate && (
-              <button
-                onClick={() => handleOpenModal()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
+              <Button onClick={() => handleOpenModal()}>
+                <Plus className="h-4 w-4 mr-2" />
                 {t('buttons.newType')}
-              </button>
+              </Button>
             )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Liste des types */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('table.columns.name')}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('table.columns.code')}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('table.columns.description')}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('table.columns.status')}
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('table.columns.actions')}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {types.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                  {t('table.empty')}
-                </td>
-              </tr>
-            ) : (
-              types.map((type) => (
-                <tr key={type.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      {type.icon && (() => {
-                        const IconComponent = AVAILABLE_ICONS.find(i => i.name === type.icon)?.icon
-                        return IconComponent ? <IconComponent className="h-5 w-5 text-gray-600" /> : null
-                      })()}
-                      <span className="text-sm font-medium text-gray-900">
-                        {type.name}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-800">
-                      {type.code}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-500 max-w-xs truncate">
-                      {type.description || '-'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={cn(
-                      "px-2 py-1 text-xs font-semibold rounded",
-                      type.is_active
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    )}>
-                      {type.is_active ? t('status.active') : t('status.inactive')}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end gap-2">
-                      {canUpdate && (
-                        <button
-                          onClick={() => handleOpenModal(type)}
-                          disabled={isUpdating}
-                          className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
-                          title={t('table.actions.edit')}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                      )}
-                      {canDelete && (
-                        <button
-                          onClick={() => handleDelete(type)}
-                          disabled={isDeleting}
-                          className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                          title={type.is_active ? t('table.actions.disable') : t('table.actions.delete')}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('table.columns.name')}</TableHead>
+                <TableHead>{t('table.columns.code')}</TableHead>
+                <TableHead>{t('table.columns.description')}</TableHead>
+                <TableHead>{t('table.columns.status')}</TableHead>
+                <TableHead className="text-right">{t('table.columns.actions')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {types.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                    {t('table.empty')}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                types.map((type) => (
+                  <TableRow key={type.id} className="hover:bg-muted/50">
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {type.icon && (() => {
+                          const IconComponent = AVAILABLE_ICONS.find((item) => item.name === type.icon)?.icon
+                          return IconComponent ? <IconComponent className="h-5 w-5 text-muted-foreground" /> : null
+                        })()}
+                        <span className="text-sm font-medium text-foreground">{type.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-semibold uppercase">
+                        {type.code}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-muted-foreground max-w-xs truncate">
+                        {type.description || '-'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={type.is_active ? 'success' : 'secondary'}>
+                        {type.is_active ? t('status.active') : t('status.inactive')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        {canUpdate && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenModal(type)}
+                            disabled={isUpdating}
+                            title={t('table.actions.edit')}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(type)}
+                            disabled={isDeleting}
+                            title={type.is_active ? t('table.actions.disable') : t('table.actions.delete')}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Modal de création/édition */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {editingType ? t('modal.editTitle') : t('modal.createTitle')}
-              </h3>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <X className="h-5 w-5" />
-              </button>
+      <Dialog open={isModalOpen} onOpenChange={(open) => (open ? setIsModalOpen(true) : handleCloseModal())}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{editingType ? t('modal.editTitle') : t('modal.createTitle')}</DialogTitle>
+            <DialogDescription>{t('modal.description')}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="type-name">{t('modal.fields.name.label')} {t('modal.fields.name.required')}</Label>
+              <Input
+                id="type-name"
+                type="text"
+                required
+                value={formData.name}
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                  setFormData((prev) => ({ ...prev, name: event.target.value }))
+                }
+                placeholder={t('modal.fields.name.placeholder')}
+              />
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('modal.fields.name.label')} {t('modal.fields.name.required')}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder={t('modal.fields.name.placeholder')}
-                />
-              </div>
+            <div>
+              <Label htmlFor="type-code">{t('modal.fields.code.label')} {t('modal.fields.code.required')}</Label>
+              <Input
+                id="type-code"
+                type="text"
+                required
+                value={formData.code}
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                  setFormData((prev) => ({ ...prev, code: event.target.value.toUpperCase() }))
+                }
+                placeholder={t('modal.fields.code.placeholder')}
+                maxLength={10}
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('modal.fields.code.label')} {t('modal.fields.code.required')}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder={t('modal.fields.code.placeholder')}
-                  maxLength={10}
-                />
-              </div>
+            <div>
+              <Label htmlFor="type-description">{t('modal.fields.description.label')}</Label>
+              <Textarea
+                id="type-description"
+                value={formData.description}
+                onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                  setFormData((prev) => ({ ...prev, description: event.target.value }))
+                }
+                placeholder={t('modal.fields.description.placeholder')}
+                rows={3}
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('modal.fields.description.label')}
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder={t('modal.fields.description.placeholder')}
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('modal.fields.icon.label')}
-                </label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowIconPicker(!showIconPicker)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      {formData.icon && (() => {
-                        const IconComponent = AVAILABLE_ICONS.find(i => i.name === formData.icon)?.icon
-                        return IconComponent ? <IconComponent className="h-5 w-5 text-gray-600" /> : null
-                      })()}
-                      <span className="text-gray-700">
-                        {formData.icon || t('modal.fields.icon.placeholder')}
-                      </span>
-                    </div>
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-
-                  {showIconPicker && (
-                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                      <div className="grid grid-cols-4 gap-2 p-3">
-                        {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
-                          <button
-                            key={name}
-                            type="button"
-                            onClick={() => {
-                              setFormData({ ...formData, icon: name })
-                              setShowIconPicker(false)
-                            }}
-                            className={cn(
-                              "flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all hover:bg-blue-50",
-                              formData.icon === name
-                                ? "border-blue-500 bg-blue-50"
-                                : "border-gray-200 hover:border-blue-300"
-                            )}
-                            title={name}
-                          >
-                            <Icon className="h-6 w-6 text-gray-700" />
-                            <span className="text-xs mt-1 text-gray-600 truncate w-full text-center">
-                              {name}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  checked={formData.is_active}
-                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="is_active" className="ml-2 block text-sm text-gray-700">
-                  {t('modal.fields.isActive')}
-                </label>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
+            <div>
+              <Label>{t('modal.fields.icon.label')}</Label>
+              <div className="relative">
+                <Button
                   type="button"
-                  onClick={handleCloseModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  variant="outline"
+                  className="w-full justify-between"
+                  onClick={() => setShowIconPicker(!showIconPicker)}
                 >
-                  {t('modal.actions.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreating || isUpdating}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  {isCreating || isUpdating ? t('modal.actions.saving') : t('modal.actions.save')}
-                </button>
+                  <div className="flex items-center gap-2">
+                    {formData.icon && (() => {
+                      const IconComponent = AVAILABLE_ICONS.find((item) => item.name === formData.icon)?.icon
+                      return IconComponent ? <IconComponent className="h-5 w-5 text-muted-foreground" /> : null
+                    })()}
+                    <span className="text-sm text-foreground">
+                      {formData.icon || t('modal.fields.icon.placeholder')}
+                    </span>
+                  </div>
+                  <span className="text-muted-foreground">▼</span>
+                </Button>
+
+                {showIconPicker && (
+                  <div className="absolute z-10 mt-2 w-full bg-background border rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                    <div className="grid grid-cols-4 gap-2 p-3">
+                      {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
+                        <Button
+                          key={name}
+                          type="button"
+                          variant={formData.icon === name ? 'secondary' : 'ghost'}
+                          className={cn(
+                            'flex flex-col items-center justify-center gap-2 border',
+                            formData.icon === name ? 'border-primary' : 'border-border'
+                          )}
+                          onClick={() => {
+                            setFormData((prev) => ({ ...prev, icon: name }))
+                            setShowIconPicker(false)
+                          }}
+                        >
+                          <Icon className="h-6 w-6" />
+                          <span className="text-xs truncate w-full text-center">{name}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="type-active">{t('modal.fields.isActive')}</Label>
+              <Switch
+                id="type-active"
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, is_active: checked }))}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleCloseModal}>
+                {t('modal.actions.cancel')}
+              </Button>
+              <Button type="submit" disabled={isCreating || isUpdating}>
+                {isCreating || isUpdating ? t('modal.actions.saving') : t('modal.actions.save')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

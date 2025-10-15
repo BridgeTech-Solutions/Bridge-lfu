@@ -147,6 +147,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         licenses: 'Licences',
         licensesList: 'Liste des licences',
         licensesCreate: 'Ajouter une licence',
+        licenseSuppliers: 'Éditeurs & Fournisseurs',
         equipment: 'Équipements',
         equipmentList: 'Liste des équipements',
         equipmentCreate: 'Ajouter un équipement',
@@ -770,6 +771,83 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         delete: 'Êtes-vous sûr de vouloir supprimer définitivement le type "{{name}}" ?',
       },
     },
+    licenseSuppliers: {
+      title: 'Éditeurs & Fournisseurs',
+      subtitle: 'Gérez les fournisseurs de licences',
+      stats: {
+        total: 'Total fournisseurs',
+        active: 'Actifs',
+        inactive: 'Inactifs',
+      },
+      search: {
+        placeholder: 'Rechercher un fournisseur...',
+      },
+      buttons: {
+        showInactive: 'Afficher inactifs',
+        hideInactive: 'Masquer inactifs',
+        newSupplier: 'Nouveau fournisseur',
+      },
+      table: {
+        columns: {
+          name: 'Nom',
+          contact: 'Contact',
+          details: 'Détails',
+          status: 'Statut',
+          actions: 'Actions',
+        },
+        actions: {
+          edit: 'Modifier',
+          disable: 'Désactiver',
+          delete: 'Supprimer',
+        },
+        empty: 'Aucun fournisseur trouvé',
+      },
+      status: {
+        active: 'Actif',
+        inactive: 'Inactif',
+      },
+      confirmations: {
+        disable: 'Êtes-vous sûr de vouloir désactiver le fournisseur "{{name}}" ? Cela le retirera de la liste des choix.',
+        delete: 'Le fournisseur "{{name}}" est déjà inactif. Voulez-vous le supprimer définitivement ? Cette action est irréversible.',
+      },
+      modal: {
+        createTitle: 'Nouveau fournisseur',
+        editTitle: 'Modifier le fournisseur',
+        fields: {
+          name: {
+            label: 'Nom du fournisseur',
+            required: '*',
+            placeholder: 'Ex : Microsoft',
+          },
+          contactEmail: {
+            label: 'Email de contact',
+            placeholder: 'contact@fournisseur.com',
+          },
+          contactPhone: {
+            label: 'Téléphone',
+            placeholder: 'Ex : +237 6XX XX XX XX',
+          },
+          website: {
+            label: 'Site web',
+            placeholder: 'https://www.exemple.com',
+          },
+          address: {
+            label: 'Adresse',
+            placeholder: 'Adresse postale complète',
+          },
+          notes: {
+            label: 'Notes',
+            placeholder: 'Informations complémentaires (comptes clients, interlocuteurs...)',
+          },
+          isActive: 'Fournisseur actif',
+        },
+        actions: {
+          cancel: 'Annuler',
+          save: 'Enregistrer',
+          saving: 'Enregistrement...',
+        },
+      },
+    },
   },
   en: {
     settings: {
@@ -911,6 +989,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         licenses: 'Licenses',
         licensesList: 'Licenses list',
         licensesCreate: 'Add a license',
+        licenseSuppliers: 'Editors & Vendors',
         equipment: 'Equipment',
         equipmentList: 'Equipment list',
         equipmentCreate: 'Add equipment',
@@ -1534,6 +1613,83 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         delete: 'Are you sure you want to permanently delete the type "{{name}}"?',
       },
     },
+    licenseSuppliers: {
+      title: 'Editors & Vendors',
+      subtitle: 'Manage the license suppliers',
+      stats: {
+        total: 'Total suppliers',
+        active: 'Active',
+        inactive: 'Inactive',
+      },
+      search: {
+        placeholder: 'Search for a supplier...',
+      },
+      buttons: {
+        showInactive: 'Show inactive',
+        hideInactive: 'Hide inactive',
+        newSupplier: 'New supplier',
+      },
+      table: {
+        columns: {
+          name: 'Name',
+          contact: 'Contact',
+          details: 'Details',
+          status: 'Status',
+          actions: 'Actions',
+        },
+        actions: {
+          edit: 'Edit',
+          disable: 'Disable',
+          delete: 'Delete',
+        },
+        empty: 'No supplier found',
+      },
+      status: {
+        active: 'Active',
+        inactive: 'Inactive',
+      },
+      confirmations: {
+        disable: 'Are you sure you want to deactivate the supplier "{{name}}"? It will no longer appear in lists.',
+        delete: 'The supplier "{{name}}" is already inactive. Do you want to delete it permanently? This action cannot be undone.',
+      },
+      modal: {
+        createTitle: 'New supplier',
+        editTitle: 'Edit supplier',
+        fields: {
+          name: {
+            label: 'Supplier name',
+            required: '*',
+            placeholder: 'Ex: Microsoft',
+          },
+          contactEmail: {
+            label: 'Contact email',
+            placeholder: 'contact@supplier.com',
+          },
+          contactPhone: {
+            label: 'Phone',
+            placeholder: 'e.g. +237 6XX XX XX XX',
+          },
+          website: {
+            label: 'Website',
+            placeholder: 'https://www.example.com',
+          },
+          address: {
+            label: 'Address',
+            placeholder: 'Full mailing address',
+          },
+          notes: {
+            label: 'Notes',
+            placeholder: 'Additional information (customer accounts, contacts...)',
+          },
+          isActive: 'Supplier active',
+        },
+        actions: {
+          cancel: 'Cancel',
+          save: 'Save',
+          saving: 'Saving...',
+        },
+      },
+    }
   },
 }
 

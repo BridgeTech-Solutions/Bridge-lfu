@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuthPermissions } from '@/hooks'
 import { useLicense, useLicenses } from '@/hooks/useLicenses'
+import { useLicenseSuppliers } from '@/hooks/useLicenseSuppliers'
 import { useClients } from '@/hooks/useClients'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
@@ -29,6 +30,7 @@ const licenseSchema = z.object({
   expiryDate: z.string().min(1, 'La date d\'expiration est obligatoire'),
   cost: z.number().min(0, 'Le coût doit être positif').optional(),
   clientId: z.string().min(1, 'Le client est obligatoire'),
+  supplierId: z.string().uuid('Fournisseur invalide').optional().or(z.literal('')).nullable(),
   description: z.string().optional()
 })
 
@@ -52,6 +54,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
   // Hooks pour les données
   const { data: license, isLoading: licenseLoading } = useLicense(licenseId)
   const { clients, loading: clientsLoading } = useClients({ page: 1, limit: 100 })
+  const { suppliers, loading: suppliersLoading } = useLicenseSuppliers({ limit: 100, activeOnly: true })
   const { createLicense, updateLicense, isCreating, isUpdating } = useLicenses()
 
   const form = useForm<LicenseFormData>({
@@ -65,6 +68,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
       expiryDate: '',
       cost: undefined,
       clientId: '',
+      supplierId: '',
       description: ''
     }
   })
@@ -81,10 +85,20 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
         expiryDate: license.expiry_date || '',
         cost: license.cost || undefined,
         clientId: license.client_id || '',
+        supplierId: license.supplier_id || '',
         description: license.description || ''
       })
     }
   }, [license, mode, form])
+
+  const selectedSupplierId = form.watch('supplierId')
+
+  useEffect(() => {
+    if (!suppliersLoading) {
+      const supplier = suppliers.find((item) => item.id === selectedSupplierId)
+      form.setValue('editor', supplier?.name || '')
+    }
+  }, [suppliers, suppliersLoading, selectedSupplierId, form])
   
   // NOUVEAU: Met à jour l'état isMounted après le montage initial
   useEffect(() => {
@@ -104,7 +118,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
     const resourceData = mode === 'edit' ? license : undefined
 
     // On attend le montage complet et le chargement des données pour vérifier les permissions
-    if (isMounted && !licenseLoading && !clientsLoading && !permissions.can(action, 'licenses', resourceData)) {
+    if (isMounted && !licenseLoading && !clientsLoading && !suppliersLoading && !permissions.can(action, 'licenses', resourceData)) {
           return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-6">
               <div className="max-w-2xl mx-auto pt-20">
@@ -133,6 +147,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
         expiryDate: data.expiryDate,
         cost: data.cost,
         clientId: data.clientId,
+        supplierId: data.supplierId || undefined,
         description: data.description || undefined
       }
 
@@ -179,7 +194,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
   const expiryAlert = checkExpiryDate(expiryDateValue)
 
   // État de chargement initial (pour la récupération des données)
-  const initialLoading = (mode === 'edit' && licenseLoading) || clientsLoading
+  const initialLoading = (mode === 'edit' && licenseLoading) || clientsLoading || suppliersLoading
 
   // MODIFICATION: Ajout du contrôle !isMounted. Cela garantit que le code complexe (y compris le Select)
   // n'est exécuté qu'après l'étape de l'hydratation, évitant ainsi les erreurs de portail.
@@ -269,13 +284,28 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
 
                 <FormField
                   control={form.control}
-                  name="editor"
+                  name="supplierId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Éditeur/Fournisseur</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Microsoft" {...field} />
-                      </FormControl>
+                      <Select
+                        onValueChange={(value) => field.onChange(value === 'none' ? '' : value)}
+                        value={field.value && field.value.length > 0 ? field.value : 'none'}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner un fournisseur" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Aucun</SelectItem>
+                          {suppliers.map((supplier) => (
+                            <SelectItem key={supplier.id} value={supplier.id}>
+                              {supplier.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
