@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { usePermissions } from '@/lib/auth/permissions'
-import { Download, FileText, RefreshCw, BarChart3, Users, HardDrive, Key, FileSpreadsheet, Calendar } from 'lucide-react'
+import { Download, FileText, RefreshCw, BarChart3, Users, HardDrive, Key, FileSpreadsheet, Calendar,  Shield,
+  Server,
+ } from 'lucide-react'
 import { FaRegFilePdf, FaFileExcel } from "react-icons/fa"
 import { 
   useReports, 
@@ -188,7 +190,7 @@ export default function ReportsPage() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <Key className="h-6 w-6 text-blue-400" />
+                <Shield className="h-6 w-6 text-blue-400" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -206,7 +208,7 @@ export default function ReportsPage() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <HardDrive className="h-6 w-6 text-green-400" />
+                <Server className="h-6 w-6 text-green-400" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
