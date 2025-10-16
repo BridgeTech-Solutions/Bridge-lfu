@@ -36,16 +36,17 @@ import {
 import { equipmentSchema } from '@/lib/validations'
 import { useEquipmentTypes } from '@/hooks/useEquipmentTypes' 
 import { useEquipmentBrands } from '@/hooks/useEquipmentBrands'
+import { useTranslations } from '@/hooks/useTranslations'
 
 type EquipmentFormData = z.infer<typeof equipmentSchema>
 
 
-const EQUIPMENT_STATUS = [
-  { value: 'actif', label: 'Actif' },
-  { value: 'en_maintenance', label: 'En maintenance' },
-  { value: 'bientot_obsolete', label: 'Bientôt obsolète' },
-  { value: 'obsolete', label: 'Obsolète' },
-  { value: 'retire', label: 'Retiré' },
+const EQUIPMENT_STATUS_VALUES = [
+  'actif',
+  'en_maintenance',
+  'bientot_obsolete',
+  'obsolete',
+  'retire',
 ]
 
 interface EquipmentFormPageProps {
@@ -68,6 +69,10 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
     page: 1,
     limit: 100,
   })
+
+  // i18n
+  const { t: tForm } = useTranslations('equipment.form')
+  const { t: tStatus } = useTranslations('equipment.status')
   // On récupère tous les types actifs
   const { 
     types: equipmentTypes, 
@@ -250,14 +255,14 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
           className="hover:bg-slate-100"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour
+          {tForm('header.back')}
         </Button>
         <div>
           <h1 className="text-2xl font-bold">
-            {isEditing ? 'Modifier l\'équipement' : 'Nouvel équipement'}
+            {isEditing ? tForm('header.editTitle') : tForm('header.createTitle')}
           </h1>
           <p className="text-gray-500">
-            {isEditing ? 'Modifiez les informations de l\'équipement' : 'Créez un nouvel équipement'}
+            {isEditing ? tForm('header.editSubtitle') : tForm('header.createSubtitle')}
           </p>
         </div>
       </div>
@@ -276,16 +281,16 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Informations générales</CardTitle>
+                <CardTitle>{tForm('sections.main')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name">Nom *</Label>
+                    <Label htmlFor="name">{tForm('fields.name.label')}</Label>
                     <Input
                       id="name"
                       {...register('name')}
-                      placeholder="Nom de l'équipement"
+                      placeholder={tForm('fields.name.placeholder')}
                     />
                     {errors.name && (
                       <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>
@@ -293,14 +298,14 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                   </div>
 
                   <div>
-                    <Label htmlFor="type">Type *</Label>
+                    <Label htmlFor="type">{tForm('fields.type.label')}</Label>
                     {/* Select Type */}
                     <Select
                       value={watch('type_id') || ''}
                       onValueChange={(value) => setValue('type_id', value as any, { shouldValidate: true })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un type" />
+                        <SelectValue placeholder={tForm('fields.type.placeholder')} />
                       </SelectTrigger>
                       <SelectContent>
                         {/* Vérification que equipmentTypes est prêt */}
@@ -312,7 +317,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                           ))
                         ) : (
                           // Option par défaut si la liste est vide (ne devrait pas être affiché si le spinner fonctionne)
-                          <SelectItem value="" disabled>Aucun type disponible</SelectItem>
+                          <SelectItem value="" disabled>{tForm('fields.type.empty')}</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -322,7 +327,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                   </div>
 
                   <div>
-                    <Label htmlFor="brand_id">Marque *</Label>
+                    <Label htmlFor="brand_id">{tForm('fields.brand.label')}</Label>
                     <Select
                       value={watch('brand_id') || ''}
                       onValueChange={(value) => {
@@ -330,7 +335,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                       }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner une marque" />
+                        <SelectValue placeholder={tForm('fields.brand.placeholder')} />
                       </SelectTrigger>
                       <SelectContent>
                         {equipmentBrands.length > 0 ? (
@@ -340,7 +345,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="" disabled>Aucune marque disponible</SelectItem>
+                          <SelectItem value="" disabled>{tForm('fields.brand.empty')}</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -350,35 +355,35 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                   </div>
 
                   <div>
-                    <Label htmlFor="model">Modèle</Label>
+                    <Label htmlFor="model">{tForm('fields.model.label')}</Label>
                     <Input
                       id="model"
                       {...register('model')}
-                      placeholder="Modèle de l'équipement"
+                      placeholder={tForm('fields.model.placeholder')}
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="serial_number">Numéro de série</Label>
+                    <Label htmlFor="serial_number">{tForm('fields.serial.label')}</Label>
                     <Input
                       id="serial_number"
                       {...register('serial_number')}
-                      placeholder="Numéro de série"
+                      placeholder={tForm('fields.serial.placeholder')}
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="location">Emplacement</Label>
+                    <Label htmlFor="location">{tForm('fields.location.label')}</Label>
                     <Input
                       id="location"
                       {...register('location')}
-                      placeholder="Emplacement physique"
+                      placeholder={tForm('fields.location.placeholder')}
                     />
                   </div>
 
                   {isEditing && (
                     <div>
-                      <Label htmlFor="status">Statut</Label>
+                      <Label htmlFor="status">{tForm('fields.status.label')}</Label>
                       {/* Select Statut */}
                       <Select
                         value={watch('status')}
@@ -388,9 +393,9 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {EQUIPMENT_STATUS.map(status => (
-                            <SelectItem key={status.value} value={status.value}>
-                              {status.label}
+                          {EQUIPMENT_STATUS_VALUES.map((value) => (
+                            <SelectItem key={value} value={value}>
+                              {tStatus(value)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -400,11 +405,11 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                 </div>
 
                 <div>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{tForm('fields.description.label')}</Label>
                   <Textarea
                     id="description"
                     {...register('description')}
-                    placeholder="Description détaillée de l'équipement"
+                    placeholder={tForm('fields.description.placeholder')}
                     rows={3}
                   />
                 </div>
@@ -414,12 +419,12 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
             {/* Dates */}
             <Card>
               <CardHeader>
-                <CardTitle>Dates importantes</CardTitle>
+                <CardTitle>{tForm('sections.dates')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="purchase_date">Date d&apos;achat</Label>
+                    <Label htmlFor="purchase_date">{tForm('fields.purchaseDate.label')}</Label>
                     <Input
                       id="purchase_date"
                       type="date"
@@ -428,7 +433,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                   </div>
 
                   <div>
-                    <Label htmlFor="warranty_end_date">Fin de garantie</Label>
+                    <Label htmlFor="warranty_end_date">{tForm('fields.warrantyEnd.label')}</Label>
                     <Input
                       id="warranty_end_date"
                       type="date"
@@ -437,7 +442,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                   </div>
 
                   <div>
-                    <Label htmlFor="estimated_obsolescence_date">Obsolescence estimée</Label>
+                    <Label htmlFor="estimated_obsolescence_date">{tForm('fields.obsolescence.label')}</Label>
                     <Input
                       id="estimated_obsolescence_date"
                       type="date"
@@ -446,7 +451,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                   </div>
 
                   <div>
-                    <Label htmlFor="end_of_sale">Fin de commercialisation</Label>
+                    <Label htmlFor="end_of_sale">{tForm('fields.endOfSale.label')}</Label>
                     <Input
                       id="end_of_sale"
                       type="date"
@@ -463,7 +468,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
             {/* Client */}
             <Card>
               <CardHeader>
-                <CardTitle>Client *</CardTitle>
+                <CardTitle>{tForm('sections.client')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {/* Select Client */}
@@ -472,7 +477,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                   onValueChange={(value) => setValue('client_id', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un client" />
+                    <SelectValue placeholder={tForm('fields.client.placeholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {/* Vérification que clientsData est prêt */}
@@ -484,7 +489,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                       ))
                     ) : (
                       // Option par défaut si la liste est vide
-                      <SelectItem value="" disabled>Aucun client disponible</SelectItem>
+                      <SelectItem value="" disabled>{tForm('fields.client.empty')}</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
@@ -497,11 +502,11 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
             {/* Coût */}
             <Card>
               <CardHeader>
-                <CardTitle>Informations financières</CardTitle>
+                <CardTitle>{tForm('sections.finance')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div>
-                  <Label htmlFor="cost">Coût (FCFA)</Label>
+                  <Label htmlFor="cost">{tForm('fields.cost.label')}</Label>
                   <Input
                     id="cost"
                     type="number"
@@ -511,7 +516,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                       valueAsNumber: true,
                       setValueAs: (value) => value === "" ? undefined : Number(value)
                     })}
-                    placeholder="0.00"
+                    placeholder={tForm('fields.cost.placeholder')}
                   />
                   {errors.cost && (
                     <p className="text-sm text-red-600 mt-1">{errors.cost.message}</p>
@@ -531,9 +536,9 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                   >
                     <Save className="h-4 w-4 mr-2" />
                     {equipmentActions.isUpdating ? (
-                      'Enregistrement...'
+                      tForm('actions.saving')
                     ) : (
-                      isEditing ? 'Enregistrer les modifications' : 'Créer l\'équipement'
+                      isEditing ? tForm('actions.save') : tForm('actions.create')
                     )}
                   </Button>
                   
@@ -543,7 +548,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                     onClick={() => router.back()}
                     className="w-full"
                   >
-                    Annuler
+                    {tForm('actions.cancel')}
                   </Button>
                 </div>
               </CardContent>

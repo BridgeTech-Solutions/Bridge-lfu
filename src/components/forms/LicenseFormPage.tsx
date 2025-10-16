@@ -19,6 +19,7 @@ import { useLicenseSuppliers } from '@/hooks/useLicenseSuppliers'
 import { useClients } from '@/hooks/useClients'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
+import { useTranslations } from '@/hooks/useTranslations'
 
 // Schéma de validation
 const licenseSchema = z.object({
@@ -48,6 +49,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
   const [submitError, setSubmitError] = useState<string | null>(null)
   // AJOUT: État pour s'assurer que le composant est monté côté client
   const [isMounted, setIsMounted] = useState(false) 
+  const { t } = useTranslations('licenses')
 
   const licenseId = mode === 'edit' ? (params.id as string) : ''
 
@@ -153,15 +155,15 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
 
       if (mode === 'create') {
         const result = await createLicense(formData)
-        toast.success('Licence créée avec succès.')
+        toast.success(t('form.toasts.created'))
         router.push(`/licenses/${result.id}`)
       } else {
         const result = await updateLicense({ id: licenseId, data: formData })
-        toast.success('Licence mise à jour avec succès.')
+        toast.success(t('form.toasts.updated'))
         router.push(`/licenses/${result.id}`)
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue lors de la soumission.'
+      const errorMessage = error instanceof Error ? error.message : t('form.toasts.submitError')
       setSubmitError(errorMessage)
       toast.error(errorMessage)
     }
@@ -180,11 +182,11 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
     const daysUntilExpiry = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
     if (daysUntilExpiry < 0) {
-      return { type: 'error', message: 'Cette licence est déjà expirée' }
-    } else if (daysUntilExpiry <= 7) {
-      return { type: 'warning', message: `Cette licence expire dans ${daysUntilExpiry} jour${daysUntilExpiry !== 1 ? 's' : ''}` }
+      return { type: 'error', message: t('form.alerts.expired') }
+    } else if (daysUntilExpiry === 1) {
+      return { type: 'warning', message: t('form.alerts.expiresInOne') }
     } else if (daysUntilExpiry <= 30) {
-      return { type: 'info', message: `Cette licence expire dans ${daysUntilExpiry} jours` }
+      return { type: 'info', message: t('form.alerts.expiresIn').replace('{{days}}', String(daysUntilExpiry)) }
     }
 
     return null
@@ -236,17 +238,14 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
           className="hover:bg-slate-100"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour
+          {t('form.header.back')}
         </Button>
         <div>
           <h1 className="text-3xl font-bold">
-            {mode === 'create' ? 'Nouvelle licence' : 'Modifier la licence'}
+            {mode === 'create' ? t('form.header.createTitle') : t('form.header.editTitle')}
           </h1>
           <p className="text-gray-600">
-            {mode === 'create' ? 
-              'Créer une nouvelle licence logicielle ou matérielle' : 
-              'Modifier les informations de la licence'
-            }
+            {mode === 'create' ? t('form.header.createSubtitle') : t('form.header.editSubtitle')}
           </p>
         </div>
       </div>
@@ -264,7 +263,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
           {/* Informations principales */}
           <Card>
             <CardHeader>
-              <CardTitle>Informations principales</CardTitle>
+              <CardTitle>{t('form.sections.mainInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -273,9 +272,9 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nom de la licence *</FormLabel>
+                      <FormLabel>{t('form.fields.name.label')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex: Microsoft Office 365" {...field} />
+                        <Input placeholder={t('form.fields.name.placeholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -287,18 +286,18 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                   name="supplierId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Éditeur/Fournisseur</FormLabel>
+                      <FormLabel>{t('form.fields.supplierId.label')}</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(value === 'none' ? '' : value)}
                         value={field.value && field.value.length > 0 ? field.value : 'none'}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner un fournisseur" />
+                            <SelectValue placeholder={t('form.fields.supplierId.placeholder')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="none">Aucun</SelectItem>
+                          <SelectItem value="none">{t('form.fields.supplierId.none')}</SelectItem>
                           {suppliers.map((supplier) => (
                             <SelectItem key={supplier.id} value={supplier.id}>
                               {supplier.name}
@@ -316,9 +315,9 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                   name="version"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Version</FormLabel>
+                      <FormLabel>{t('form.fields.version.label')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex: 2023" {...field} />
+                        <Input placeholder={t('form.fields.version.placeholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -330,11 +329,11 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                   name="licenseKey"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Clé de licence</FormLabel>
+                      <FormLabel>{t('form.fields.licenseKey.label')}</FormLabel>
                       <FormControl>
                         <Input 
                           type="password" 
-                          placeholder="Clé de licence (masquée)" 
+                          placeholder={t('form.fields.licenseKey.placeholder')} 
                           {...field} 
                         />
                       </FormControl>
@@ -349,7 +348,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Client *</FormLabel>
+                    <FormLabel>{t('form.fields.clientId.label')}</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
@@ -357,7 +356,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un client" />
+                          <SelectValue placeholder={t('form.fields.clientId.placeholder')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -380,7 +379,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
-                Dates et coûts
+                {t('form.sections.datesAndCosts')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -390,7 +389,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                   name="purchaseDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Date d&apos;achat</FormLabel>
+                      <FormLabel>{t('form.fields.purchaseDate.label')}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -404,7 +403,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                   name="expiryDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Date d&apos;expiration *</FormLabel>
+                      <FormLabel>{t('form.fields.expiryDate.label')}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -418,7 +417,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                   name="cost"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Coût (FCFA)</FormLabel>
+                      <FormLabel>{t('form.fields.cost.label')}</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -426,7 +425,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                             type="number"
                             step="0.01"
                             min="0"
-                            placeholder="0.00"
+                            placeholder={t('form.fields.cost.placeholder')}
                             className="pl-10"
                             {...field}
                             onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
@@ -466,7 +465,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
           {/* Description */}
           <Card>
             <CardHeader>
-              <CardTitle>Description</CardTitle>
+              <CardTitle>{t('form.sections.description')}</CardTitle>
             </CardHeader>
             <CardContent>
               <FormField
@@ -474,10 +473,10 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description (optionnel)</FormLabel>
+                    <FormLabel>{t('form.fields.description.label')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Informations complémentaires sur la licence..."
+                        placeholder={t('form.fields.description.placeholder')}
                         rows={4}
                         {...field}
                       />
@@ -497,18 +496,18 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
               onClick={() => router.back()}
               disabled={isCreating || isUpdating}
             >
-              Annuler
+              {t('form.actions.cancel')}
             </Button>
             <Button type="submit" disabled={form.formState.isSubmitting || isCreating || isUpdating}>
               {(isCreating || isUpdating) ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  {mode === 'create' ? 'Création...' : 'Modification...'}
+                  {mode === 'create' ? t('form.actions.creating') : t('form.actions.updating')}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  {mode === 'create' ? 'Créer la licence' : 'Enregistrer les modifications'}
+                  {mode === 'create' ? t('form.actions.create') : t('form.actions.save')}
                 </>
               )}
             </Button>

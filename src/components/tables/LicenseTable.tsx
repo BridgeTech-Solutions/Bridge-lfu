@@ -25,7 +25,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import type { License, LicenseWithClientView } from '@/types';
+import type { LicenseWithClientView } from '@/types';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface LicenseTableProps {
   licenses: LicenseWithClientView[];
@@ -36,42 +37,46 @@ interface LicenseTableProps {
   onReactivate?: (id: string) => void;
 }
 
-// Nouvelle fonction pour gérer l'affichage du statut
-const getStatusDisplay = (status: string | null) => {
+// Affichage du statut (i18n)
+const getStatusDisplay = (status: string | null, t: (k: string) => string) => {
   switch (status) {
     case 'active':
-      return { icon: CheckCircle, color: 'success', label: 'Active' };
+      return { icon: CheckCircle, color: 'success', label: t('status.active') };
     case 'expired':
-      return { icon: XCircle, color: 'destructive', label: 'Expirée' };
+      return { icon: XCircle, color: 'destructive', label: t('status.expired') };
     case 'about_to_expire':
-      return { icon: AlertTriangle, color: 'warning', label: 'Bientôt expirée' };
+      return { icon: AlertTriangle, color: 'warning', label: t('status.about_to_expire') };
     case 'cancelled':
-      return { icon: Clock, color: 'secondary', label: 'Annulée' };
+      return { icon: Clock, color: 'secondary', label: t('status.cancelled') };
     default:
-      return { icon: Server, color: 'default', label: 'Inconnu' };
+      return { icon: Server, color: 'default', label: t('status.unknown') };
   }
 };
 
-const formatDate = (date: string | null) => {
+const formatDate = (date: string | null, locale: string) => {
   if (!date) return '-';
-  return new Date(date).toLocaleDateString('fr-FR');
+  return new Date(date).toLocaleDateString(locale);
 };
 
-const formatCurrency = (amount: number | null) => {
+const formatCurrency = (amount: number | null, locale: string) => {
   if (!amount) return '-';
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XAF'
+  const formatted = new Intl.NumberFormat(locale, {
+    style: 'decimal',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(amount);
+  return `${formatted} FCFA`;
 };
 
 export function LicenseTable({ licenses, onView, onEdit, onDelete, onCancel, onReactivate }: LicenseTableProps) {
   const permissions = useStablePermissions();
+  const { t, language } = useTranslations('licenses');
+  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
 
   if (!licenses || licenses.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">Aucune licence trouvée.</p>
+        <p className="text-gray-500">{t('table.emptyTitle')}</p>
       </div>
     );
   }
@@ -81,19 +86,19 @@ export function LicenseTable({ licenses, onView, onEdit, onDelete, onCancel, onR
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nom</TableHead>
-            {permissions.canViewAllData && <TableHead>Client</TableHead>}
-            <TableHead>Éditeur</TableHead>
-            <TableHead>Version</TableHead>
-            <TableHead>Date d&apos;expiration</TableHead>
-            <TableHead>Coût</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>{t('table.columns.name')}</TableHead>
+            {permissions.canViewAllData && <TableHead>{t('table.columns.client')}</TableHead>}
+            <TableHead>{t('table.columns.editor')}</TableHead>
+            <TableHead>{t('table.columns.version')}</TableHead>
+            <TableHead>{t('table.columns.expiryDate')}</TableHead>
+            <TableHead>{t('table.columns.cost')}</TableHead>
+            <TableHead>{t('table.columns.status')}</TableHead>
+            <TableHead className="text-right">{t('table.columns.actions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {licenses.map((license) => {
-            const statusDisplay = getStatusDisplay(license.status);
+            const statusDisplay = getStatusDisplay(license.status, t);
             const StatusIcon = statusDisplay.icon;
 
             return (
@@ -129,15 +134,15 @@ export function LicenseTable({ licenses, onView, onEdit, onDelete, onCancel, onR
                 
                 <TableCell>
                   <div>
-                    <div className="text-sm">{formatDate(license.expiry_date)}</div>
+                    <div className="text-sm">{formatDate(license.expiry_date, locale)}</div>
                     {license.expiry_date && (
                       <div className="text-xs text-gray-500">
                         {(() => {
                           const days = Math.ceil((new Date(license.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                          if (days < 0) return `Expirée depuis ${Math.abs(days)} jours`;
-                          if (days === 0) return 'Expire aujourd\'hui';
-                          if (days === 1) return 'Expire demain';
-                          if (days <= 50) return `Expire dans ${days} jours`;
+                          if (days < 0) return t('relativeExpiry.expiredDays').replace('{{days}}', String(Math.abs(days)));
+                          if (days === 0) return t('relativeExpiry.expireToday');
+                          if (days === 1) return t('relativeExpiry.expireTomorrow');
+                          if (days <= 50) return t('relativeExpiry.expireInDays').replace('{{days}}', String(days));
                           return '';
                         })()}
                       </div>
@@ -147,7 +152,7 @@ export function LicenseTable({ licenses, onView, onEdit, onDelete, onCancel, onR
                 
                 <TableCell>
                   <span className="font-medium">
-                    {formatCurrency(license.cost)}
+                    {formatCurrency(license.cost, locale)}
                   </span>
                 </TableCell>
                 
@@ -165,24 +170,24 @@ export function LicenseTable({ licenses, onView, onEdit, onDelete, onCancel, onR
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Ouvrir le menu</span>
+                        <span className="sr-only">{t('actionsMenu.open')}</span>
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuLabel>{t('actionsMenu.actions')}</DropdownMenuLabel>
                       
                       {onView && (
                         <DropdownMenuItem onClick={() => onView(license.id!)}>
                           <Eye className="mr-2 h-4 w-4" />
-                          Voir les détails
+                          {t('actionsMenu.view')}
                         </DropdownMenuItem>
                       )}
                       
                       {permissions.can('update', 'licenses') && onEdit && (
                         <DropdownMenuItem onClick={() => onEdit(license.id!)}>
                           <Edit className="mr-2 h-4 w-4" />
-                          Modifier
+                          {t('actionsMenu.edit')}
                         </DropdownMenuItem>
                       )}
                       
@@ -195,7 +200,7 @@ export function LicenseTable({ licenses, onView, onEdit, onDelete, onCancel, onR
                               onClick={() => onReactivate(license.id!)}
                             >
                               <RotateCcw className="mr-2 h-4 w-4" />
-                              Réactiver
+                              {t('actionsMenu.reactivate')}
                             </DropdownMenuItem>
                           ) : license.status !== 'cancelled' && onCancel ? (
                             <DropdownMenuItem 
@@ -203,7 +208,7 @@ export function LicenseTable({ licenses, onView, onEdit, onDelete, onCancel, onR
                               onClick={() => onCancel(license.id!)}
                             >
                               <Ban className="mr-2 h-4 w-4" />
-                              Annuler
+                              {t('actionsMenu.cancel')}
                             </DropdownMenuItem>
                           ) : null}
                         </>
@@ -217,7 +222,7 @@ export function LicenseTable({ licenses, onView, onEdit, onDelete, onCancel, onR
                             onClick={() => onDelete(license.id!)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Supprimer
+                            {t('actionsMenu.delete')}
                           </DropdownMenuItem>
                         </>
                       )}

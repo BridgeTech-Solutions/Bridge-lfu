@@ -243,7 +243,9 @@ export default function EquipmentBrandsPage() {
                 <TableHead className="px-6 py-3">{t('table.columns.contact')}</TableHead>
                 <TableHead className="px-6 py-3">{t('table.columns.website')}</TableHead>
                 <TableHead className="px-6 py-3">{t('table.columns.status')}</TableHead>
+                {canUpdate && (
                 <TableHead className="px-6 py-3 text-right">{t('table.columns.actions')}</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>

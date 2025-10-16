@@ -56,6 +56,322 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       advancedAccessDescription: 'Vous devez être administrateur pour accéder à cette page.',
       loading: 'Chargement en cours...',
     },
+    users: {
+      roles: {
+        admin: 'Administrateur',
+        technicien: 'Technicien',
+        client: 'Client',
+        unverified: 'Non vérifié',
+      },
+      list: {
+        header: {
+          title: 'Gestion des utilisateurs',
+          subtitle: 'Gérer les comptes utilisateurs et leurs permissions',
+        },
+        actions: {
+          new: 'Nouvel utilisateur',
+        },
+        stats: {
+          total: 'Total utilisateurs',
+          pending: 'En attente',
+          admins: 'Administrateurs',
+          technicians: 'Techniciens',
+          clients: 'Clients',
+        },
+        filters: {
+          searchPlaceholder: 'Rechercher par nom, email ou entreprise...',
+          roleAll: 'Tous les rôles',
+          roleUnverified: 'Non vérifiés',
+          roleAdmin: 'Administrateurs',
+          roleTechnician: 'Techniciens',
+          roleClient: 'Clients',
+        },
+        table: {
+          headers: {
+            user: 'Utilisateur',
+            contact: 'Contact',
+            role: 'Rôle',
+            client: 'Client associé',
+            created: 'Créé le',
+            actions: 'Actions',
+          },
+          empty: 'Aucun utilisateur trouvé',
+          errors: {
+            load: 'Erreur lors du chargement des utilisateurs',
+            retry: 'Réessayer',
+          }
+        },
+        dialogs: {
+          createTitle: 'Créer un nouvel utilisateur',
+          editTitle: "Modifier l'utilisateur",
+          validateTitle: "Valider l'utilisateur",
+          deleteConfirm: "Êtes-vous sûr de vouloir supprimer l'utilisateur \"{{name}}\" ? Cette action est irréversible.",
+        },
+        form: {
+          firstName: 'Prénom *',
+          lastName: 'Nom *',
+          email: 'Email *',
+          phone: 'Téléphone',
+          company: 'Entreprise',
+          password: 'Mot de passe *',
+          role: 'Rôle',
+          client: 'Client associé *',
+          clientPlaceholder: 'Sélectionner un client',
+          onlyAdminsEditEmail: "Seuls les administrateurs peuvent modifier l'email",
+          onlyAdminsEditRole: 'Seuls les administrateurs peuvent modifier le rôle',
+          cancel: 'Annuler',
+          save: 'Enregistrer',
+          creating: 'Création...',
+          create: 'Créer',
+          validating: 'Validation...',
+          validate: 'Valider',
+        },
+        validateNotice: {
+          title: "Validation d'utilisateur",
+          text: 'Validez {{firstName}} {{lastName}} ({{email}})'
+        },
+        notAssigned: 'Non assigné',
+      }
+    },
+    licenses: {
+      header: {
+        title: 'Licences',
+        subtitle: 'Gestion des licences logicielles et matérielles',
+      },
+      actions: {
+        export: 'Exporter',
+        exporting: 'Export en cours...',
+        new: 'Nouvelle licence',
+        reload: 'Recharger les données',
+      },
+      exportMenu: {
+        excel: 'Exporter en Excel (.xlsx)',
+        csv: 'Exporter en CSV',
+        json: 'Exporter en JSON'
+      },
+      stats: {
+        total: 'Total',
+        active: 'Actives',
+        aboutToExpire: 'Bientôt expirées',
+        expired: 'Expirées',
+      },
+      filters: {
+        searchPlaceholder: 'Rechercher une licence...',
+        statusPlaceholder: 'Filtrer par statut',
+        statusAll: 'Tous les statuts',
+        statusActive: 'Actives',
+        statusAboutToExpire: 'Bientôt expirées',
+        statusExpired: 'Expirées',
+        statusCancelled: 'Annulées',
+        clientPlaceholder: 'Filtrer par client',
+        clientAll: 'Tous les clients',
+        editorPlaceholder: 'Éditeur...'
+      },
+      table: {
+        title: 'Liste des licences',
+        loading: 'Chargement...',
+        emptyTitle: 'Aucune licence',
+        emptyDescription: 'Commencez par ajouter votre première licence.',
+        emptyFiltered: 'Aucune licence ne correspond aux critères de recherche.',
+        columns: {
+          name: 'Nom',
+          client: 'Client',
+          editor: 'Éditeur',
+          version: 'Version',
+          expiryDate: "Date d'expiration",
+          cost: 'Coût',
+          status: 'Statut',
+          actions: 'Actions'
+        }
+      },
+      actionsMenu: {
+        open: 'Ouvrir le menu',
+        actions: 'Actions',
+        view: 'Voir les détails',
+        edit: 'Modifier',
+        delete: 'Supprimer',
+        cancel: 'Annuler',
+        reactivate: 'Réactiver'
+      },
+      status: {
+        active: 'Active',
+        expired: 'Expirée',
+        about_to_expire: 'Bientôt expirée',
+        cancelled: 'Annulée',
+        unknown: 'Inconnu'
+      },
+      relativeExpiry: {
+        expiredDays: 'Expirée depuis {{days}} jours',
+        expireToday: "Expire aujourd'hui",
+        expireTomorrow: 'Expire demain',
+        expireInDays: 'Expire dans {{days}} jours'
+      },
+      confirms: {
+        delete: 'Êtes-vous sûr de vouloir supprimer la licence "{{name}}" ? Cette action est irréversible.',
+        cancel: 'Êtes-vous sûr de vouloir annuler la licence "{{name}}" ?',
+        reactivate: 'Êtes-vous sûr de vouloir réactiver la licence "{{name}}" ?'
+      },
+      errors: {
+        loadTitle: 'Erreur de chargement',
+        loadDescription: 'Une erreur est survenue lors de la récupération des licences.'
+      },
+      pagination: {
+        info: 'Affichage',
+      }
+      ,
+      form: {
+        header: {
+          back: 'Retour',
+          createTitle: 'Nouvelle licence',
+          editTitle: 'Modifier la licence',
+          createSubtitle: 'Créer une nouvelle licence logicielle ou matérielle',
+          editSubtitle: 'Modifier les informations de la licence',
+        },
+        sections: {
+          mainInfo: 'Informations principales',
+          datesAndCosts: 'Dates et coûts',
+          description: 'Description',
+        },
+        fields: {
+          name: {
+            label: 'Nom de la licence *',
+            placeholder: 'Ex: Microsoft Office 365',
+          },
+          supplierId: {
+            label: 'Éditeur/Fournisseur',
+            placeholder: 'Sélectionner un fournisseur',
+            none: 'Aucun',
+          },
+          version: {
+            label: 'Version',
+            placeholder: 'Ex: 2023',
+          },
+          licenseKey: {
+            label: 'Clé de licence',
+            placeholder: 'Clé de licence (masquée)'
+          },
+          clientId: {
+            label: 'Client *',
+            placeholder: 'Sélectionner un client',
+          },
+          purchaseDate: {
+            label: "Date d'achat",
+          },
+          expiryDate: {
+            label: "Date d'expiration *",
+          },
+          cost: {
+            label: 'Coût (FCFA)',
+            placeholder: '0.00',
+          },
+          description: {
+            label: 'Description (optionnel)',
+            placeholder: 'Informations complémentaires sur la licence...'
+          }
+        },
+        alerts: {
+          expired: 'Cette licence est déjà expirée',
+          expiresInOne: 'Cette licence expire demain',
+          expiresIn: 'Cette licence expire dans {{days}} jours',
+        },
+        actions: {
+          cancel: 'Annuler',
+          creating: 'Création...',
+          updating: 'Modification...',
+          create: 'Créer la licence',
+          save: 'Enregistrer les modifications'
+        },
+        toasts: {
+          created: 'Licence créée avec succès.',
+          updated: 'Licence mise à jour avec succès.',
+          submitError: 'Une erreur est survenue lors de la soumission.'
+        }
+      }
+    },
+    reports: {
+      charts: {
+        licenseStatusTitle: 'Statuts des Licences',
+        equipmentStatusTitle: 'Statuts des Équipements',
+        monthlyExpirationsTitle: 'Expirations de Licences par Mois',
+      },
+      empty: {
+        licenseStatus: 'Aucune licence enregistrée. Ajoutez des licences pour visualiser les statuts.',
+        equipmentStatus: 'Aucun équipement enregistré. Les statuts apparaîtront après l\'ajout d\'équipements.',
+        monthlyExpirations: 'Aucune expiration à venir. Les expirations apparaîtront lorsque des licences auront des dates d\'échéance.',
+      },
+      generator: {
+        title: 'Générateur de Rapports',
+        description: 'Configurez et générez des rapports personnalisés au format JSON, CSV, Excel ou PDF',
+      },
+      ui: {
+        headerTitle: 'Rapports et Statistiques',
+        headerSubtitle: 'Générez et visualisez des rapports détaillés sur vos licences et équipements au format JSON, CSV, Excel ou PDF.',
+        glanceLicenses: 'Total Licences',
+        glanceEquipment: 'Total Équipements',
+        glanceTotalValue: 'Valeur Totale',
+        glanceClients: 'Clients',
+        autoDownloadNotice: 'Le fichier {{format}} sera téléchargé automatiquement',
+      },
+      filters: {
+        type: 'Type de rapport',
+        typePlaceholder: 'Choisir un type',
+        client: 'Client',
+        clientPlaceholder: 'Tous les clients',
+        status: 'Statut',
+        format: 'Format',
+        formatPlaceholder: 'Choisir un format',
+        dateFrom: 'Date de début',
+        dateTo: 'Date de fin',
+      },
+      options: {
+        typeLicenses: 'Licences',
+        typeEquipment: 'Équipements',
+        statusAll: 'Tous les statuts',
+        clientAll: 'Tous les clients',
+        statusLicense: {
+          active: 'Actif',
+          expired: 'Expiré',
+          about_to_expire: 'Bientôt expiré',
+        },
+        statusEquipment: {
+          active: 'Actif',
+          obsolete: 'Obsolète',
+          bientot_obsolete: 'Bientôt obsolète',
+          en_maintenance: 'En maintenance',
+          retire: 'Retiré',
+        },
+        formatJson: 'Aperçu (JSON)',
+        formatCsv: 'Téléchargement CSV',
+        formatExcel: 'Téléchargement Excel',
+        formatPdf: 'Téléchargement PDF',
+      },
+      actions: {
+        reset: 'Réinitialiser',
+        generate: 'Générer',
+        generating: 'Génération...',
+        quickTitle: 'Rapports Rapides',
+        quickSubtitle: 'Téléchargez des rapports prédéfinis au format de votre choix',
+        quickExpiredLicenses: 'Licences expirées',
+        quickObsoleteEquipment: 'Équipements obsolètes',
+        quickExpiringSoon: 'Licences qui expirent bientôt',
+        btnCsv: 'CSV',
+        btnExcel: 'Excel',
+        btnPdf: 'PDF',
+      },
+      tableHeaders: {
+        name: 'Nom',
+        editor: 'Éditeur',
+        client: 'Client',
+        expiration: 'Expiration',
+        status: 'Statut',
+        cost: 'Coût',
+        daysUntilExpiry: 'Jours restants',
+        type: 'Type',
+        brand: 'Marque',
+        obsolescence: 'Obsolescence',
+        daysUntilObsolescence: 'Jours restants',
+      }
+    },
     profile: {
       header: {
         title: 'Mon Profil',
@@ -394,6 +710,12 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         upcomingExpirations: 'Expirations à venir (6 mois)',
         equipmentStatus: 'Statut des équipements',
         expirationsSeries: 'Expirations',
+        empty: {
+          equipmentByType: "Aucun équipement enregistré. Ajoutez des équipements pour voir la répartition par type.",
+          licenseStatus: "Aucune licence enregistrée. Ajoutez des licences pour visualiser les statuts.",
+          upcomingExpirations: "Aucune expiration à venir. Les expirations apparaîtront lorsque des licences auront des dates d'échéance.",
+          equipmentStatus: "Aucun équipement enregistré. Les statuts apparaîtront après l'ajout d'équipements."
+        }
       },
       alerts: {
         title: 'Alertes récentes',
@@ -727,6 +1049,43 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           retry: 'Réessayer',
         },
       },
+      form: {
+        header: {
+          back: 'Retour',
+          createTitle: 'Nouvel équipement',
+          editTitle: "Modifier l'équipement",
+          createSubtitle: 'Créez un nouvel équipement',
+          editSubtitle: "Modifiez les informations de l'équipement",
+        },
+        sections: {
+          main: 'Informations générales',
+          dates: 'Dates importantes',
+          client: 'Client *',
+          finance: 'Informations financières',
+        },
+        fields: {
+          name: { label: 'Nom *', placeholder: "Nom de l'équipement" },
+          type: { label: 'Type *', placeholder: 'Sélectionner un type', empty: 'Aucun type disponible' },
+          brand: { label: 'Marque *', placeholder: 'Sélectionner une marque', empty: 'Aucune marque disponible' },
+          model: { label: 'Modèle', placeholder: "Modèle de l'équipement" },
+          serial: { label: 'Numéro de série', placeholder: 'Numéro de série' },
+          location: { label: 'Emplacement', placeholder: 'Emplacement physique' },
+          status: { label: 'Statut' },
+          description: { label: 'Description', placeholder: "Description détaillée de l'équipement" },
+          purchaseDate: { label: "Date d'achat" },
+          warrantyEnd: { label: 'Fin de garantie' },
+          obsolescence: { label: 'Obsolescence estimée' },
+          endOfSale: { label: 'Fin de commercialisation' },
+          client: { label: 'Client *', placeholder: 'Sélectionner un client', empty: 'Aucun client disponible' },
+          cost: { label: 'Coût (FCFA)', placeholder: '0.00' },
+        },
+        actions: {
+          saving: 'Enregistrement...',
+          save: 'Enregistrer les modifications',
+          create: "Créer l'équipement",
+          cancel: 'Annuler',
+        },
+      },
       status: {
         actif: 'Actif',
         en_maintenance: 'En maintenance',
@@ -816,49 +1175,6 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           cancel: 'Annuler',
           submit: 'Ajouter',
           submitting: 'Upload...',
-        },
-      },
-      form: {
-        back: 'Retour',
-        header: { create: 'Nouvel équipement', edit: 'Modifier l\'équipement' },
-        subheader: { create: 'Créez un nouvel équipement', edit: 'Modifiez les informations de l\'équipement' },
-        errors: { submit: 'Une erreur est survenue lors de la sauvegarde' },
-        sections: {
-          general: {
-            title: 'Informations générales',
-            fields: {
-              name: 'Nom *',
-              type: 'Type *',
-              brand: 'Marque',
-              model: 'Modèle',
-              serialNumber: 'Numéro de série',
-              location: 'Emplacement',
-              status: 'Statut',
-              description: 'Description',
-            },
-          },
-          dates: {
-            title: 'Dates importantes',
-            purchase: 'Date d\'achat',
-            warranty: 'Fin de garantie',
-            obsolescence: 'Obsolescence estimée',
-            endOfSale: 'Fin de commercialisation',
-          },
-          client: { title: 'Client *', placeholder: 'Sélectionner un client' },
-          financial: { title: 'Informations financières', cost: 'Coût (FCFA)' },
-        },
-        statusOptions: {
-          actif: 'Actif',
-          en_maintenance: 'En maintenance',
-          bientot_obsolete: 'Bientôt obsolète',
-          obsolete: 'Obsolète',
-          retire: 'Retiré',
-        },
-        actions: {
-          submitCreate: 'Créer l\'équipement',
-          submitEdit: 'Enregistrer les modifications',
-          submitting: 'Enregistrement...',
-          cancel: 'Annuler',
         },
       },
     },
@@ -995,6 +1311,321 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       advancedAccessDescription: 'You must be an administrator to access this page.',
       loading: 'Loading...',
     },
+    users: {
+      roles: {
+        admin: 'Administrator',
+        technicien: 'Technician',
+        client: 'Client',
+        unverified: 'Unverified',
+      },
+      list: {
+        header: {
+          title: 'User management',
+          subtitle: 'Manage user accounts and their permissions',
+        },
+        actions: {
+          new: 'New user',
+        },
+        stats: {
+          total: 'Total users',
+          pending: 'Pending',
+          admins: 'Administrators',
+          technicians: 'Technicians',
+          clients: 'Clients',
+        },
+        filters: {
+          searchPlaceholder: 'Search by name, email or company...',
+          roleAll: 'All roles',
+          roleUnverified: 'Unverified',
+          roleAdmin: 'Administrators',
+          roleTechnician: 'Technicians',
+          roleClient: 'Clients',
+        },
+        table: {
+          headers: {
+            user: 'User',
+            contact: 'Contact',
+            role: 'Role',
+            client: 'Linked client',
+            created: 'Created',
+            actions: 'Actions',
+          },
+          empty: 'No users found',
+          errors: {
+            load: 'Error while loading users',
+            retry: 'Retry',
+          }
+        },
+        dialogs: {
+          createTitle: 'Create a new user',
+          editTitle: 'Edit user',
+          validateTitle: 'Validate user',
+          deleteConfirm: 'Are you sure you want to delete the user "{{name}}"? This action cannot be undone.',
+        },
+        form: {
+          firstName: 'First name *',
+          lastName: 'Last name *',
+          email: 'Email *',
+          phone: 'Phone',
+          company: 'Company',
+          password: 'Password *',
+          role: 'Role',
+          client: 'Linked client *',
+          clientPlaceholder: 'Select a client',
+          onlyAdminsEditEmail: 'Only administrators can edit the email',
+          onlyAdminsEditRole: 'Only administrators can edit the role',
+          cancel: 'Cancel',
+          save: 'Save',
+          creating: 'Creating...',
+          create: 'Create',
+          validating: 'Validating...',
+          validate: 'Validate',
+        },
+        validateNotice: {
+          title: 'User validation',
+          text: 'Validate {{firstName}} {{lastName}} ({{email}})'
+        },
+        notAssigned: 'Not assigned',
+      }
+    },
+    licenses: {
+      header: {
+        title: 'Licenses',
+        subtitle: 'Manage software and hardware licenses',
+      },
+      actions: {
+        export: 'Export',
+        exporting: 'Export in progress...',
+        new: 'New license',
+        reload: 'Reload data',
+      },
+      exportMenu: {
+        excel: 'Export to Excel (.xlsx)',
+        csv: 'Export to CSV',
+        json: 'Export to JSON'
+      },
+      stats: {
+        total: 'Total',
+        active: 'Active',
+        aboutToExpire: 'Expiring soon',
+        expired: 'Expired',
+      },
+      filters: {
+        searchPlaceholder: 'Search a license...',
+        statusPlaceholder: 'Filter by status',
+        statusAll: 'All statuses',
+        statusActive: 'Active',
+        statusAboutToExpire: 'Expiring soon',
+        statusExpired: 'Expired',
+        statusCancelled: 'Cancelled',
+        clientPlaceholder: 'Filter by client',
+        clientAll: 'All clients',
+        editorPlaceholder: 'Editor...'
+      },
+      table: {
+        title: 'Licenses list',
+        loading: 'Loading...',
+        emptyTitle: 'No license',
+        emptyDescription: 'Start by adding your first license.',
+        emptyFiltered: 'No license matches your search criteria.',
+        columns: {
+          name: 'Name',
+          client: 'Client',
+          editor: 'Editor',
+          version: 'Version',
+          expiryDate: 'Expiration date',
+          cost: 'Cost',
+          status: 'Status',
+          actions: 'Actions'
+        }
+      },
+      actionsMenu: {
+        open: 'Open menu',
+        actions: 'Actions',
+        view: 'View details',
+        edit: 'Edit',
+        delete: 'Delete',
+        cancel: 'Cancel',
+        reactivate: 'Reactivate'
+      },
+      status: {
+        active: 'Active',
+        expired: 'Expired',
+        about_to_expire: 'Expiring soon',
+        cancelled: 'Cancelled',
+        unknown: 'Unknown'
+      },
+      relativeExpiry: {
+        expiredDays: 'Expired {{days}} days ago',
+        expireToday: 'Expires today',
+        expireTomorrow: 'Expires tomorrow',
+        expireInDays: 'Expires in {{days}} days'
+      },
+      confirms: {
+        delete: 'Are you sure you want to delete the license "{{name}}"? This action cannot be undone.',
+        cancel: 'Are you sure you want to cancel the license "{{name}}"?',
+        reactivate: 'Are you sure you want to reactivate the license "{{name}}"?'
+      },
+      errors: {
+        loadTitle: 'Loading error',
+        loadDescription: 'An error occurred while fetching licenses.'
+      },
+      pagination: {
+        info: 'Showing',
+      },
+      form: {
+        header: {
+          back: 'Back',
+          createTitle: 'New license',
+          editTitle: 'Edit license',
+          createSubtitle: 'Create a new software or hardware license',
+          editSubtitle: 'Edit license information',
+        },
+        sections: {
+          mainInfo: 'Main information',
+          datesAndCosts: 'Dates and costs',
+          description: 'Description',
+        },
+        fields: {
+          name: {
+            label: 'License name *',
+            placeholder: 'e.g. Microsoft Office 365',
+          },
+          supplierId: {
+            label: 'Editor/Supplier',
+            placeholder: 'Select a supplier',
+            none: 'None',
+          },
+          version: {
+            label: 'Version',
+            placeholder: 'e.g. 2023',
+          },
+          licenseKey: {
+            label: 'License key',
+            placeholder: 'License key (hidden)'
+          },
+          clientId: {
+            label: 'Client *',
+            placeholder: 'Select a client',
+          },
+          purchaseDate: {
+            label: 'Purchase date',
+          },
+          expiryDate: {
+            label: 'Expiration date *',
+          },
+          cost: {
+            label: 'Cost (XAF)',
+            placeholder: '0.00',
+          },
+          description: {
+            label: 'Description (optional)',
+            placeholder: 'Additional information about the license...'
+          }
+        },
+        alerts: {
+          expired: 'This license has already expired',
+          expiresInOne: 'This license expires tomorrow',
+          expiresIn: 'This license expires in {{days}} days',
+        },
+        actions: {
+          cancel: 'Cancel',
+          creating: 'Creating...',
+          updating: 'Updating...',
+          create: 'Create license',
+          save: 'Save changes'
+        },
+        toasts: {
+          created: 'License created successfully.',
+          updated: 'License updated successfully.',
+          submitError: 'An error occurred during submission.'
+        }
+      }
+    },
+    reports: {
+      charts: {
+        licenseStatusTitle: 'License Statuses',
+        equipmentStatusTitle: 'Equipment Statuses',
+        monthlyExpirationsTitle: 'License Expirations by Month',
+      },
+      empty: {
+        licenseStatus: 'No licenses recorded yet. Add licenses to see their statuses.',
+        equipmentStatus: 'No equipment recorded yet. Statuses will appear after adding equipment.',
+        monthlyExpirations: 'No upcoming expirations. They will appear once licenses have due dates.',
+      },
+      generator: {
+        title: 'Report Generator',
+        description: 'Configure and generate customized reports in JSON, CSV, Excel or PDF format',
+      },
+      ui: {
+        headerTitle: 'Reports & Statistics',
+        headerSubtitle: 'Generate and view detailed reports on your licenses and equipment in JSON, CSV, Excel, or PDF.',
+        glanceLicenses: 'Total Licenses',
+        glanceEquipment: 'Total Equipment',
+        glanceTotalValue: 'Total Value',
+        glanceClients: 'Clients',
+        autoDownloadNotice: 'The {{format}} file will be downloaded automatically',
+      },
+      filters: {
+        type: 'Report type',
+        typePlaceholder: 'Choose a type',
+        client: 'Client',
+        clientPlaceholder: 'All clients',
+        status: 'Status',
+        format: 'Format',
+        formatPlaceholder: 'Choose a format',
+        dateFrom: 'Start date',
+        dateTo: 'End date',
+      },
+      options: {
+        typeLicenses: 'Licenses',
+        typeEquipment: 'Equipment',
+        statusAll: 'All statuses',
+        clientAll: 'All clients',
+        statusLicense: {
+          active: 'Active',
+          expired: 'Expired',
+          about_to_expire: 'Expiring soon',
+        },
+        statusEquipment: {
+          active: 'Active',
+          obsolete: 'Obsolete',
+          bientot_obsolete: 'Soon obsolete',
+          en_maintenance: 'In maintenance',
+          retire: 'Retired',
+        },
+        formatJson: 'Preview (JSON)',
+        formatCsv: 'CSV download',
+        formatExcel: 'Excel download',
+        formatPdf: 'PDF download',
+      },
+      actions: {
+        reset: 'Reset',
+        generate: 'Generate',
+        generating: 'Generating...',
+        quickTitle: 'Quick Reports',
+        quickSubtitle: 'Download predefined reports in your chosen format',
+        quickExpiredLicenses: 'Expired licenses',
+        quickObsoleteEquipment: 'Obsolete equipment',
+        quickExpiringSoon: 'Licenses expiring soon',
+        btnCsv: 'CSV',
+        btnExcel: 'Excel',
+        btnPdf: 'PDF',
+      },
+      tableHeaders: {
+        name: 'Name',
+        editor: 'Editor',
+        client: 'Client',
+        expiration: 'Expiration',
+        status: 'Status',
+        cost: 'Cost',
+        daysUntilExpiry: 'Days remaining',
+        type: 'Type',
+        brand: 'Brand',
+        obsolescence: 'Obsolescence',
+        daysUntilObsolescence: 'Days remaining',
+      },
+    },
     profile: {
       header: {
         title: 'My Profile',
@@ -1100,6 +1731,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         expandSection: 'Expand section',
         collapseSection: 'Collapse section',
         equipmentTypes: 'Equipment types',
+        equipmentBrands: 'Equipment brands',
       },
     },
     header: {
@@ -1515,6 +2147,43 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           retry: 'Retry',
         },
       },
+      form: {
+        header: {
+          back: 'Back',
+          createTitle: 'New equipment',
+          editTitle: 'Edit equipment',
+          createSubtitle: 'Create a new equipment item',
+          editSubtitle: 'Edit equipment information',
+        },
+        sections: {
+          main: 'General information',
+          dates: 'Important dates',
+          client: 'Client *',
+          finance: 'Financial information',
+        },
+        fields: {
+          name: { label: 'Name *', placeholder: 'Equipment name' },
+          type: { label: 'Type *', placeholder: 'Select a type', empty: 'No type available' },
+          brand: { label: 'Brand *', placeholder: 'Select a brand', empty: 'No brand available' },
+          model: { label: 'Model', placeholder: 'Equipment model' },
+          serial: { label: 'Serial number', placeholder: 'Serial number' },
+          location: { label: 'Location', placeholder: 'Physical location' },
+          status: { label: 'Status' },
+          description: { label: 'Description', placeholder: 'Detailed description of the equipment' },
+          purchaseDate: { label: 'Purchase date' },
+          warrantyEnd: { label: 'End of warranty' },
+          obsolescence: { label: 'Estimated obsolescence' },
+          endOfSale: { label: 'End of sale' },
+          client: { label: 'Client *', placeholder: 'Select a client', empty: 'No client available' },
+          cost: { label: 'Cost (XAF)', placeholder: '0.00' },
+        },
+        actions: {
+          saving: 'Saving...',
+          save: 'Save changes',
+          create: 'Create equipment',
+          cancel: 'Cancel',
+        },
+      },
       status: {
         actif: 'Active',
         en_maintenance: 'Under maintenance',
@@ -1606,49 +2275,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           submitting: 'Uploading...',
         },
       },
-      form: {
-        back: 'Back',
-        header: { create: 'New equipment', edit: 'Edit equipment' },
-        subheader: { create: 'Create a new equipment item', edit: 'Update equipment information' },
-        errors: { submit: 'An error occurred while saving' },
-        sections: {
-          general: {
-            title: 'General information',
-            fields: {
-              name: 'Name *',
-              type: 'Type *',
-              brand: 'Brand',
-              model: 'Model',
-              serialNumber: 'Serial number',
-              location: 'Location',
-              status: 'Status',
-              description: 'Description',
-            },
-          },
-          dates: {
-            title: 'Key dates',
-            purchase: 'Purchase date',
-            warranty: 'Warranty end',
-            obsolescence: 'Estimated obsolescence',
-            endOfSale: 'End of sale',
-          },
-          client: { title: 'Client *', placeholder: 'Select a client' },
-          financial: { title: 'Financial information', cost: 'Cost (XAF)' },
-        },
-        statusOptions: {
-          actif: 'Active',
-          en_maintenance: 'Under maintenance',
-          bientot_obsolete: 'Soon obsolete',
-          obsolete: 'Obsolete',
-          retire: 'Retired',
-        },
-        actions: {
-          submitCreate: 'Create equipment',
-          submitEdit: 'Save changes',
-          submitting: 'Saving...',
-          cancel: 'Cancel',
-        },
-      },
+ 
     },
     equipmentTypes: {
       title: 'Equipment types',
@@ -1884,7 +2511,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       },
     },
   },
-}
+};
 
 function getFromPath(tree: TranslationTree, key: string): string | TranslationTree | undefined {
   const segments = key.split('.')

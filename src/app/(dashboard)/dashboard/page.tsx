@@ -22,8 +22,7 @@ import {
   Calendar,
   ArrowRight,
   CheckCircle,
-  XCircle,
-  Clock,
+
   DollarSign,
 
 } from 'lucide-react'
@@ -109,18 +108,6 @@ import { useTranslations } from '@/hooks/useTranslations'
     return href ? <Link href={href}>{content}</Link> : content
   }
 
-  interface AlertItemProps {
-    alert: {
-      id: string
-      item_name: string
-      client_name?: string
-      type: string
-      alert_type: string
-      alert_level: string
-      alert_date: string
-      status: string
-    }
-  }
 
 
 
@@ -331,8 +318,12 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Équipements - Utilise les nouvelles données */}
           {/*  eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain */}
-         {equipmentLoading || !equipmentStats?.chart_data?.types?.length ? (
+          {equipmentLoading ? (
             <ChartCardSkeleton title={chartsTranslations.t('equipmentByType')} />
+          ) : !equipmentStats?.chart_data?.types?.length ? (
+            <ChartCard title={chartsTranslations.t('equipmentByType')}>
+              <div className="flex items-center justify-center h-[300px] text-gray-500 text-center">{chartsTranslations.t('empty.equipmentByType')}</div>
+            </ChartCard>
           ) : (
             <ChartCard title={chartsTranslations.t('equipmentByType')}>
               <ResponsiveContainer width="100%" height={300}>
@@ -360,8 +351,12 @@ export default function DashboardPage() {
 
           {/* Licences - Utilise les nouvelles données */}
 
-          {licenseLoading || !licenseStats?.chart_data?.statuses?.length ? (
+          {licenseLoading ? (
             <ChartCardSkeleton title={chartsTranslations.t('licenseStatus')} />
+          ) : !licenseStats?.chart_data?.statuses?.length ? (
+            <ChartCard title={chartsTranslations.t('licenseStatus')}>
+              <div className="flex items-center justify-center h-[300px] text-gray-500 text-center">{chartsTranslations.t('empty.licenseStatus')}</div>
+            </ChartCard>
           ) : (
             <ChartCard title={chartsTranslations.t('licenseStatus')}>
               <ResponsiveContainer width="100%" height={300}>
@@ -376,11 +371,14 @@ export default function DashboardPage() {
             </ChartCard>
           )}
           {/* Nouveau graphique - Évolution des expirations */}
-          {licenseLoading || !licenseStats?.chart_data.expiry || licenseStats.chart_data.expiry.length === 0 ? (
+          {licenseLoading ? (
             <ChartCardSkeleton title={chartsTranslations.t('upcomingExpirations')} />
+          ) : !licenseStats?.chart_data.expiry || licenseStats.chart_data.expiry.length === 0 ? (
+            <ChartCard title={chartsTranslations.t('upcomingExpirations')}>
+              <div className="flex items-center justify-center h-[300px] text-gray-500 text-center">{chartsTranslations.t('empty.upcomingExpirations')}</div>
+            </ChartCard>
           ) : (
             <ChartCard title={chartsTranslations.t('upcomingExpirations')}>
-              {/* ... Contenu du ResponsiveContainer LineChart existant ... */}
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={licenseStats.chart_data.expiry}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -402,11 +400,14 @@ export default function DashboardPage() {
           
 
           {/* Statuts des équipements */}
-          {equipmentLoading || !equipmentStats?.chart_data?.statuses?.length ? (
+          {equipmentLoading ? (
             <ChartCardSkeleton title={chartsTranslations.t('equipmentStatus')} />
+          ) : !equipmentStats?.chart_data?.statuses?.length ? (
+            <ChartCard title={chartsTranslations.t('equipmentStatus')}>
+              <div className="flex items-center justify-center h-[300px] text-gray-500 text-center">{chartsTranslations.t('empty.equipmentStatus')}</div>
+            </ChartCard>
           ) : (
             <ChartCard title={chartsTranslations.t('equipmentStatus')}>
-              {/* ... Contenu du ResponsiveContainer BarChart existant ... */}
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={equipmentStats.chart_data.statuses}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -493,10 +494,12 @@ export default function DashboardPage() {
               </Card>
             )}
           </div>
-
           {/* Actions rapides et métriques */}
+
           <div className="space-y-6">
             {/* Actions rapides - INCHANGÉ */}
+           {stablePermissions.canViewAllData && (
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg font-semibold text-gray-900">
@@ -565,6 +568,7 @@ export default function DashboardPage() {
                 )}              
               </CardContent>
             </Card>
+          )}
 
 
 

@@ -51,10 +51,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 export default function EquipmentPage() {
   const { page, limit, goToPage } = usePagination(1);
-  const { t: tList } = useTranslations('equipment.list')
+  const { t: tList, language } = useTranslations('equipment.list')
   const { t: tStatus } = useTranslations('equipment.status')
   const router = useRouter()
   const permissions = useAuthPermissions()
+  const locale = language === 'fr' ? 'fr-FR' : 'en-US'
   
   // États locaux
   const [searchTerm, setSearchTerm] = useState('')
@@ -150,17 +151,19 @@ export default function EquipmentPage() {
 
   // Fonction pour formater les dates
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleDateString('fr-FR')
+    if (!dateString) return tList('common.na')
+    return new Date(dateString).toLocaleDateString(locale)
   }
 
   // Fonction pour formater le coût
   const formatCost = (cost?: number) => {
-    if (cost === undefined || cost === null) return 'N/A'
-    return new Intl.NumberFormat('fr-FR', { 
-      style: 'currency', 
-      currency: 'XAF' 
+    if (cost === undefined || cost === null) return tList('common.na')
+    const formatted = new Intl.NumberFormat(locale, {
+      style: 'decimal',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
     }).format(cost)
+    return `${formatted} FCFA`
   }
 
   // Composant Skeleton
@@ -422,7 +425,7 @@ export default function EquipmentPage() {
                 <p className="text-sm text-gray-500">{card.title}</p>
                 <p className="text-3xl font-semibold text-gray-900">
                   {typeof card.value === 'number'
-                    ? card.value.toLocaleString('fr-FR')
+                    ? card.value.toLocaleString(locale)
                     : card.value}
                 </p>
                 {card.description && (
@@ -634,7 +637,7 @@ export default function EquipmentPage() {
                       
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm text-gray-900 capitalize">
-                          {item.type_name || 'Non défini'}
+                          {item.type_name || tList('common.notDefined')}
                         </span>
                       </td>
 

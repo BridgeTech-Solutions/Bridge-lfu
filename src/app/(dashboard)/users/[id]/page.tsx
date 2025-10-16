@@ -32,6 +32,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import type { UserRole, Client } from '@/types'
+import { useTranslations } from '@/hooks/useTranslations'
 
 // Composant pour le formulaire d'édition
 function EditUserForm({ 
@@ -54,6 +55,8 @@ function EditUserForm({
   })
 
   const permissions = useAuthPermissions()
+  const { t } = useTranslations('users')
+
   const { updateUser, isUpdating } = useUserActions()
 
   // Récupérer la liste des clients
@@ -89,7 +92,7 @@ function EditUserForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="firstName">Prénom *</Label>
+          <Label htmlFor="firstName">{t('list.form.firstName')}</Label>
           <Input
             id="firstName"
             value={formData.firstName}
@@ -98,7 +101,7 @@ function EditUserForm({
           />
         </div>
         <div>
-          <Label htmlFor="lastName">Nom *</Label>
+          <Label htmlFor="lastName">{t('list.form.lastName')}</Label>
           <Input
             id="lastName"
             value={formData.lastName}
@@ -109,7 +112,7 @@ function EditUserForm({
       </div>
 
       <div>
-        <Label htmlFor="email">Email *</Label>
+        <Label htmlFor="email">{t('list.form.email')}</Label>
         <Input
           id="email"
           type="email"
@@ -119,13 +122,13 @@ function EditUserForm({
           required
         />
         {!canEditEmail && (
-          <p className="text-xs text-gray-500 mt-1">Seuls les administrateurs peuvent modifier l&apos;email</p>
+          <p className="text-xs text-gray-500 mt-1">{t('list.form.onlyAdminsEditEmail')}</p>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="phone">Téléphone</Label>
+          <Label htmlFor="phone">{t('list.form.phone')}</Label>
           <Input
             id="phone"
             value={formData.phone}
@@ -133,7 +136,7 @@ function EditUserForm({
           />
         </div>
         <div>
-          <Label htmlFor="company">Entreprise</Label>
+          <Label htmlFor="company">{t('list.form.company')}</Label>
           <Input
             id="company"
             value={formData.company}
@@ -143,7 +146,7 @@ function EditUserForm({
       </div>
 
       <div>
-        <Label htmlFor="role">Rôle</Label>
+        <Label htmlFor="role">{t('list.form.role')}</Label>
         <Select 
           value={formData.role} 
           onValueChange={(value: UserRole) => setFormData(prev => ({ ...prev, role: value }))}
@@ -153,26 +156,26 @@ function EditUserForm({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="admin">Administrateur</SelectItem>
-            <SelectItem value="technicien">Technicien</SelectItem>
-            <SelectItem value="client">Client</SelectItem>
+            <SelectItem value="admin">{t('roles.admin')}</SelectItem>
+            <SelectItem value="technicien">{t('roles.technicien')}</SelectItem>
+            <SelectItem value="client">{t('roles.client')}</SelectItem>
           </SelectContent>
         </Select>
         {!canEditRole && (
-          <p className="text-xs text-gray-500 mt-1">Seuls les administrateurs peuvent modifier le rôle</p>
+          <p className="text-xs text-gray-500 mt-1">{t('list.form.onlyAdminsEditRole')}</p>
         )}
       </div>
 
       {formData.role === 'client' && (
         <div>
-          <Label htmlFor="clientId">Client associé</Label>
+          <Label htmlFor="clientId">{t('list.form.client')}</Label>
           <Select 
             value={formData.clientId} 
             onValueChange={(value) => setFormData(prev => ({ ...prev, clientId: value }))}
             disabled={!canEditRole}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Sélectionner un client" />
+              <SelectValue placeholder={t('list.form.clientPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
               {clientsData?.data?.map((client: Client) => (
@@ -186,7 +189,7 @@ function EditUserForm({
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="button" variant="outline" onClick={onClose}>
           <X className="h-4 w-4 mr-2" />
-          Annuler
+          {t('list.form.cancel')}
         </Button>
         <Button type="submit" disabled={isUpdating}>
           {isUpdating ? (
@@ -194,7 +197,7 @@ function EditUserForm({
           ) : (
             <>
               <Save className="h-4 w-4 mr-2" />
-              Enregistrer
+              {t('list.form.save')}
             </>
           )}
         </Button>
@@ -203,13 +206,13 @@ function EditUserForm({
   )
 }
 
-// Fonction pour obtenir le badge de rôle
-function getRoleBadge(role: UserRole) {
+// Fonction pour obtenir le badge de rôle (i18n)
+function getRoleBadge(role: UserRole, t: (key: string) => string) {
   const roleConfig = {
-    admin: { label: 'Administrateur', color: 'bg-red-100 text-red-800' },
-    technicien: { label: 'Technicien', color: 'bg-blue-100 text-blue-800' },
-    client: { label: 'Client', color: 'bg-green-100 text-green-800' },
-    unverified: { label: 'Non vérifié', color: 'bg-yellow-100 text-yellow-800' }
+    admin: { label: t('roles.admin'), color: 'bg-red-100 text-red-800' },
+    technicien: { label: t('roles.technicien'), color: 'bg-blue-100 text-blue-800' },
+    client: { label: t('roles.client'), color: 'bg-green-100 text-green-800' },
+    unverified: { label: t('roles.unverified'), color: 'bg-yellow-100 text-yellow-800' }
   }
 
   const config = roleConfig[role] || roleConfig.unverified
@@ -225,6 +228,8 @@ export default function UserDetailPage() {
   const params = useParams()
   const router = useRouter()
   const permissions = useAuthPermissions()
+  const { t, language } = useTranslations('users')
+  const locale = language === 'fr' ? 'fr-FR' : 'en-US'
 
   const [showEditDialog, setShowEditDialog] = useState(false)
 
@@ -254,11 +259,11 @@ export default function UserDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
         <AlertCircle className="h-16 w-16 text-red-500" />
-        <h1 className="text-2xl font-bold text-gray-900">Utilisateur non trouvé</h1>
-        <p className="text-gray-600">L&apos;utilisateur que vous recherchez n&apos;existe pas ou vous n&apos;avez pas les permissions pour le voir.</p>
+        <h1 className="text-2xl font-bold text-gray-900">{language === 'fr' ? 'Utilisateur non trouvé' : 'User not found'}</h1>
+        <p className="text-gray-600">{language === 'fr' ? "L'utilisateur que vous recherchez n'existe pas ou vous n'avez pas les permissions pour le voir." : 'The requested user does not exist or you do not have permission to view it.'}</p>
         <Button onClick={() => router.push('/users')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Retour à la liste
+          {language === 'fr' ? 'Retour à la liste' : 'Back to list'}
         </Button>
       </div>
     )
@@ -276,7 +281,7 @@ export default function UserDetailPage() {
             onClick={() => router.push('/users')}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Retour
+            {language === 'fr' ? 'Retour' : 'Back'}
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
@@ -289,7 +294,7 @@ export default function UserDetailPage() {
         {canEdit && (
           <Button onClick={() => setShowEditDialog(true)}>
             <Edit className="h-4 w-4 mr-2" />
-            Modifier
+            {language === 'fr' ? 'Modifier' : 'Edit'}
           </Button>
         )}
       </div>
@@ -298,16 +303,16 @@ export default function UserDetailPage() {
         <TabsList>
           <TabsTrigger value="profile">
             <User className="h-4 w-4 mr-2" />
-            Profil
+            {language === 'fr' ? 'Profil' : 'Profile'}
           </TabsTrigger>
           <TabsTrigger value="permissions">
             <Shield className="h-4 w-4 mr-2" />
-            Permissions
+            {language === 'fr' ? 'Permissions' : 'Permissions'}
           </TabsTrigger>
           {permissions.canViewActivityLogs() && (
             <TabsTrigger value="activity">
               <Activity className="h-4 w-4 mr-2" />
-              Activité
+              {language === 'fr' ? 'Activité' : 'Activity'}
             </TabsTrigger>
           )}
         </TabsList>
@@ -318,7 +323,7 @@ export default function UserDetailPage() {
             {/* Informations principales */}
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Informations personnelles</CardTitle>
+                <CardTitle>{language === 'fr' ? 'Informations personnelles' : 'Personal information'}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -354,7 +359,7 @@ export default function UserDetailPage() {
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-900">
-                    Membre depuis le {new Date(user.created_at!).toLocaleDateString('fr-FR')}
+                    {language === 'fr' ? 'Membre depuis le ' : 'Member since '}{new Date(user.created_at!).toLocaleDateString(locale)}
                   </span>
                 </div>
               </CardContent>
@@ -363,27 +368,27 @@ export default function UserDetailPage() {
             {/* Statut et rôle */}
             <Card>
               <CardHeader>
-                <CardTitle>Statut</CardTitle>
+                <CardTitle>{language === 'fr' ? 'Statut' : 'Status'}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Rôle</Label>
+                  <Label className="text-sm font-medium text-gray-500">{language === 'fr' ? 'Rôle' : 'Role'}</Label>
                   <div className="mt-1">
-                    {getRoleBadge(user.role!)}
+                    {getRoleBadge(user.role!, t)}
                   </div>
                 </div>
                 
                 {user.client_id && user.clients && (
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Client associé</Label>
+                    <Label className="text-sm font-medium text-gray-500">{language === 'fr' ? 'Client associé' : 'Linked client'}</Label>
                     <p className="text-gray-900 mt-1">{user.clients.name}</p>
                   </div>
                 )}
                 
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Dernière mise à jour</Label>
+                  <Label className="text-sm font-medium text-gray-500">{language === 'fr' ? 'Dernière mise à jour' : 'Last updated'}</Label>
                   <p className="text-gray-900 mt-1">
-                    {new Date(user.updated_at!).toLocaleDateString('fr-FR')}
+                    {new Date(user.updated_at!).toLocaleDateString(locale)}
                   </p>
                 </div>
               </CardContent>
@@ -432,18 +437,6 @@ export default function UserDetailPage() {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Onglet Notifications
-        <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Paramètres de notification</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Configuration des notifications à implémenter...</p>
-            </CardContent>
-          </Card>
-        </TabsContent> */}
 
         {/* Onglet Activité */}
         {permissions.canViewActivityLogs() && (

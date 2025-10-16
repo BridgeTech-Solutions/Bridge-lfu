@@ -210,14 +210,13 @@ export function Sidebar() {
     if (!item.permissions) return true
 
     const { action, resource } = item.permissions
-    return permissions.can(action, resource) || hasConditionalPermission(resource)
+    return permissions.can(action, resource) || hasConditionalPermission(action, resource)
   }
 
-  const hasConditionalPermission = (resource: string) => {
-    if (permissions.getPermissions().clientAccess && ['reports', 'notifications'].includes(resource)) {
-      return true
-    }
-    return false
+  const hasConditionalPermission = (action: string, resource: string) => {
+    if (!permissions.getPermissions().clientAccess) return false
+    if (action !== 'read') return false
+    return ['reports', 'notifications', 'licenses', 'equipment'].includes(resource)
   }
 
   const toggleSubmenu = (key: string, currentState: boolean) => {

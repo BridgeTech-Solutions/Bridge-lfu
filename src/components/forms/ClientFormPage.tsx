@@ -61,20 +61,21 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
   });
 
   useEffect(() => {
-
     if (mode === 'edit' && existingClient) {
-      // console.log(existingClient?.sector)
-      form.reset({
-        name: existingClient.name || '',
-        address: existingClient.address || '',
-        city: existingClient.city || '',
-        postalCode: existingClient.postal_code || '',
-        country: existingClient.country || 'Cameroun',
-        contactEmail: existingClient.contact_email || '',
-        contactPhone: existingClient.contact_phone || '',
-        contactPerson: existingClient.contact_person || '',
-        sector: existingClient.sector || undefined
-      });
+      // Vérifiez que toutes les propriétés nécessaires sont présentes
+      if (existingClient.id) {
+        form.reset({
+          name: existingClient.name || '',
+          address: existingClient.address || '',
+          city: existingClient.city || '',
+          postalCode: existingClient.postal_code || '',
+          country: existingClient.country || 'Cameroun',
+          contactEmail: existingClient.contact_email || '',
+          contactPhone: existingClient.contact_phone || '',
+          contactPerson: existingClient.contact_person || '',
+          sector: existingClient.sector || null  // Utilisez null au lieu de undefined
+        });
+      }
     }
   }, [existingClient, form, mode]);
 

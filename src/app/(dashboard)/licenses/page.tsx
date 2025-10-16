@@ -2,6 +2,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from '@/hooks/useTranslations'
 import { useRouter } from 'next/navigation'
 import { Search, Plus, Filter, Download, Calendar, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,7 @@ export default function LicensesPage() {
   const router = useRouter()
   const permissions = useStablePermissions()
   const { page, limit, goToPage } = usePagination(1)
+  const { t } = useTranslations('licenses')
 
   // États des filtres
   const [search, setSearch] = useState('')
@@ -163,8 +165,8 @@ export default function LicensesPage() {
       <div className="space-y-6 mx-4">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">Licences</h1>
-            <p className="text-gray-600">Gestion des licences logicielles et matérielles</p>
+            <h1 className="text-3xl font-bold">{t('header.title')}</h1>
+            <p className="text-gray-600">{t('header.subtitle')}</p>
           </div>
         </div>
         
@@ -211,19 +213,17 @@ export default function LicensesPage() {
       <div className="space-y-6 mx-4">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">Licences</h1>
-            <p className="text-gray-600">Gestion des licences logicielles et matérielles</p>
+            <h1 className="text-3xl font-bold">{t('header.title')}</h1>
+            <p className="text-gray-600">{t('header.subtitle')}</p>
           </div>
         </div>
         
         <div className="text-center py-16">
           <XCircle className="w-16 h-16 mx-auto text-red-500 mb-4" />
-          <h2 className="text-xl font-semibold text-red-600">Erreur de chargement</h2>
-          <p className="text-gray-500 mt-2 mb-4">
-            Une erreur est survenue lors de la récupération des licences.
-          </p>
+          <h2 className="text-xl font-semibold text-red-600">{t('errors.loadTitle')}</h2>
+          <p className="text-gray-500 mt-2 mb-4">{t('errors.loadDescription')}</p>
           <Button onClick={() => refetchLicenses()}>
-            Recharger les données
+            {t('actions.reload')}
           </Button>
         </div>
       </div>
@@ -235,8 +235,8 @@ export default function LicensesPage() {
       {/* En-tête */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Licences</h1>
-          <p className="text-gray-600">Gestion des licences logicielles et matérielles</p>
+          <h1 className="text-3xl font-bold">{t('header.title')}</h1>
+          <p className="text-gray-600">{t('header.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           {/* {permissions.canViewReports && ( */}
@@ -244,21 +244,21 @@ export default function LicensesPage() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" disabled={isExporting}>
                   <Download className={`w-4 h-4 mr-2 ${isExporting ? 'animate-bounce' : ''}`} />
-                  {isExporting ? 'Export en cours...' : 'Exporter'}
+                  {isExporting ? t('actions.exporting') : t('actions.export')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleExport('xlsx')}>
                   <Download className="w-4 h-4 mr-2" />
-                  Exporter en Excel (.xlsx)
+                  {t('exportMenu.excel')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleExport('csv')}>
                   <Download className="w-4 h-4 mr-2" />
-                  Exporter en CSV
+                  {t('exportMenu.csv')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleExport('json')}>
                   <Download className="w-4 h-4 mr-2" />
-                  Exporter en JSON
+                  {t('exportMenu.json')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -266,7 +266,7 @@ export default function LicensesPage() {
           {permissions.can('create', 'licenses') && (
             <Button onClick={() => router.push('/licenses/new')}>
               <Plus className="w-4 h-4 mr-2" />
-              Nouvelle licence
+              {t('actions.new')}
             </Button>
           )}
         </div>
@@ -278,7 +278,7 @@ export default function LicensesPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total</p>
+                <p className="text-sm font-medium text-gray-600">{t('stats.total')}</p>
                 <div className="text-3xl font-bold">
                   {stats.total}
                 </div>
@@ -294,7 +294,7 @@ export default function LicensesPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Actives</p>
+                <p className="text-sm font-medium text-gray-600">{t('stats.active')}</p>
                 <p className="text-3xl font-bold text-green-600">
                   {stats.active + stats.aboutToExpire}
                 </p>
@@ -310,7 +310,7 @@ export default function LicensesPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Bientôt expirées</p>
+                <p className="text-sm font-medium text-gray-600">{t('stats.aboutToExpire')}</p>
                 <div className="text-3xl font-bold text-orange-600">
                   {stats.aboutToExpire}
                 </div>
@@ -326,7 +326,7 @@ export default function LicensesPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Expirées</p>
+                <p className="text-sm font-medium text-gray-600">{t('stats.expired')}</p>
                 <div className="text-3xl font-bold text-red-600">
                   {stats.expired}
                 </div>
@@ -347,7 +347,7 @@ export default function LicensesPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Rechercher une licence..."
+                  placeholder={t('filters.searchPlaceholder')}
                   value={search}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-10"
@@ -357,26 +357,26 @@ export default function LicensesPage() {
             
             <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filtrer par statut" />
+                <SelectValue placeholder={t('filters.statusPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="active">Actives</SelectItem>
-                <SelectItem value="about_to_expire">Bientôt expirées</SelectItem>
-                <SelectItem value="expired">Expirées</SelectItem>
-                <SelectItem value="cancelled">Annulées</SelectItem>
+                <SelectItem value="all">{t('filters.statusAll')}</SelectItem>
+                <SelectItem value="active">{t('filters.statusActive')}</SelectItem>
+                <SelectItem value="about_to_expire">{t('filters.statusAboutToExpire')}</SelectItem>
+                <SelectItem value="expired">{t('filters.statusExpired')}</SelectItem>
+                <SelectItem value="cancelled">{t('filters.statusCancelled')}</SelectItem>
               </SelectContent>
             </Select>
 
             {permissions.canViewAllData && (
               <Select value={clientFilter} onValueChange={handleClientFilterChange}>
                 <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filtrer par client" />
+                  <SelectValue placeholder={t('filters.clientPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous les clients</SelectItem>
+                  <SelectItem value="all">{t('filters.clientAll')}</SelectItem>
                   {isClientsLoading ? (
-                    <SelectItem value="loading" disabled>Chargement...</SelectItem>
+                    <SelectItem value="loading" disabled>{t('table.loading')}</SelectItem>
                   ) : (
                     clients.map((client) => (
                       <SelectItem key={client.id} value={client.id!}>
@@ -389,7 +389,7 @@ export default function LicensesPage() {
             )}
 
             <Input
-              placeholder="Éditeur..."
+              placeholder={t('filters.editorPlaceholder')}
               value={editorFilter}
               onChange={(e) => handleEditorFilterChange(e.target.value)}
               className="w-48"
@@ -402,11 +402,11 @@ export default function LicensesPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Liste des licences</span>
+            <span>{t('table.title')}</span>
             {isLicensesLoading && (
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                Chargement...
+                {t('table.loading')}
               </div>
             )}
           </CardTitle>
@@ -424,17 +424,17 @@ export default function LicensesPage() {
           {/* État vide */}
           {licenses.length === 0 && !isLicensesLoading && (
             <div className="text-center py-8">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune licence</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('table.emptyTitle')}</h3>
               <p className="text-gray-500 mb-4">
                 {debouncedSearch || statusFilter !== 'all' || clientFilter !== 'all' || debouncedEditorFilter ?
-                  'Aucune licence ne correspond aux critères de recherche.' :
-                  'Commencez par ajouter votre première licence.'
+                  t('table.emptyFiltered') :
+                  t('table.emptyDescription')
                 }
               </p>
               {permissions.can('create', 'licenses') && !debouncedSearch && statusFilter === 'all' && clientFilter === 'all' && !debouncedEditorFilter && (
                 <Button onClick={() => router.push('/licenses/new')}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Ajouter une licence
+                  {t('actions.new')}
                 </Button>
               )}
             </div>

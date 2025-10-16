@@ -232,7 +232,9 @@ export default function LicenseSuppliersPage() {
                 <TableHead>{t('table.columns.contact')}</TableHead>
                 <TableHead>{t('table.columns.details')}</TableHead>
                 <TableHead>{t('table.columns.status')}</TableHead>
+                {canUpdate && (
                 <TableHead className="text-right">{t('table.columns.actions')}</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>

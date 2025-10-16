@@ -274,7 +274,9 @@ export default function EquipmentTypesPage() {
                 <TableHead>{t('table.columns.code')}</TableHead>
                 <TableHead>{t('table.columns.description')}</TableHead>
                 <TableHead>{t('table.columns.status')}</TableHead>
+                 {canUpdate && (
                 <TableHead className="text-right">{t('table.columns.actions')}</TableHead>
+                   )}
               </TableRow>
             </TableHeader>
             <TableBody>

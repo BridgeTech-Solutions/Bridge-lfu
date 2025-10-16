@@ -33,6 +33,7 @@ import {
 
 } from 'lucide-react'
 import type { UserRole, Client } from '@/types'
+import { useTranslations } from '@/hooks/useTranslations'
 
 // Composant pour le formulaire d'édition
 function EditUserForm({ 
@@ -55,6 +56,7 @@ function EditUserForm({
   })
 
   const permissions = useAuthPermissions()
+  const { t } = useTranslations('users')
   const { updateUser, isUpdating } = useUserActions()
 
   // Récupérer la liste des clients
@@ -90,7 +92,7 @@ function EditUserForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="firstName">Prénom *</Label>
+          <Label htmlFor="firstName">{t('list.form.firstName')}</Label>
           <Input
             id="firstName"
             value={formData.firstName}
@@ -99,7 +101,7 @@ function EditUserForm({
           />
         </div>
         <div>
-          <Label htmlFor="lastName">Nom *</Label>
+          <Label htmlFor="lastName">{t('list.form.lastName')}</Label>
           <Input
             id="lastName"
             value={formData.lastName}
@@ -110,7 +112,7 @@ function EditUserForm({
       </div>
 
       <div>
-        <Label htmlFor="email">Email *</Label>
+        <Label htmlFor="email">{t('list.form.email')}</Label>
         <Input
           id="email"
           type="email"
@@ -120,13 +122,13 @@ function EditUserForm({
           required
         />
         {!canEditEmail && (
-          <p className="text-xs text-gray-500 mt-1">Seuls les administrateurs peuvent modifier l&apos;email</p>
+          <p className="text-xs text-gray-500 mt-1">{t('list.form.onlyAdminsEditEmail')}</p>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="phone">Téléphone</Label>
+          <Label htmlFor="phone">{t('list.form.phone')}</Label>
           <Input
             id="phone"
             value={formData.phone}
@@ -134,7 +136,7 @@ function EditUserForm({
           />
         </div>
         <div>
-          <Label htmlFor="company">Entreprise</Label>
+          <Label htmlFor="company">{t('list.form.company')}</Label>
           <Input
             id="company"
             value={formData.company}
@@ -144,7 +146,7 @@ function EditUserForm({
       </div>
 
       <div>
-        <Label htmlFor="role">Rôle</Label>
+        <Label htmlFor="role">{t('list.form.role')}</Label>
         <Select 
           value={formData.role} 
           onValueChange={(value: UserRole) => setFormData(prev => ({ ...prev, role: value }))}
@@ -154,26 +156,26 @@ function EditUserForm({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="admin">Administrateur</SelectItem>
-            <SelectItem value="technicien">Technicien</SelectItem>
-            <SelectItem value="client">Client</SelectItem>
+            <SelectItem value="admin">{t('roles.admin')}</SelectItem>
+            <SelectItem value="technicien">{t('roles.technicien')}</SelectItem>
+            <SelectItem value="client">{t('roles.client')}</SelectItem>
           </SelectContent>
         </Select>
         {!canEditRole && (
-          <p className="text-xs text-gray-500 mt-1">Seuls les administrateurs peuvent modifier le rôle</p>
+          <p className="text-xs text-gray-500 mt-1">{t('list.form.onlyAdminsEditRole')}</p>
         )}
       </div>
 
       {formData.role === 'client' && (
         <div>
-          <Label htmlFor="clientId">Client associé</Label>
+          <Label htmlFor="clientId">{t('list.form.client')}</Label>
           <Select 
             value={formData.clientId} 
             onValueChange={(value) => setFormData(prev => ({ ...prev, clientId: value }))}
             disabled={!canEditRole}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Sélectionner un client" />
+              <SelectValue placeholder={t('list.form.clientPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
               {clientsData?.data?.map((client: Client) => (
@@ -187,7 +189,7 @@ function EditUserForm({
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="button" variant="outline" onClick={onClose}>
           <X className="h-4 w-4 mr-2" />
-          Annuler
+          {t('list.form.cancel')}
         </Button>
         <Button type="submit" disabled={isUpdating}>
           {isUpdating ? (
@@ -195,7 +197,7 @@ function EditUserForm({
           ) : (
             <>
               <Save className="h-4 w-4 mr-2" />
-              Enregistrer
+              {t('list.form.save')}
             </>
           )}
         </Button>
@@ -218,6 +220,7 @@ function CreateUserForm({ onClose, onSuccess }: { onClose: () => void, onSuccess
   })
 
   const { createUser, isCreating } = useUsers()
+  const { t } = useTranslations('users')
 
   // Récupérer la liste des clients pour la sélection
   const { data: clientsData } = useQuery({
@@ -249,7 +252,7 @@ function CreateUserForm({ onClose, onSuccess }: { onClose: () => void, onSuccess
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="firstName">Prénom *</Label>
+          <Label htmlFor="firstName">{t('list.form.firstName')}</Label>
           <Input
             id="firstName"
             value={formData.firstName}
@@ -258,7 +261,7 @@ function CreateUserForm({ onClose, onSuccess }: { onClose: () => void, onSuccess
           />
         </div>
         <div>
-          <Label htmlFor="lastName">Nom *</Label>
+          <Label htmlFor="lastName">{t('list.form.lastName')}</Label>
           <Input
             id="lastName"
             value={formData.lastName}
@@ -269,7 +272,7 @@ function CreateUserForm({ onClose, onSuccess }: { onClose: () => void, onSuccess
       </div>
 
       <div>
-        <Label htmlFor="email">Email *</Label>
+        <Label htmlFor="email">{t('list.form.email')}</Label>
         <Input
           id="email"
           type="email"
@@ -280,7 +283,7 @@ function CreateUserForm({ onClose, onSuccess }: { onClose: () => void, onSuccess
       </div>
 
       <div>
-        <Label htmlFor="password">Mot de passe *</Label>
+        <Label htmlFor="password">{t('list.form.password')}</Label>
         <Input
           id="password"
           type="password"
@@ -310,25 +313,25 @@ function CreateUserForm({ onClose, onSuccess }: { onClose: () => void, onSuccess
       </div>
 
       <div>
-        <Label htmlFor="role">Rôle *</Label>
+        <Label htmlFor="role">{t('list.form.role')}</Label>
         <Select value={formData.role} onValueChange={(value: UserRole) => setFormData(prev => ({ ...prev, role: value }))}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="admin">Administrateur</SelectItem>
-            <SelectItem value="technicien">Technicien</SelectItem>
-            <SelectItem value="client">Client</SelectItem>
+            <SelectItem value="admin">{t('roles.admin')}</SelectItem>
+            <SelectItem value="technicien">{t('roles.technicien')}</SelectItem>
+            <SelectItem value="client">{t('roles.client')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {formData.role === 'client' && (
         <div>
-          <Label htmlFor="clientId">Client associé *</Label>
+          <Label htmlFor="clientId">{t('list.form.client')}</Label>
           <Select value={formData.clientId} onValueChange={(value) => setFormData(prev => ({ ...prev, clientId: value }))}>
             <SelectTrigger>
-              <SelectValue placeholder="Sélectionner un client" />
+              <SelectValue placeholder={t('list.form.clientPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
               {clientsData?.data?.map((client: Client) => (
@@ -341,10 +344,10 @@ function CreateUserForm({ onClose, onSuccess }: { onClose: () => void, onSuccess
 
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="button" variant="outline" onClick={onClose}>
-          Annuler
+          {t('list.form.cancel')}
         </Button>
         <Button type="submit" disabled={isCreating}>
-          {isCreating ? <LoadingSpinner size="sm" /> : 'Créer'}
+          {isCreating ? <LoadingSpinner size="sm" /> : t('list.form.create')}
         </Button>
       </div>
     </form>
@@ -367,6 +370,7 @@ function ValidateUserDialog({
   })
 
   const { validateUser, isValidating } = useUserActions()
+  const { t } = useTranslations('users')
 
   // Récupérer la liste des clients
   const { data: clientsData } = useQuery({
@@ -399,36 +403,39 @@ function ValidateUserDialog({
         <div className="flex items-center space-x-2">
           <AlertCircle className="h-5 w-5 text-yellow-600" />
           <div>
-            <h4 className="font-medium text-yellow-800">Validation d&apos;utilisateur</h4>
+            <h4 className="font-medium text-yellow-800">{t('list.validateNotice.title')}</h4>
             <p className="text-sm text-yellow-700">
-              Validez {user.first_name} {user.last_name} ({user.email})
+              {t('list.validateNotice.text')
+                .replace('{{firstName}}', user.first_name || '')
+                .replace('{{lastName}}', user.last_name || '')
+                .replace('{{email}}', user.email || '')}
             </p>
           </div>
         </div>
       </div>
 
       <div>
-        <Label htmlFor="role">Rôle à attribuer *</Label>
+        <Label htmlFor="role">{t('list.form.role')}</Label>
         <Select value={validationData.role} onValueChange={(value: UserRole) => 
           setValidationData(prev => ({ ...prev, role: value }))}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="admin">Administrateur</SelectItem>
-            <SelectItem value="technicien">Technicien</SelectItem>
-            <SelectItem value="client">Client</SelectItem>
+            <SelectItem value="admin">{t('roles.admin')}</SelectItem>
+            <SelectItem value="technicien">{t('roles.technicien')}</SelectItem>
+            <SelectItem value="client">{t('roles.client')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {validationData.role === 'client' && (
         <div>
-          <Label htmlFor="clientId">Client associé *</Label>
+          <Label htmlFor="clientId">{t('list.form.client')}</Label>
           <Select value={validationData.clientId} onValueChange={(value) => 
             setValidationData(prev => ({ ...prev, clientId: value }))}>
             <SelectTrigger>
-              <SelectValue placeholder="Sélectionner un client" />
+              <SelectValue placeholder={t('list.form.clientPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
               {clientsData?.data?.map((client: Client) => (
@@ -441,10 +448,10 @@ function ValidateUserDialog({
 
       <div className="flex justify-end space-x-2 pt-4">
         <Button variant="outline" onClick={onClose}>
-          Annuler
+          {t('list.form.cancel')}
         </Button>
         <Button onClick={handleValidate} disabled={isValidating}>
-          {isValidating ? <LoadingSpinner size="sm" /> : 'Valider'}
+          {isValidating ? <LoadingSpinner size="sm" /> : t('list.form.validate')}
         </Button>
       </div>
     </div>
@@ -452,19 +459,19 @@ function ValidateUserDialog({
 }
 
 // Fonction pour obtenir le badge de rôle
-function getRoleBadge(role: UserRole) {
+function getRoleBadge(role: UserRole, t: (k: string) => string) {
   const roleConfig = {
-    admin: { label: 'Administrateur', variant: 'default' as const, color: 'bg-red-100 text-red-800' },
-    technicien: { label: 'Technicien', variant: 'secondary' as const, color: 'bg-blue-100 text-blue-800' },
-    client: { label: 'Client', variant: 'outline' as const, color: 'bg-green-100 text-green-800' },
-    unverified: { label: 'Non vérifié', variant: 'destructive' as const, color: 'bg-yellow-100 text-yellow-800' }
+    admin: { labelKey: 'roles.admin', variant: 'default' as const, color: 'bg-red-100 text-red-800' },
+    technicien: { labelKey: 'roles.technicien', variant: 'secondary' as const, color: 'bg-blue-100 text-blue-800' },
+    client: { labelKey: 'roles.client', variant: 'outline' as const, color: 'bg-green-100 text-green-800' },
+    unverified: { labelKey: 'roles.unverified', variant: 'destructive' as const, color: 'bg-yellow-100 text-yellow-800' }
   }
 
   const config = roleConfig[role] || roleConfig.unverified
 
   return (
     <Badge variant={config.variant} className={config.color}>
-      {config.label}
+      {t(config.labelKey)}
     </Badge>
   )
 }
@@ -537,6 +544,8 @@ function UserTableSkeleton({ count = 10 }: { count?: number }) {
 
 export default function UsersPage() {
   const permissions = useAuthPermissions()
+  const { t, language } = useTranslations('users')
+  const locale = language === 'fr' ? 'fr-FR' : 'en-US'
 
   // États locaux
   const [search, setSearch] = useState('')
@@ -571,14 +580,14 @@ export default function UsersPage() {
       {/* En-tête */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion des utilisateurs</h1>
-          <p className="text-gray-600">Gérer les comptes utilisateurs et leurs permissions</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('list.header.title')}</h1>
+          <p className="text-gray-600">{t('list.header.subtitle')}</p>
         </div>
         
         {permissions.can('create', 'users') && (
           <Button onClick={() => setShowCreateDialog(true)}>
             <UserPlus className="h-4 w-4 mr-2" />
-            Nouvel utilisateur
+            {t('list.actions.new')}
           </Button>
         )}
       </div>
@@ -588,31 +597,31 @@ export default function UsersPage() {
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-            <div className="text-sm text-gray-600">Total utilisateurs</div>
+            <div className="text-sm text-gray-600">{t('list.stats.total')}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-yellow-600">{stats.unverified}</div>
-            <div className="text-sm text-gray-600">En attente</div>
+            <div className="text-sm text-gray-600">{t('list.stats.pending')}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-red-600">{stats.admins}</div>
-            <div className="text-sm text-gray-600">Administrateurs</div>
+            <div className="text-sm text-gray-600">{t('list.stats.admins')}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-blue-600">{stats.technicians}</div>
-            <div className="text-sm text-gray-600">Techniciens</div>
+            <div className="text-sm text-gray-600">{t('list.stats.technicians')}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-green-600">{stats.clients}</div>
-            <div className="text-sm text-gray-600">Clients</div>
+            <div className="text-sm text-gray-600">{t('list.stats.clients')}</div>
           </CardContent>
         </Card>
       </div>
@@ -625,7 +634,7 @@ export default function UsersPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Rechercher par nom, email ou entreprise..."
+                  placeholder={t('list.filters.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10"
@@ -639,11 +648,11 @@ export default function UsersPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous les rôles</SelectItem>
-                  <SelectItem value="unverified">Non vérifiés</SelectItem>
-                  <SelectItem value="admin">Administrateurs</SelectItem>
-                  <SelectItem value="technicien">Techniciens</SelectItem>
-                  <SelectItem value="client">Clients</SelectItem>
+                  <SelectItem value="all">{t('list.filters.roleAll')}</SelectItem>
+                  <SelectItem value="unverified">{t('list.filters.roleUnverified')}</SelectItem>
+                  <SelectItem value="admin">{t('list.filters.roleAdmin')}</SelectItem>
+                  <SelectItem value="technicien">{t('list.filters.roleTechnician')}</SelectItem>
+                  <SelectItem value="client">{t('list.filters.roleClient')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -654,7 +663,7 @@ export default function UsersPage() {
       {/* Tableau des utilisateurs */}
       <Card>
         <CardHeader>
-          <CardTitle>Liste des utilisateurs</CardTitle>
+          <CardTitle>{t('list.header.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -664,26 +673,26 @@ export default function UsersPage() {
           ) : error ? (
             <div className="text-center py-8">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <p className="text-red-600">Erreur lors du chargement des utilisateurs</p>
+              <p className="text-red-600">{t('list.table.errors.load')}</p>
               <Button variant="outline" className="mt-2" onClick={() => window.location.reload()}>
-                Réessayer
+                {t('list.table.errors.retry')}
               </Button>
             </div>
           ) : !users?.length ? (
             <div className="text-center py-8 text-gray-500">
-              Aucun utilisateur trouvé
+              {t('list.table.empty')}
             </div>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Utilisateur</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Rôle</TableHead>
-                    <TableHead>Client associé</TableHead>
-                    <TableHead>Créé le</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>{t('list.table.headers.user')}</TableHead>
+                    <TableHead>{t('list.table.headers.contact')}</TableHead>
+                    <TableHead>{t('list.table.headers.role')}</TableHead>
+                    <TableHead>{t('list.table.headers.client')}</TableHead>
+                    <TableHead>{t('list.table.headers.created')}</TableHead>
+                    <TableHead>{t('list.table.headers.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -717,15 +726,15 @@ export default function UsersPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {getRoleBadge(user.role!)}
+                        {getRoleBadge(user.role!, t)}
                       </TableCell>
                       <TableCell>
-                        {user.clients?.name || (user.role === 'client' ? 'Non assigné' : '-')}
+                        {user.clients?.name || (user.role === 'client' ? t('list.notAssigned') : '-')}
                       </TableCell>
                       <TableCell>
                         <div className="text-sm flex items-center text-gray-500">
                           <Calendar className="h-3 w-3 mr-1 text-gray-400" />
-                          {new Date(user.created_at!).toLocaleDateString('fr-FR')}
+                          {new Date(user.created_at!).toLocaleDateString(locale)}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -797,7 +806,7 @@ export default function UsersPage() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Créer un nouvel utilisateur</DialogTitle>
+            <DialogTitle>{t('list.dialogs.createTitle')}</DialogTitle>
           </DialogHeader>
           <CreateUserForm
             onClose={() => setShowCreateDialog(false)}
@@ -810,7 +819,7 @@ export default function UsersPage() {
       <Dialog open={!!validateDialogUser} onOpenChange={() => setValidateDialogUser(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Valider l&apos;utilisateur</DialogTitle>
+            <DialogTitle>{t('list.dialogs.validateTitle')}</DialogTitle>
           </DialogHeader>
           {validateDialogUser && (
             <ValidateUserDialog
@@ -826,7 +835,7 @@ export default function UsersPage() {
       <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Modifier l&apos;utilisateur</DialogTitle>
+            <DialogTitle>{t('list.dialogs.editTitle')}</DialogTitle>
           </DialogHeader>
           {editUser && (
             <EditUserForm

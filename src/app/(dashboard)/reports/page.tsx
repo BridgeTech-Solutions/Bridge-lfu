@@ -7,6 +7,7 @@ import { Download, FileText, RefreshCw, BarChart3, Users, HardDrive, Key, FileSp
   Server,
  } from 'lucide-react'
 import { FaRegFilePdf, FaFileExcel } from "react-icons/fa"
+import { useTranslations } from '@/hooks/useTranslations'
 import { 
   useReports, 
   useReportsLicenseStats, 
@@ -48,6 +49,8 @@ function StatusChartSkeleton({ count = 4 }: { count?: number }) {
 export default function ReportsPage() {
   const { user } = useAuth()
   const permissions = usePermissions(user)
+  const r = useTranslations('reports')
+  const canViewAll = permissions.canViewAllData()
   
   const { 
     isGenerating, 
@@ -74,13 +77,11 @@ export default function ReportsPage() {
   })
 
   useEffect(() => {
-    if (user && !permissions.canViewAllData() && user.client_id) {
-      setReportConfig(prev => ({
-        ...prev,
-        clientId: user.client_id ?? ''
-      }));
-    }
-  }, [user, permissions]);
+    if (!user || canViewAll) return
+    const targetClientId = user.client_id ?? ''
+    // Only update when necessary to avoid re-renders
+    setReportConfig(prev => (prev.clientId === targetClientId ? prev : { ...prev, clientId: targetClientId }))
+  }, [user, user?.client_id, canViewAll])
 
 
   const updateConfig = (key: keyof ReportConfig, value: string) => {
@@ -178,9 +179,9 @@ export default function ReportsPage() {
     <div className="space-y-8 p-6">
       {/* En-tête */}
       <div className="border-b border-gray-200 pb-5">
-        <h1 className="text-3xl font-bold leading-6 text-gray-900">Rapports et Statistiques</h1>
+        <h1 className="text-3xl font-bold leading-6 text-gray-900">{r.t('ui.headerTitle')}</h1>
         <p className="mt-2 max-w-4xl text-sm text-gray-500">
-          Générez et visualisez des rapports détaillés sur vos licences et équipements au format JSON, CSV, Excel ou PDF.
+          {r.t('ui.headerSubtitle')}
         </p>
       </div>
 
@@ -194,7 +195,7 @@ export default function ReportsPage() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Licences</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">{r.t('ui.glanceLicenses')}</dt>
                   <dd className="text-lg font-medium text-gray-900">
                     {licenseStatsLoading ? <Skeleton className="w-16 h-6" /> : licenseStats?.total || 0}
                   </dd>
@@ -212,7 +213,7 @@ export default function ReportsPage() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Équipements</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">{r.t('ui.glanceEquipment')}</dt>
                   <dd className="text-lg font-medium text-gray-900">
                     {equipmentStatsLoading ? <Skeleton className="w-16 h-6" /> : equipmentStats?.total || 0}
                   </dd>
@@ -230,7 +231,7 @@ export default function ReportsPage() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Valeur Totale</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">{r.t('ui.glanceTotalValue')}</dt>
                   <dd className="text-lg font-medium text-gray-900">
                     {licenseStatsLoading || equipmentStatsLoading ? <Skeleton className="w-20 h-6" /> : 
                       formatCurrency((licenseStats?.total_value || 0) + (equipmentStats?.total_value || 0))}
@@ -250,7 +251,7 @@ export default function ReportsPage() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Clients</dt>
+                    <dt className="text-sm font-medium text-gray-500 truncate">{r.t('ui.glanceClients')}</dt>
                     <dd className="text-lg font-medium text-gray-900">
                       {clientsLoading ? <Skeleton className="w-16 h-6" /> : clients.length}
                     </dd>
@@ -265,12 +266,14 @@ export default function ReportsPage() {
       {/* Graphiques des statistiques */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Statuts des Licences</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">{r.t('charts.licenseStatusTitle')}</h3>
           {licenseStatsLoading ? (
             <StatusChartSkeleton count={3} />
+          ) : !licenseStats?.chart_data?.statuses?.length ? (
+            <div className="flex items-center justify-center h-24 text-gray-500 text-center">{r.t('empty.licenseStatus')}</div>
           ) : (
             <div className="space-y-3">
-              {licenseStats?.chart_data?.statuses?.map((item) => (
+              {licenseStats.chart_data.statuses.map((item) => (
                 <div key={item.name} className="flex items-center justify-between">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.name)}`}>
                     {item.name}
@@ -291,12 +294,14 @@ export default function ReportsPage() {
         </div>
 
         <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Statuts des Équipements</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">{r.t('charts.equipmentStatusTitle')}</h3>
           {equipmentStatsLoading ? (
             <StatusChartSkeleton count={3} />
+          ) : !equipmentStats?.chart_data?.statuses?.length ? (
+            <div className="flex items-center justify-center h-24 text-gray-500 text-center">{r.t('empty.equipmentStatus')}</div>
           ) : (
             <div className="space-y-3">
-              {equipmentStats?.chart_data?.statuses?.map((item) => (
+              {equipmentStats.chart_data.statuses.map((item) => (
                 <div key={item.name} className="flex items-center justify-between">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.name)}`}>
                     {item.name}
@@ -318,26 +323,33 @@ export default function ReportsPage() {
       </div>
 
       {/* Expirations mensuelles */}
-      {licenseStats?.monthly_expiry && (
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Expirations de Licences par Mois</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {licenseStats.monthly_expiry.map((item) => (
-              <div key={item.month} className="text-center p-3 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{item.count}</div>
-                <div className="text-sm text-gray-600">{item.month}</div>
-              </div>
-            ))}
+      {licenseStatsLoading ? null : (
+        licenseStats?.monthly_expiry?.length ? (
+          <div className="bg-white shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">{r.t('charts.monthlyExpirationsTitle')}</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {licenseStats.monthly_expiry.map((item) => (
+                <div key={item.month} className="text-center p-3 bg-gray-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{item.count}</div>
+                  <div className="text-sm text-gray-600">{item.month}</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-white shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">{r.t('charts.monthlyExpirationsTitle')}</h3>
+            <div className="flex items-center justify-center h-24 text-gray-500 text-center">{r.t('empty.monthlyExpirations')}</div>
+          </div>
+        )
       )}
 
       {/* Générateur de rapports */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Générateur de Rapports</h3>
+          <h3 className="text-lg font-medium text-gray-900">{r.t('generator.title')}</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Configurez et générez des rapports personnalisés au format JSON, CSV, Excel ou PDF
+            {r.t('generator.description')}
           </p>
         </div>
         
@@ -346,15 +358,15 @@ export default function ReportsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Type de rapport
+                {r.t('filters.type')}
               </label>
               <Select value={reportConfig.type} onValueChange={(value) => updateConfig('type', value)}>
                 <SelectTrigger id="report-type">
-                  <SelectValue placeholder="Choisir un type" />
+                  <SelectValue placeholder={r.t('filters.typePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="licenses">Licences</SelectItem>
-                  <SelectItem value="equipment">Équipements</SelectItem>
+                  <SelectItem value="licenses">{r.t('options.typeLicenses')}</SelectItem>
+                  <SelectItem value="equipment">{r.t('options.typeEquipment')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -362,7 +374,7 @@ export default function ReportsPage() {
             {permissions.canViewAllData() && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Client
+                  {r.t('filters.client')}
                 </label>
                 <Select
                   value={reportConfig.clientId ?? ''}
@@ -370,10 +382,10 @@ export default function ReportsPage() {
                   disabled={clientsLoading || !permissions.canViewAllData()}
                 >
                   <SelectTrigger id="client-filter">
-                    <SelectValue placeholder="Tous les clients" />
+                    <SelectValue placeholder={r.t('filters.clientPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tous les clients</SelectItem>
+                    <SelectItem value="all">{r.t('options.clientAll')}</SelectItem>
                     {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.name}
@@ -386,7 +398,7 @@ export default function ReportsPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Statut
+                {r.t('filters.status')}
               </label>
               <Select
                 value={reportConfig.status || 'all'}
@@ -395,23 +407,23 @@ export default function ReportsPage() {
                 }
               >
                 <SelectTrigger id="report-status">
-                  <SelectValue placeholder="Tous les statuts" />
+                  <SelectValue placeholder={r.t('options.statusAll')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={'all'}>Tous les statuts</SelectItem>
+                  <SelectItem value={'all'}>{r.t('options.statusAll')}</SelectItem>
                   {reportConfig.type === 'licenses' ? (
                     <>
-                      <SelectItem value="active">Actif</SelectItem>
-                      <SelectItem value="expired">Expiré</SelectItem>
-                      <SelectItem value="about_to_expire">Bientôt expiré</SelectItem>
+                      <SelectItem value="active">{r.t('options.statusLicense.active')}</SelectItem>
+                      <SelectItem value="expired">{r.t('options.statusLicense.expired')}</SelectItem>
+                      <SelectItem value="about_to_expire">{r.t('options.statusLicense.about_to_expire')}</SelectItem>
                     </>
                   ) : (
                     <>
-                      <SelectItem value="active">Actif</SelectItem>
-                      <SelectItem value="obsolete">Obsolète</SelectItem>
-                      <SelectItem value="bientot_obsolete">Bientôt obsolète</SelectItem>
-                      <SelectItem value="en_maintenance">En maintenance</SelectItem>
-                      <SelectItem value="retire">Retiré</SelectItem>
+                      <SelectItem value="active">{r.t('options.statusEquipment.active')}</SelectItem>
+                      <SelectItem value="obsolete">{r.t('options.statusEquipment.obsolete')}</SelectItem>
+                      <SelectItem value="bientot_obsolete">{r.t('options.statusEquipment.bientot_obsolete')}</SelectItem>
+                      <SelectItem value="en_maintenance">{r.t('options.statusEquipment.en_maintenance')}</SelectItem>
+                      <SelectItem value="retire">{r.t('options.statusEquipment.retire')}</SelectItem>
                     </>
                   )}
                 </SelectContent>
@@ -420,27 +432,27 @@ export default function ReportsPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Format
+                {r.t('filters.format')}
               </label>
               <Select
                 value={reportConfig.format}
                 onValueChange={(value) => updateConfig('format', value)}
               >
                 <SelectTrigger id="report-format">
-                  <SelectValue placeholder="Choisir un format" />
+                  <SelectValue placeholder={r.t('filters.formatPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="json">Aperçu (JSON)</SelectItem>
-                  <SelectItem value="csv">Téléchargement CSV</SelectItem>
-                  <SelectItem value="excel">Téléchargement Excel</SelectItem>
-                  <SelectItem value="pdf">Téléchargement PDF</SelectItem>
+                  <SelectItem value="json">{r.t('options.formatJson')}</SelectItem>
+                  <SelectItem value="csv">{r.t('options.formatCsv')}</SelectItem>
+                  <SelectItem value="excel">{r.t('options.formatExcel')}</SelectItem>
+                  <SelectItem value="pdf">{r.t('options.formatPdf')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Date de début
+                {r.t('filters.dateFrom')}
               </label>
               
               <Input
@@ -452,7 +464,7 @@ export default function ReportsPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Date de fin
+                {r.t('filters.dateTo')}
               </label>
               <Input
                 type="date"
@@ -469,7 +481,7 @@ export default function ReportsPage() {
               className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
-              Réinitialiser
+              {r.t('actions.reset')}
             </button>
 
             <div className="flex space-x-3 items-center">
@@ -477,7 +489,7 @@ export default function ReportsPage() {
                 <div className="flex items-center space-x-2">
                   {getFormatIcon(reportConfig.format)}
                   <span className="text-sm text-gray-600">
-                    Le fichier {reportConfig.format.toUpperCase()} sera téléchargé automatiquement
+                    {r.t('ui.autoDownloadNotice').replace('{{format}}', reportConfig.format.toUpperCase())}
                   </span>
                 </div>
               )}
@@ -495,7 +507,7 @@ export default function ReportsPage() {
                     <span className="ml-2" />
                   </>
                 )}
-                {isGenerating ? 'Génération...' : `Générer ${reportConfig.format === 'excel' ? 'XLSX' : reportConfig.format.toUpperCase()}`}
+                {isGenerating ? r.t('actions.generating') : r.t('actions.generate')}
               </button>
             </div>
           </div>
@@ -559,27 +571,27 @@ export default function ReportsPage() {
                 <tr>
                   {reportConfig.type === 'licenses' ? (
                     <>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Éditeur</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.name')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.editor')}</th>
                       {permissions.canViewAllData() && (
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.client')}</th>
                       )}
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiration</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Coût</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jours restants</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.expiration')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.status')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.cost')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.daysUntilExpiry')}</th>
                     </>
                   ) : (
                     <>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marque</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.name')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.type')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.brand')}</th>
                       {permissions.canViewAllData() && (
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.client')}</th>
                       )}
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Obsolescence</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jours restants</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.status')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.obsolescence')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{r.t('reports.tableHeaders.daysUntilObsolescence')}</th>
                     </>
                   )}
                 </tr>
@@ -668,9 +680,9 @@ export default function ReportsPage() {
       {/* Rapports rapides */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Rapports Rapides</h3>
+          <h3 className="text-lg font-medium text-gray-900">{r.t('actions.quickTitle')}</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Téléchargez des rapports prédéfinis au format de votre choix
+            {r.t('actions.quickSubtitle')}
           </p>
         </div>
         
@@ -680,7 +692,7 @@ export default function ReportsPage() {
             <div className="border border-gray-200 rounded-lg p-4">
               <div className="flex items-center mb-3">
                 <FileText className="w-5 h-5 mr-2 text-red-500" />
-                <h4 className="font-medium text-gray-900">Licences expirées</h4>
+                <h4 className="font-medium text-gray-900">{r.t('actions.quickExpiredLicenses')}</h4>
               </div>
               <div className="flex space-x-2">
                 <button
@@ -689,7 +701,7 @@ export default function ReportsPage() {
                   className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <FileSpreadsheet className="w-3 h-3 mr-1" />
-                  CSV
+                  {r.t('actions.btnCsv')}
                 </button>
                 <button
                   onClick={() => handleQuickReport('expired-licenses', 'excel')}
@@ -697,7 +709,7 @@ export default function ReportsPage() {
                   className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <FaFileExcel className="w-3 h-3 mr-1 text-green-600" />
-                  Excel
+                  {r.t('actions.btnExcel')}
                 </button>
                 <button
                   onClick={() => handleQuickReport('expired-licenses', 'pdf')}
@@ -705,7 +717,7 @@ export default function ReportsPage() {
                   className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <FaRegFilePdf className="w-3 h-3 mr-1" />
-                  PDF
+                  {r.t('actions.btnPdf')}
                 </button>
               </div>
             </div>
@@ -714,7 +726,7 @@ export default function ReportsPage() {
             <div className="border border-gray-200 rounded-lg p-4">
               <div className="flex items-center mb-3">
                 <HardDrive className="w-5 h-5 mr-2 text-red-500" />
-                <h4 className="font-medium text-gray-900">Équipements obsolètes</h4>
+                <h4 className="font-medium text-gray-900">{r.t('actions.quickObsoleteEquipment')}</h4>
               </div>
               <div className="flex space-x-2">
                 <button
@@ -723,7 +735,7 @@ export default function ReportsPage() {
                   className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <FileSpreadsheet className="w-3 h-3 mr-1" />
-                  CSV
+                  {r.t('actions.btnCsv')}
                 </button>
                 <button
                   onClick={() => handleQuickReport('obsolete-equipment', 'excel')}
@@ -731,7 +743,7 @@ export default function ReportsPage() {
                   className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <FaFileExcel className="w-3 h-3 mr-1 text-green-600" />
-                  Excel
+                  {r.t('actions.btnExcel')}
                 </button>
                 <button
                   onClick={() => handleQuickReport('obsolete-equipment', 'pdf')}
@@ -739,7 +751,7 @@ export default function ReportsPage() {
                   className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <FaRegFilePdf className="w-3 h-3 mr-1" />
-                  PDF
+                  {r.t('actions.btnPdf')}
                 </button>
               </div>
             </div>
@@ -748,7 +760,7 @@ export default function ReportsPage() {
             <div className="border border-gray-200 rounded-lg p-4">
               <div className="flex items-center mb-3">
                 <Calendar className="w-5 h-5 mr-2 text-orange-500" />
-                <h4 className="font-medium text-gray-900">Expirations prochaines</h4>
+                <h4 className="font-medium text-gray-900">{r.t('actions.quickExpiringSoon')}</h4>
               </div>
               <div className="flex space-x-2">
                 <button
@@ -757,7 +769,7 @@ export default function ReportsPage() {
                   className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   <FileSpreadsheet className="w-3 h-3 mr-1" />
-                  CSV
+                  {r.t('actions.btnCsv')}
                 </button>
                 <button
                   onClick={() => handleQuickReport('expiring-soon', 'excel')}
