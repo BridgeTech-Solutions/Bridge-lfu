@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import { equipmentSchema } from '@/lib/validations'
 import { useEquipmentTypes } from '@/hooks/useEquipmentTypes' 
+import { useEquipmentBrands } from '@/hooks/useEquipmentBrands'
 
 type EquipmentFormData = z.infer<typeof equipmentSchema>
 
@@ -72,6 +73,11 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
     types: equipmentTypes, 
     loading: loadingTypes 
   } = useEquipmentTypes({ activeOnly: true, limit: 1000 })
+
+  const {
+    brands: equipmentBrands,
+    loading: loadingBrands,
+  } = useEquipmentBrands({ activeOnly: true, limit: 1000 })
     
   // Form hook
   const {
@@ -90,6 +96,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
       // Le reset dans l'useEffect prendra le relais.
       client_id: '',
       type_id: '',
+      brand_id: '',
     },
   })
 
@@ -116,6 +123,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
         isEditing && 
         clientsData && 
         equipmentTypes.length > 0 && 
+        equipmentBrands.length > 0 &&
         !hasFormBeenReset
     ) {
       // Formatage des dates si elles existent (pour les inputs type="date")
@@ -125,7 +133,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
       reset({
         name: equipment.name || '',
         type_id: equipment.type_id || '',
-        brand: equipment.brand || '',
+        brand_id: equipment.brand_id || '',
         model: equipment.model || '',
         serial_number: equipment.serial_number || '',
         // Assurez-vous que les dates sont formatées correctement pour les inputs type="date"
@@ -149,8 +157,27 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
     reset, 
     clientsData, 
     equipmentTypes, 
+    equipmentBrands,
     hasFormBeenReset
   ])
+
+  const selectedBrandId = watch('brand_id')
+
+  useEffect(() => {
+    if (
+      isEditing &&
+      equipment &&
+      equipment.brand_name &&
+      !equipment.brand_id &&
+      equipmentBrands.length > 0 &&
+      !selectedBrandId
+    ) {
+      const fallbackBrand = equipmentBrands.find((brandItem) => brandItem.name === equipment.brand_name)
+      if (fallbackBrand) {
+        setValue('brand_id', fallbackBrand.id, { shouldValidate: true })
+      }
+    }
+  }, [isEditing, equipment, equipmentBrands, selectedBrandId, setValue])
 
   const onSubmit = async (data: EquipmentFormData) => {
     setSubmitError(null)
@@ -159,7 +186,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
     const formData = {
       name: data.name,
       type_id: data.type_id, 
-      brand: data.brand,
+      brand_id: data.brand_id,
       model: data.model,
       serial_number: data.serial_number,
       purchase_date: data.purchase_date || undefined,
@@ -201,7 +228,7 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
   // MISE À JOUR : On s'assure que TOUTES les données nécessaires sont là avant de continuer.
   // Dans le cas de l'édition, on vérifie aussi que hasFormBeenReset est true, sinon on affiche le spinner 
   // jusqu'à ce que le formulaire ait été réinitialisé avec les valeurs (pour éviter l'affichage vide).
-  const isDataLoading = equipmentLoading || clientsLoading || loadingTypes
+  const isDataLoading = equipmentLoading || clientsLoading || loadingTypes || loadingBrands
   const shouldShowSpinner = isDataLoading || (isEditing && !hasFormBeenReset)
 
   if (shouldShowSpinner) {
@@ -295,12 +322,31 @@ export default function EquipmentFormPage({ equipmentId }: EquipmentFormPageProp
                   </div>
 
                   <div>
-                    <Label htmlFor="brand">Marque</Label>
-                    <Input
-                      id="brand"
-                      {...register('brand')}
-                      placeholder="Marque de l'équipement"
-                    />
+                    <Label htmlFor="brand_id">Marque *</Label>
+                    <Select
+                      value={watch('brand_id') || ''}
+                      onValueChange={(value) => {
+                        setValue('brand_id', value, { shouldValidate: true })
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner une marque" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {equipmentBrands.length > 0 ? (
+                          equipmentBrands.map((brandItem) => (
+                            <SelectItem key={brandItem.id} value={brandItem.id}>
+                              {brandItem.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="" disabled>Aucune marque disponible</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {errors.brand_id && (
+                      <p className="text-sm text-red-600 mt-1">{errors.brand_id.message}</p>
+                    )}
                   </div>
 
                   <div>

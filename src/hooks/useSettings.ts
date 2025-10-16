@@ -1,5 +1,5 @@
 // hooks/useSettings.ts
-import { useState, useCallback,useEffect} from 'react'
+import {  useCallback} from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthPermissions } from './index'
 import type { AppSetting } from '@/types'

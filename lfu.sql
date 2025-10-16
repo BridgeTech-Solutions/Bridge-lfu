@@ -103,12 +103,27 @@ CREATE TABLE public.licenses (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Table des marques d'équipement
+CREATE TABLE public.equipment_brands (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name TEXT NOT NULL,
+    website TEXT,
+    support_email TEXT,
+    support_phone TEXT,
+    notes TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by UUID REFERENCES public.profiles(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Table des équipements
 CREATE TABLE public.equipment (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     name TEXT NOT NULL,
     type equipment_type NOT NULL,
     brand TEXT,
+    brand_id UUID REFERENCES public.equipment_brands(id),
     model TEXT,
     serial_number TEXT,
     purchase_date DATE,
@@ -204,6 +219,7 @@ CREATE INDEX idx_licenses_status ON public.licenses(status);
 
 -- Index sur les équipements
 CREATE INDEX idx_equipment_client_id ON public.equipment(client_id);
+CREATE INDEX idx_equipment_brand_id ON public.equipment(brand_id);
 CREATE INDEX idx_equipment_obsolescence_date ON public.equipment(estimated_obsolescence_date);
 CREATE INDEX idx_equipment_status ON public.equipment(status);
 CREATE INDEX idx_equipment_type ON public.equipment(type);
@@ -554,10 +570,12 @@ LEFT JOIN public.license_suppliers ls ON l.supplier_id = ls.id;
 CREATE VIEW v_equipment_with_client AS
 SELECT 
     e.*,
+    eb.name AS brand_name,
     c.name as client_name,
     c.contact_email as client_email,
     p.first_name || ' ' || p.last_name as created_by_name
 FROM public.equipment e
+LEFT JOIN public.equipment_brands eb ON e.brand_id = eb.id
 LEFT JOIN public.clients c ON e.client_id = c.id
 LEFT JOIN public.profiles p ON e.created_by = p.id;
 
@@ -695,6 +713,7 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.licenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.equipment_brands ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.license_attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.equipment_attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
@@ -779,6 +798,25 @@ CREATE POLICY "Clients can view their own equipment" ON public.equipment
         )
     );
 
+-- POLICIES MISES À JOUR POUR LES MARQUES D'ÉQUIPEMENTS
+-- Admins et techniciens peuvent tout gérer
+CREATE POLICY "Admins and technicians can manage equipment brands" ON public.equipment_brands
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM public.profiles 
+            WHERE id = auth.uid() AND role IN ('admin', 'technicien')
+        )
+    );
+
+-- NOUVEAU : Les clients peuvent voir les marques d'équipements
+CREATE POLICY "Clients can view equipment brands" ON public.equipment_brands
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.profiles 
+            WHERE id = auth.uid() AND role IN ('client')
+        )
+    );
+
 -- POLICIES MISES À JOUR POUR LES PIÈCES JOINTES DES LICENCES
 -- Admins et techniciens peuvent tout gérer
 CREATE POLICY "Admins and technicians can manage license attachments" ON public.license_attachments
@@ -852,6 +890,13 @@ INSERT INTO public.clients (name, address, city, postal_code, contact_email, con
 ('MediCare Clinic', '456 Avenue de la Santé', 'Lyon', '69000', 'admin@medicare.fr', 'Marie Martin', 'Santé'),
 ('EduSchool', '789 Boulevard de l''Education', 'Marseille', '13000', 'it@eduschool.fr', 'Pierre Durand', 'Education');
 
+-- Insertion de marques d'équipement de test
+INSERT INTO public.equipment_brands (name, website, support_email, support_phone, notes)
+VALUES
+('Dell Technologies', 'https://www.dell.com', 'support@dell.com', '+1-800-555-0101', 'Support entreprise disponible 24/7'),
+('HP Inc.', 'https://www.hp.com', 'support@hp.com', '+1-800-555-0102', 'Spécialiste imprimantes et PCs'),
+('Cisco Systems', 'https://www.cisco.com', 'support@cisco.com', '+1-800-555-0103', 'Leader réseau et sécurité');
+
 -- 10. FONCTIONS POUR LES RAPPORTS
 -- ==================================================================
 
@@ -891,30 +936,33 @@ $$ LANGUAGE plpgsql;
 -- Fonction pour générer un rapport des équipements obsolètes
 CREATE OR REPLACE FUNCTION get_obsolete_equipment_report()
 RETURNS TABLE (
-    equipment_name TEXT,
-    client_name TEXT,
-    type equipment_type,
-    brand TEXT,
-    model TEXT,
-    obsolescence_date DATE,
-    days_obsolete INTEGER
+  equipment_name TEXT,
+  client_name    TEXT,
+  type_name      TEXT,
+  brand          TEXT,
+  model          TEXT,
+  obsolescence_date DATE,
+  days_obsolete  INTEGER
 ) AS $$
 BEGIN
-    RETURN QUERY
-    SELECT 
-        e.name,
-        c.name,
-        e.type,
-        e.brand,
-        e.model,
-        e.estimated_obsolescence_date,
-        (CURRENT_DATE - e.estimated_obsolescence_date)::INTEGER
-    FROM public.equipment e
-    LEFT JOIN public.clients c ON e.client_id = c.id
-    WHERE e.estimated_obsolescence_date < CURRENT_DATE
-    ORDER BY e.estimated_obsolescence_date DESC;
+  RETURN QUERY
+  SELECT
+    e.name,
+    c.name,
+    COALESCE(et.name, e.type::text, 'Sans type') AS type_name,
+    COALESCE(eb.name, e.brand, 'Sans marque')     AS brand,
+    e.model,
+    e.estimated_obsolescence_date,
+    (CURRENT_DATE - e.estimated_obsolescence_date)::INTEGER
+  FROM public.equipment e
+  LEFT JOIN public.clients          c  ON e.client_id = c.id
+  LEFT JOIN public.equipment_brands eb ON e.brand_id  = eb.id
+  LEFT JOIN public.equipment_types  et ON e.type_id   = et.id
+  WHERE e.estimated_obsolescence_date < CURRENT_DATE
+  ORDER BY e.estimated_obsolescence_date DESC;
 END;
 $$ LANGUAGE plpgsql;
+
 
 -- NOUVEAU : Fonction pour générer un rapport client spécifique
 CREATE OR REPLACE FUNCTION get_client_licenses_report(client_uuid UUID)
@@ -951,33 +999,35 @@ $$ LANGUAGE plpgsql;
 -- NOUVEAU : Fonction pour générer un rapport équipements client spécifique
 CREATE OR REPLACE FUNCTION get_client_equipment_report(client_uuid UUID)
 RETURNS TABLE (
-    equipment_name TEXT,
-    type equipment_type,
-    brand TEXT,
-    model TEXT,
-    status equipment_status,
-    obsolescence_date DATE,
-    end_of_sale DATE,
-    days_until_obsolescence INTEGER,
-    days_until_end_of_sale INTEGER
+  equipment_name TEXT,
+  type_name      TEXT,
+  brand          TEXT,
+  model          TEXT,
+  status         TEXT,
+  obsolescence_date DATE,
+  end_of_sale    DATE,
+  days_until_obsolescence INTEGER,
+  days_until_end_of_sale INTEGER
 ) AS $$
 BEGIN
-    RETURN QUERY
-    SELECT 
-        e.name,
-        e.type,
-        e.brand,
-        e.model,
-        e.status,
-        e.estimated_obsolescence_date,
-        e.end_of_sale,
-        (e.estimated_obsolescence_date - CURRENT_DATE)::INTEGER,
-        (e.end_of_sale - CURRENT_DATE)::INTEGER
-    FROM public.equipment e
-    WHERE e.client_id = client_uuid
-    ORDER BY 
-        COALESCE(e.estimated_obsolescence_date, '2099-12-31'::DATE) ASC,
-        COALESCE(e.end_of_sale, '2099-12-31'::DATE) ASC;
+  RETURN QUERY
+  SELECT
+    e.name,
+    COALESCE(et.name, e.type::text, 'Sans type') AS type_name,
+    COALESCE(eb.name, e.brand, 'Sans marque')     AS brand,
+    e.model,
+    e.status::text,
+    e.estimated_obsolescence_date,
+    e.end_of_sale,
+    (e.estimated_obsolescence_date - CURRENT_DATE)::INTEGER,
+    (e.end_of_sale - CURRENT_DATE)::INTEGER
+  FROM public.equipment e
+  LEFT JOIN public.equipment_brands eb ON e.brand_id = eb.id
+  LEFT JOIN public.equipment_types  et ON e.type_id  = et.id
+  WHERE e.client_id = client_uuid
+  ORDER BY
+    COALESCE(e.estimated_obsolescence_date, '2099-12-31'::DATE),
+    COALESCE(e.end_of_sale, '2099-12-31'::DATE);
 END;
 $$ LANGUAGE plpgsql;
 --  FONCTION UTILITAIRE POUR CALCULER LA DURÉE DE VIE DES LICENCES
@@ -1008,36 +1058,37 @@ COMMENT ON FUNCTION get_license_duration_stats() IS 'Fonction retournant les sta
 
 CREATE OR REPLACE FUNCTION get_equipment_end_of_sale_alerts(alert_days INTEGER DEFAULT 180)
 RETURNS TABLE (
-    equipment_id UUID,
-    equipment_name TEXT,
-    client_name TEXT,
-    brand TEXT,
-    model TEXT,
-    end_of_sale DATE,
-    days_until_end_of_sale INTEGER,
-    alert_level TEXT
+  equipment_id UUID,
+  equipment_name TEXT,
+  client_name    TEXT,
+  brand          TEXT,
+  model          TEXT,
+  end_of_sale    DATE,
+  days_until_end_of_sale INTEGER,
+  alert_level    TEXT
 ) AS $$
 BEGIN
-    RETURN QUERY
-    SELECT 
-        e.id,
-        e.name,
-        c.name,
-        e.brand,
-        e.model,
-        e.end_of_sale,
-        (e.end_of_sale - CURRENT_DATE)::INTEGER,
-        CASE 
-            WHEN e.end_of_sale < CURRENT_DATE THEN 'expired'
-            WHEN e.end_of_sale <= CURRENT_DATE + INTERVAL '30 days' THEN 'urgent'
-            WHEN e.end_of_sale <= CURRENT_DATE + INTERVAL '90 days' THEN 'warning'
-            ELSE 'normal'
-        END::TEXT
-    FROM public.equipment e
-    LEFT JOIN public.clients c ON e.client_id = c.id
-    WHERE e.end_of_sale IS NOT NULL 
+  RETURN QUERY
+  SELECT
+    e.id,
+    e.name,
+    c.name,
+    COALESCE(eb.name, e.brand, 'Sans marque') AS brand,
+    e.model,
+    e.end_of_sale,
+    (e.end_of_sale - CURRENT_DATE)::INTEGER,
+    CASE
+      WHEN e.end_of_sale < CURRENT_DATE THEN 'expired'
+      WHEN e.end_of_sale <= CURRENT_DATE + INTERVAL '30 days' THEN 'urgent'
+      WHEN e.end_of_sale <= CURRENT_DATE + INTERVAL '90 days' THEN 'warning'
+      ELSE 'normal'
+    END::TEXT
+  FROM public.equipment e
+  LEFT JOIN public.clients          c  ON e.client_id = c.id
+  LEFT JOIN public.equipment_brands eb ON e.brand_id  = eb.id
+  WHERE e.end_of_sale IS NOT NULL
     AND e.end_of_sale <= CURRENT_DATE + INTERVAL '1 day' * alert_days
-    ORDER BY e.end_of_sale ASC;
+  ORDER BY e.end_of_sale ASC;
 END;
 $$ LANGUAGE plpgsql;
 

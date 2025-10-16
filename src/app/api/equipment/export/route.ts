@@ -11,6 +11,7 @@ type EquipmentExportRow = {
   type_name: string | null
   type_code: string | null
   brand: string | null
+  brand_name: string | null
   model: string | null
   serial_number: string | null
   status: string | null
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       query = query.or(
-        `name.ilike.%${search}%,brand.ilike.%${search}%,model.ilike.%${search}%`,
+        `name.ilike.%${search}%,brand_name.ilike.%${search}%,model.ilike.%${search}%`,
       )
     }
 
@@ -128,7 +129,7 @@ export async function GET(request: NextRequest) {
         [
           `"${item.name ?? ''}"`,
           `"${item.type_name ?? item.type_code ?? ''}"`,
-          `"${item.brand ?? ''}"`,
+          `"${item.brand_name ?? item.brand ?? ''}"`,
           `"${item.model ?? ''}"`,
           `"${item.serial_number ?? ''}"`,
           `"${item.status ?? ''}"`,
@@ -319,7 +320,7 @@ export async function GET(request: NextRequest) {
       const row = worksheet.addRow([
         item.name || '',
         item.type_name || (item.type_code ? item.type_code.toUpperCase() : ''),
-        item.brand || '',
+        item.brand_name || item.brand || '',
         item.model || '',
         item.serial_number || '',
         getStatusLabel(item.status),

@@ -29,6 +29,12 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
         { action: 'update', resource: 'license_suppliers' },
         { action: 'delete', resource: 'license_suppliers' },
 
+        // Gestion des marques d'équipement
+        { action: 'create', resource: 'equipment_brands' },
+        { action: 'read', resource: 'equipment_brands' },
+        { action: 'update', resource: 'equipment_brands' },
+        { action: 'delete', resource: 'equipment_brands' },
+
         // Gestion complète des équipements
         { action: 'create', resource: 'equipment' },
         { action: 'read', resource: 'equipment' },
@@ -73,6 +79,12 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
         { action: 'update', resource: 'license_suppliers' },
         { action: 'delete', resource: 'license_suppliers' },
 
+        // Gestion des marques d'équipement
+        { action: 'create', resource: 'equipment_brands' },
+        { action: 'read', resource: 'equipment_brands' },
+        { action: 'update', resource: 'equipment_brands' },
+        { action: 'delete', resource: 'equipment_brands' },
+
         // Gestion complète des équipements
         { action: 'create', resource: 'equipment' },
         { action: 'read', resource: 'equipment' },
@@ -113,6 +125,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
         {
             action: 'read',
             resource: 'license_suppliers',
+        },
+        {
+            action: 'read',
+            resource: 'equipment_brands',
         },
 
         // Lecture des équipements de son client uniquement

@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
     const typeLegacy = searchParams.get('type');
     const status = searchParams.get('status');
     const brand = searchParams.get('brand');
+    const brandId = searchParams.get('brand_id');
 
     let query = supabase
       .from('v_equipment_with_client')
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     // Filtres de recherche
     if (search) {
-      query = query.or(`name.ilike.%${search}%,brand.ilike.%${search}%,model.ilike.%${search}%`);
+      query = query.or(`name.ilike.%${search}%,brand_name.ilike.%${search}%,model.ilike.%${search}%`);
     }
 
     if (clientId) {
@@ -68,7 +69,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (brand) {
-      query = query.ilike('brand', `%${brand}%`);
+      query = query.ilike('brand_name', `%${brand}%`);
+    }
+
+    if (brandId) {
+      query = query.eq('brand_id', brandId);
     }
     // Pagination et tri
     const { data: equipment, count, error } = await query
@@ -84,7 +89,11 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      data: equipment,
+      data: equipment?.map(item => ({
+        ...item,
+        type: item.type_name ?? item.type,
+        brand: item.brand_name,
+      })),
       count,
       page,
       totalPages: Math.ceil((count || 0) / limit),
@@ -200,13 +209,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (validatedData.brand_id) {
+      const { data: brandMatch, error: brandError } = await supabase
+        .from('equipment_brands')
+        .select('id, is_active')
+        .eq('id', validatedData.brand_id)
+        .maybeSingle();
+
+      if (brandError || !brandMatch) {
+        return NextResponse.json(
+          { message: 'Marque introuvable' },
+          { status: 400 }
+        );
+      }
+
+      if (brandMatch.is_active === false) {
+        return NextResponse.json(
+          { message: 'Cette marque est inactive' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Créer l'équipement
     const { data: equipment, error } = await supabase
       .from('equipment')
       .insert({
         name: validatedData.name,
         type_id: resolvedTypeId,
-        brand: validatedData.brand,
+        brand_id: validatedData.brand_id ?? null,
         model: validatedData.model,
         serial_number: validatedData.serial_number,
         purchase_date: validatedData.purchase_date,

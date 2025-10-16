@@ -4,7 +4,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useClient } from '@/hooks/useClients';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Spinner } from '@/components/ui/spinner';
 import { ClientDetailPage } from '@/components/pages/ClientDetailPage';
 import { AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';

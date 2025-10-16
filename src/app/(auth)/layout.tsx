@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
@@ -11,7 +9,6 @@ export default function AuthLayout({
   children: React.ReactNode
 }) {
   const { loading } = useAuth({ isPublicPage: true })
-  const router = useRouter()
 
   if (loading) {
     return (

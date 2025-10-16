@@ -24,10 +24,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Activity,
   DollarSign,
-  Zap,
-  Bell,
+
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -124,88 +122,7 @@ import { useTranslations } from '@/hooks/useTranslations'
     }
   }
 
-function AlertItem({ alert }: AlertItemProps) {
-    const getAlertIcon = (alertType: string) => {
-      switch (alertType) {
-        case 'license_expiry':
-          return Shield
-        case 'equipment_obsolescence':
-          return Server
-        default:
-          return AlertTriangle
-      }
-    }
 
-    const getAlertColor = (level: string) => {
-      switch (level) {
-        case 'expired':
-          return 'destructive'
-        case 'urgent':
-          return 'destructive'
-        case 'warning':
-          return 'warning'
-        default:
-          return 'secondary'
-      }
-    }
-
-    const getStatusIcon = (status: string) => {
-      switch (status) {
-        case 'active':
-          return CheckCircle
-        case 'expired':
-        case 'obsolete':
-          return XCircle
-        case 'about_to_expire':
-        case 'bientot_obsolete':
-          return Clock
-        default:
-          return AlertTriangle
-      }
-    }
-
-    const Icon = getAlertIcon(alert.alert_type)
-    const StatusIcon = getStatusIcon(alert.status)
-
-    return (
-      <div className="flex items-center space-x-4 p-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors">
-        <div className="flex-shrink-0">
-          <div className="p-2 bg-red-50 rounded-lg">
-            <Icon className="h-5 w-5 text-red-600" />
-          </div>
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {alert.item_name}
-            </p>
-            <Badge variant={getAlertColor(alert.alert_level)}>
-              {alert.alert_level}
-            </Badge>
-          </div>
-          <div className="flex items-center mt-1 space-x-2">
-            {alert.client_name && (
-              <p className="text-sm text-gray-500">
-                Client: {alert.client_name}
-              </p>
-            )}
-            <div className="flex items-center text-sm text-gray-500">
-              <StatusIcon className="h-4 w-4 mr-1" />
-              {alert.status}
-            </div>
-          </div>
-          <p className="text-xs text-gray-400 mt-1">
-            {new Date(alert.alert_date).toLocaleDateString('fr-FR')}
-          </p>
-        </div>
-        
-        <div className="flex-shrink-0">
-          <ArrowRight className="h-4 w-4 text-gray-400" />
-        </div>
-      </div>
-    )
-  }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8']
 

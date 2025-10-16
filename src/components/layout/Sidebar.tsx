@@ -141,6 +141,12 @@ export function Sidebar() {
           href: '/equipment-types',
           permissions: { resource: 'equipment', action: 'read' }
         }
+        ,
+        {
+          name: t('items.equipmentBrands'),
+          href: '/equipment-brands',
+          permissions: { resource: 'equipment_brands', action: 'read' }
+        }
       ]
     },
     {

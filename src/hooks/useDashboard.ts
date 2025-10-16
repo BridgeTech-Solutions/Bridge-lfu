@@ -174,7 +174,7 @@ export function useDashboard() {
     const fiveMinutes = 5 * 60 * 1000
 
     if (dataAge < fiveMinutes) {
-      console.log('Données encore fraîches, pas de rechargement nécessaire')
+      // console.log('Données encore fraîches, pas de rechargement nécessaire')
       return { data }
     }
 

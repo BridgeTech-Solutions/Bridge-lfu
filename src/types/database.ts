@@ -61,6 +61,53 @@ export type Database = {
           },
         ]
       }
+      equipment_brands: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          notes: string | null
+          support_email: string | null
+          support_phone: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notes?: string | null
+          support_email?: string | null
+          support_phone?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notes?: string | null
+          support_email?: string | null
+          support_phone?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_brands_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           category: string
@@ -165,6 +212,7 @@ export type Database = {
         Row: {
           actual_obsolescence_date: string | null
           brand: string | null
+          brand_id: string | null
           client_id: string | null
           cost: number | null
           created_at: string | null
@@ -186,6 +234,7 @@ export type Database = {
         Insert: {
           actual_obsolescence_date?: string | null
           brand?: string | null
+          brand_id?: string | null
           client_id?: string | null
           cost?: number | null
           created_at?: string | null
@@ -207,6 +256,7 @@ export type Database = {
         Update: {
           actual_obsolescence_date?: string | null
           brand?: string | null
+          brand_id?: string | null
           client_id?: string | null
           cost?: number | null
           created_at?: string | null
@@ -245,6 +295,13 @@ export type Database = {
             columns: ["type_id"]
             isOneToOne: false
             referencedRelation: "equipment_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_brands"
             referencedColumns: ["id"]
           },
         ]

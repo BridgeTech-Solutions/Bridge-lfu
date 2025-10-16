@@ -73,86 +73,90 @@ export async function GET(request: NextRequest) {
 
     let query = supabase.from('v_equipment_with_client').select('*');
 
-    if (!checker.canViewAllData() && user.client_id) {
-      query = query.eq('client_id', user.client_id);
-    } else if (clientId) {
-      query = query.eq('client_id', clientId);
-    }
+    if (!checker.canViewAllData() && user.client_id) {
+      query = query.eq('client_id', user.client_id);
+    } else if (clientId) {
+      query = query.eq('client_id', clientId);
+    }
 
-    if (status) query = query.eq('status', status as EquipmentStatus);
-    if (type) query = query.eq('type', type as EquipmentType);
-    if (dateFrom) query = query.gte('estimated_obsolescence_date', dateFrom);
-    if (dateTo) query = query.lte('estimated_obsolescence_date', dateTo);
+    if (status) query = query.eq('status', status as EquipmentStatus);
+    if (type) query = query.eq('type_code', type as EquipmentType);
+    if (dateFrom) query = query.gte('estimated_obsolescence_date', dateFrom);
+    if (dateTo) query = query.lte('estimated_obsolescence_date', dateTo);
 
-    const { data: equipment, error } = await query.order('estimated_obsolescence_date', { 
-      ascending: true, 
-      nullsFirst: false 
-    });
+    const { data: equipment, error } = await query.order('estimated_obsolescence_date', { 
+      ascending: true, 
+      nullsFirst: false 
+    });
 
-    if (error) {
-      console.error('Erreur lors de la génération du rapport équipements:', error);
-      return NextResponse.json({ message: 'Erreur lors de la génération du rapport' }, { status: 500 });
-    }
+    if (error) {
+      console.error('Erreur lors de la génération du rapport équipements:', error);
+      return NextResponse.json({ message: 'Erreur lors de la génération du rapport' }, { status: 500 });
+    }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typedEquipment = (equipment || []) as any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const typedEquipment = (equipment || []) as any[];
 
-    const reportData: EquipmentReportData[] = typedEquipment.map(item => {
-      const daysUntilObsolescence = item.estimated_obsolescence_date
-        ? Math.ceil((new Date(item.estimated_obsolescence_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-        : null;
-      const daysUntilEndOfSale = item.end_of_sale
-        ? Math.ceil((new Date(item.end_of_sale).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-        : null;
+    const reportData: EquipmentReportData[] = (typedEquipment || []).map((item) => {
+      const brandName = item.brand_name || item.brand || '';
+      const typeCode = (item.type_code || item.type || 'autre') as EquipmentType;
+      const daysUntilObsolescence = item.estimated_obsolescence_date
+        ? Math.ceil((new Date(item.estimated_obsolescence_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        : null;
+      const daysUntilEndOfSale = item.end_of_sale
+        ? Math.ceil((new Date(item.end_of_sale).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        : null;
 
-      return {
-        name: item.name || '',
-        type: item.type || 'autre',
-        brand: item.brand || '',
-        model: item.model || '',
-        serial_number: item.serial_number || '',
-        client_name: item.client_name || '',
-        purchase_date: item.purchase_date || '',
-        estimated_obsolescence_date: item.estimated_obsolescence_date || '',
-        end_of_sale: item.end_of_sale || '',
-        status: item.status || 'actif',
-        cost: item.cost || 0,
-        days_until_obsolescence: daysUntilObsolescence,
-        days_until_end_of_sale: daysUntilEndOfSale,
-        created_at: item.created_at || ''
-      };
-    }) || [];
-    // Récupérer le nom du client depuis les données si un clientId est spécifié
+      return {
+        name: item.name || '',
+        type: typeCode,
+        brand: brandName,
+        model: item.model || '',
+        serial_number: item.serial_number || '',
+        client_name: item.client_name || '',
+        purchase_date: item.purchase_date || '',
+        estimated_obsolescence_date: item.estimated_obsolescence_date || '',
+        end_of_sale: item.end_of_sale || '',
+        status: (item.status as EquipmentStatus) || 'actif',
+        cost: item.cost || 0,
+        days_until_obsolescence: daysUntilObsolescence,
+        days_until_end_of_sale: daysUntilEndOfSale,
+        created_at: item.created_at || ''
+      };
+    });
+
     const clientName = clientId && reportData.length > 0 ? reportData[0].client_name : null;
-    switch (format) {
-      case 'csv':
-        return generateCSVReport(reportData);
-      case 'pdf':
-        return await generatePDFReport(reportData, fontBuffer, {
-          title: 'Rapport des Équipements',
-          user: user.first_name || user.email,
-          filters: { clientId, clientName, status, type, dateFrom, dateTo },        
-          isClientUser: !checker.canViewAllData()
-        });
-      case 'excel':
-        return await generateExcelReport(reportData, {
-          title: 'Rapport des Équipements',
-          user: user.first_name || user.email,
-          filters: { clientId, clientName, status, type, dateFrom, dateTo },          isClientUser: !checker.canViewAllData()
-        });
-      default:
-        return NextResponse.json({
-          title: 'Rapport des Équipements',
-          generated_at: new Date().toISOString(),
-          total_count: reportData.length,
-          data: reportData
-        });
-    }
 
-  } catch (error) {
-    console.error('Erreur API GET /reports/equipment:', error);
-    return NextResponse.json({ message: 'Erreur interne du serveur' }, { status: 500 });
-  }
+    switch (format) {
+      case 'csv':
+        return generateCSVReport(reportData);
+      case 'pdf':
+        return await generatePDFReport(reportData, fontBuffer, {
+          title: 'Rapport des Équipements',
+          user: user.first_name || user.email,
+          filters: { clientId, clientName, status, type, dateFrom, dateTo },
+          isClientUser: !checker.canViewAllData()
+        });
+      case 'excel':
+        return await generateExcelReport(reportData, {
+          title: 'Rapport des Équipements',
+          user: user.first_name || user.email,
+          filters: { clientId, clientName, status, type, dateFrom, dateTo },
+          isClientUser: !checker.canViewAllData()
+        });
+      default:
+        return NextResponse.json({
+          title: 'Rapport des Équipements',
+          generated_at: new Date().toISOString(),
+          total_count: reportData.length,
+          data: reportData
+        });
+    }
+
+  } catch (error) {
+    console.error('Erreur API GET /reports/equipment:', error);
+    return NextResponse.json({ message: 'Erreur interne du serveur' }, { status: 500 });
+  }
 }
 
 // Fonction de génération CSV

@@ -24,7 +24,6 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Separator } from '@/components/ui/separator'
 import { 
   ArrowLeft,
   Edit,
@@ -456,10 +455,10 @@ export default function EquipmentDetailPage() {
                   </div>
                 )}
 
-                {equipment.brand && (
+                {equipment.brand_name && (
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Marque</Label>
-                    <p className="text-sm">{equipment.brand}</p>
+                    <p className="text-sm">{equipment.brand_name}</p>
                   </div>
                 )}
 

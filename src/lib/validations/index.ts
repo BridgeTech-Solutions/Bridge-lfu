@@ -98,7 +98,7 @@ export const equipmentSchema = z.object({
   type_id: z.string().uuid("Type d'équipement requis").optional(),
   type_code: z.string().optional(),
   type: z.string().optional(),
-  brand: z.string().optional(),
+  brand_id: z.string().uuid('Marque requise'),
   model: z.string().optional(),
   serial_number: z.string().optional(),
   purchase_date: z.string().optional(),
@@ -171,6 +171,21 @@ export const equipmentTypeCreateSchema = z.object({
 
 export const equipmentTypeUpdateSchema = equipmentTypeCreateSchema.partial().extend({
 	id: z.string().uuid('Identifiant du type requis'),
+})
+
+const equipmentBrandBaseSchema = z.object({
+  name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+  website: z.string().url('URL invalide').optional().or(z.literal('')).nullable(),
+  supportEmail: emailSchema.optional().or(z.literal('')).nullable(),
+  supportPhone: phoneSchema,
+  notes: z.string().optional().nullable(),
+  isActive: z.boolean().optional().default(true),
+})
+
+export const equipmentBrandCreateSchema = equipmentBrandBaseSchema
+
+export const equipmentBrandUpdateSchema = equipmentBrandBaseSchema.partial().extend({
+  id: z.string().uuid('Identifiant de la marque requis'),
 })
 
 const licenseSupplierBaseSchema = z.object({
@@ -277,6 +292,8 @@ export type LicenseInput = z.infer<typeof licenseSchema>
 export type EquipmentTypeUpdateInput = z.infer<typeof equipmentTypeUpdateSchema>
 export type LicenseSupplierCreateInput = z.infer<typeof licenseSupplierCreateSchema>
 export type LicenseSupplierUpdateInput = z.infer<typeof licenseSupplierUpdateSchema>
+export type EquipmentBrandCreateInput = z.infer<typeof equipmentBrandCreateSchema>
+export type EquipmentBrandUpdateInput = z.infer<typeof equipmentBrandUpdateSchema>
 export type NotificationSettingsInput = z.infer<typeof notificationSettingsSchema>
 export type SearchInput = z.infer<typeof searchSchema>
 export type ClientFiltersInput = z.infer<typeof clientFiltersSchema>

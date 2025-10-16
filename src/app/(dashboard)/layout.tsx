@@ -17,7 +17,7 @@ export default function DashboardLayout({
   const router = useRouter()
 
   useEffect(() => {
-      console.log("Utilisateur détecté :", user)
+      // console.log("Utilisateur détecté :", user)
     if (!loading && !user) {
       router.push('/login')
     } else if (!loading && user?.role === 'unverified') {

@@ -54,7 +54,11 @@ export async function GET(request: NextRequest, context: any) {
       );
     }
 
-    return NextResponse.json(equipment);
+    return NextResponse.json({
+      ...equipment,
+      type: equipment.type_name ?? equipment.type,
+      brand: equipment.brand_name
+    });
 
   } catch (error) {
     console.error('Erreur API GET /equipment/[id]:', error);
@@ -177,7 +181,29 @@ export async function PUT(request: NextRequest, context: any) {
     }
 
     // Mettre à jour l'équipement
-    const { data: updatedEquipment, error: updateError } = await supabase
+    if (validatedData.brand_id) {
+      const { data: brandMatch, error: brandError } = await supabase
+        .from('equipment_brands')
+        .select('id, is_active')
+        .eq('id', validatedData.brand_id)
+        .maybeSingle();
+
+      if (brandError || !brandMatch) {
+        return NextResponse.json(
+          { message: 'Marque introuvable' },
+          { status: 400 }
+        );
+      }
+
+      if (brandMatch.is_active === false) {
+        return NextResponse.json(
+          { message: 'Cette marque est inactive' },
+          { status: 400 }
+        );
+      }
+    }
+
+    const { error: updateError } = await supabase
       .from('equipment')
       .update({
         name: validatedData.name,
@@ -186,7 +212,7 @@ export async function PUT(request: NextRequest, context: any) {
         warranty_end_date: validatedData.warranty_end_date,
         status: validatedData.status,
         type_id: resolvedTypeId,
-        brand: validatedData.brand,
+        brand_id: validatedData.brand_id ?? existingEquipment.brand_id ?? null,
         model: validatedData.model,
         estimated_obsolescence_date: validatedData.estimated_obsolescence_date,
         end_of_sale: validatedData.end_of_sale,
@@ -196,9 +222,7 @@ export async function PUT(request: NextRequest, context: any) {
         description: validatedData.description,
         updated_at: new Date().toISOString()
       })
-      .eq('id', equipmentId)
-      .select()
-      .single();
+      .eq('id', equipmentId);
 
     if (updateError) {
       console.error('Erreur lors de la mise à jour de l\'équipement:', updateError);
@@ -209,18 +233,34 @@ export async function PUT(request: NextRequest, context: any) {
     }
 
     // Log de l'activité
+    const { data: updatedViewEquipment, error: fetchUpdated } = await supabase
+      .from('v_equipment_with_client')
+      .select('*')
+      .eq('id', equipmentId)
+      .maybeSingle();
+
+    const responsePayload = {
+      ...(updatedViewEquipment ?? existingEquipment),
+      type: updatedViewEquipment?.type_name ?? updatedViewEquipment?.type ?? existingEquipment.type,
+      brand: updatedViewEquipment?.brand_name ?? existingEquipment.brand
+    };
+
     await supabase.from('activity_logs').insert({
       user_id: user.id,
       action: 'update',
       table_name: 'equipment',
-      record_id: updatedEquipment.id,
+      record_id: equipmentId,
       old_values: existingEquipment,
-      new_values: updatedEquipment,
+      new_values: responsePayload,
       ip_address: ipAddress,
       user_agent: userAgent
     });
 
-    return NextResponse.json(updatedEquipment);
+    if (fetchUpdated) {
+      console.error('Erreur lors de la récupération de l\'équipement mis à jour :', fetchUpdated);
+    }
+
+    return NextResponse.json(responsePayload);
 
   } catch (error) {
     if (error instanceof Error && error.name === 'ZodError') {

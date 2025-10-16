@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Clock, Shield, CheckCircle, Mail, Phone } from 'lucide-react'
+import { Clock, Shield, CheckCircle, Phone } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 

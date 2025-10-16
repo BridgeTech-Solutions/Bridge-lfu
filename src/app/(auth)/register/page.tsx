@@ -27,7 +27,6 @@ export default function RegisterPage() {
     handleSubmit,
     formState: { errors },
     trigger,
-    getValues,
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     mode: 'onChange',

@@ -63,7 +63,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
   useEffect(() => {
 
     if (mode === 'edit' && existingClient) {
-      console.log(existingClient?.sector)
+      // console.log(existingClient?.sector)
       form.reset({
         name: existingClient.name || '',
         address: existingClient.address || '',

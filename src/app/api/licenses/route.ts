@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     type StatusType = typeof allowedStatuses[number]; // "active" | "expired" | "about_to_expire" | "cancelled"
 
     if (status && allowedStatuses.includes(status as StatusType)) {
-    query = query.eq('status', status as StatusType);
+      query = query.eq('status', status as StatusType);
     }
 
 

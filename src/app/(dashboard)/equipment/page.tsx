@@ -41,6 +41,7 @@ import {
 import { useAuthPermissions, usePagination } from '@/hooks'
 import { useClients } from '@/hooks/useClients'
 import { useEquipments } from '@/hooks/useEquipments'
+import { useEquipmentBrands } from '@/hooks/useEquipmentBrands'
 import { useEquipmentTypes } from '@/hooks/useEquipmentTypes' 
 import LucideIcon from '@/components/LucideIcon'
 import { useTranslations } from '@/hooks/useTranslations'
@@ -58,6 +59,7 @@ export default function EquipmentPage() {
   // États locaux
   const [searchTerm, setSearchTerm] = useState('')
   const [typeIdFilter, setTypeIdFilter] = useState('') 
+  const [brandIdFilter, setBrandIdFilter] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<string>('')
   const [selectedClient, setSelectedClient] = useState<string>('')
   const [showFilters, setShowFilters] = useState(false)
@@ -71,7 +73,7 @@ export default function EquipmentPage() {
     equipmentName: null
   })
 
-  const { types: equipmentTypes, loading: loadingTypes } = useEquipmentTypes({ 
+  const { types: equipmentTypes } = useEquipmentTypes({ 
     activeOnly: true, 
     limit: 1000 
   })
@@ -95,7 +97,8 @@ export default function EquipmentPage() {
     search: searchTerm,
     status: selectedStatus,
     clientId: selectedClient,
-    typeId: typeIdFilter || undefined
+    typeId: typeIdFilter || undefined,
+    brand: brandIdFilter || undefined
   })
 
   const { clients: clientsData } = useClients({
@@ -103,6 +106,11 @@ export default function EquipmentPage() {
     limit: 100
   })
   const clients = clientsData || []
+
+  const { brands: equipmentBrands } = useEquipmentBrands({
+    activeOnly: true,
+    limit: 1000
+  })
 
   const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
     try {
@@ -231,6 +239,11 @@ export default function EquipmentPage() {
     setSelectedStatus(value);
     goToPage(1); // Plus cohérent avec Licenses
   };
+
+  const handleBrandChange = (value: string) => {
+    setBrandIdFilter(value);
+    goToPage(1);
+  };
   
   // Handler pour le client
   const handleClientChange = (value: string) => {
@@ -243,8 +256,9 @@ export default function EquipmentPage() {
     if (typeIdFilter) count++
     if (selectedStatus) count++
     if (selectedClient) count++
+    if (brandIdFilter) count++
     return count
-  }, [searchTerm, typeIdFilter, selectedStatus, selectedClient])
+  }, [searchTerm, typeIdFilter, selectedStatus, selectedClient, brandIdFilter])
 
   const totalCost = useMemo(
     () => equipment.reduce((sum, item) => sum + (item.cost ?? 0), 0),
@@ -308,6 +322,7 @@ export default function EquipmentPage() {
     setTypeIdFilter('')
     setSelectedStatus('')
     setSelectedClient('')
+    setBrandIdFilter('')
   }
 
   const handleRefreshStatus = async () => {
@@ -456,58 +471,74 @@ export default function EquipmentPage() {
         {showFilters && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
             <div>
-            <Label htmlFor="status-filter">{tList('filters.status.label')}</Label>
-            <Select value={selectedStatus || 'all'}   onValueChange={(value) => handleStatusChange(value === 'all' ? '' : value)}
-            >
-              <SelectTrigger id="status-filter">
-                <SelectValue placeholder={tList('filters.status.label')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{tList('filters.status.label')}</SelectItem>
-                <SelectItem value="actif">{tList('filters.status.options.actif')}</SelectItem>
-                <SelectItem value="en_maintenance">{tList('filters.status.options.en_maintenance')}</SelectItem>
-                <SelectItem value="bientot_obsolete">{tList('filters.status.options.bientot_obsolete')}</SelectItem>
-                <SelectItem value="obsolete">{tList('filters.status.options.obsolete')}</SelectItem>
-                <SelectItem value="retire">{tList('filters.status.options.retire')}</SelectItem>
-              </SelectContent>
-            </Select>
+              <Label htmlFor="status-filter">{tList('filters.status.label')}</Label>
+              <Select value={selectedStatus || 'all'} onValueChange={(value) => handleStatusChange(value === 'all' ? '' : value)}>
+                <SelectTrigger id="status-filter">
+                  <SelectValue placeholder={tList('filters.status.label')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{tList('filters.status.label')}</SelectItem>
+                  <SelectItem value="actif">{tList('filters.status.options.actif')}</SelectItem>
+                  <SelectItem value="en_maintenance">{tList('filters.status.options.en_maintenance')}</SelectItem>
+                  <SelectItem value="bientot_obsolete">{tList('filters.status.options.bientot_obsolete')}</SelectItem>
+                  <SelectItem value="obsolete">{tList('filters.status.options.obsolete')}</SelectItem>
+                  <SelectItem value="retire">{tList('filters.status.options.retire')}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
-            <Label htmlFor="status-filter">{tList('filters.status.label')}</Label>
-            <Select value={selectedStatus || 'all'} onValueChange={handleStatusChange}>
-              <SelectTrigger id="status-filter">
-                <SelectValue placeholder={tList('filters.status.label')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{tList('filters.status.label')}</SelectItem>
-                <SelectItem value="actif">{tList('filters.status.options.actif')}</SelectItem>
-                <SelectItem value="en_maintenance">{tList('filters.status.options.en_maintenance')}</SelectItem>
-                <SelectItem value="bientot_obsolete">{tList('filters.status.options.bientot_obsolete')}</SelectItem>
-                <SelectItem value="obsolete">{tList('filters.status.options.obsolete')}</SelectItem>
-                <SelectItem value="retire">{tList('filters.status.options.retire')}</SelectItem>
-              </SelectContent>
-            </Select>
-            </div>
-
-            {permissions.canViewAllData() && (
-              <div>
-              <Label htmlFor="client-filter">{tList('filters.client.label')}</Label>
-              <Select value={selectedClient || 'all'} onValueChange={(value) => handleClientChange(value === 'all' ? '' : value)}>
-                <SelectTrigger id="client-filter">
-                  <SelectValue placeholder={tList('filters.client.all')} />
+              <Label htmlFor="type-filter">{tList('filters.type.label')}</Label>
+              <Select value={typeIdFilter || 'all'} onValueChange={(value) => handleTypeFilterChange(value === 'all' ? '' : value)}>
+                <SelectTrigger id="type-filter">
+                  <SelectValue placeholder={tList('filters.type.label')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{tList('filters.client.all')}</SelectItem>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
+                  <SelectItem value="all">{tList('filters.type.all')}</SelectItem>
+                  {equipmentTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {permissions.canViewAllData() && (
+              <div>
+                <Label htmlFor="client-filter">{tList('filters.client.label')}</Label>
+                <Select value={selectedClient || 'all'} onValueChange={(value) => handleClientChange(value === 'all' ? '' : value)}>
+                  <SelectTrigger id="client-filter">
+                    <SelectValue placeholder={tList('filters.client.all')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tList('filters.client.all')}</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
+
+            <div>
+              <Label htmlFor="brand-filter">{tList('filters.brand.label')}</Label>
+              <Select value={brandIdFilter || 'all'} onValueChange={(value) => handleBrandChange(value === 'all' ? '' : value)}>
+                <SelectTrigger id="brand-filter">
+                  <SelectValue placeholder={tList('filters.brand.all')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{tList('filters.brand.all')}</SelectItem>
+                  {equipmentBrands.map((brand) => (
+                    <SelectItem key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="flex items-end">
               <Button
@@ -595,7 +626,7 @@ export default function EquipmentPage() {
                               {item.name}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {item.brand} {item.model}
+                              {item.brand_name || ''} {item.model}
                             </div>
                           </div>
                         </div>

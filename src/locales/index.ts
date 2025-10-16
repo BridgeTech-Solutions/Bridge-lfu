@@ -132,6 +132,156 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         edit: 'Modifier',
       },
     },
+    equipmentTypes: {                               
+      title: 'Gestion des types d\'équipement',
+      subtitle: 'Gérez les différentes catégories d\'équipement',
+      stats: {
+        total: 'Total types',
+        active: 'Actifs',
+        inactive: 'Inactifs',
+      },
+      search: {
+        placeholder: 'Rechercher par nom, site ou contact...',
+      },
+      buttons: {
+        showInactive: 'Afficher les inactifs',
+        hideInactive: 'Masquer les inactifs',
+        newType: 'Nouveau type',
+      },
+      table: {
+        columns: {
+          name: 'Type',
+          code: 'Code',
+          description: 'Description',
+          status: 'Statut',
+          actions: 'Actions',
+        },
+        empty: 'Aucun type trouvé',
+        actions: {
+          edit: 'Modifier',
+          disable: 'Désactiver',
+          delete: 'Supprimer',
+        },
+      },
+      status: {
+        active: 'Actif',
+        inactive: 'Inactif',
+      },
+
+      modal: {
+        createTitle: 'Créer un type',
+        editTitle: 'Modifier le type',
+        description: 'Gérez les informations du type d\'équipement.',
+        fields: {
+          name: {
+            label: 'Nom',
+            required: '(obligatoire)',
+            placeholder: 'Nom du type',
+          },
+          code : {
+            label: 'Code',
+            required: '(obligatoire)',
+            placeholder: 'Code du type',
+          },
+          description: {
+            label: 'Description',
+            placeholder: 'Description du type',
+          },
+          icon: {
+            label: 'Icône',
+            placeholder: 'Icône du type',
+          },
+          isActive: 'Type actif',
+        },
+         actions: {
+            cancel: 'Annuler',
+            save: 'Enregistrer',
+            create: 'Créer',
+            saving: 'Enregistrement...',
+         } ,
+      },
+      confirmations: {
+        disable: 'Voulez-vous désactiver le type "{{name}}" ? Il pourra être réactivé plus tard.',
+        delete: 'Voulez-vous supprimer définitivement le type "{{name}}" ? Cette action est irréversible.',
+      },
+    },
+    equipmentBrands: {
+      title: 'Gestion des marques',
+      subtitle: 'Gérez les fabricants et marques d\'équipement',
+      stats: {
+        total: 'Total marques',
+        active: 'Actives',
+        inactive: 'Inactives',
+      },
+      search: {
+        placeholder: 'Rechercher par nom, site ou contact...',
+      },
+      buttons: {
+        showInactive: 'Afficher les inactives',
+        hideInactive: 'Masquer les inactives',
+        newBrand: 'Nouvelle marque',
+      },
+      table: {
+        columns: {
+          name: 'Marque',
+          contact: 'Contact',
+          website: 'Site web',
+          status: 'Statut',
+          actions: 'Actions',
+        },
+        empty: 'Aucune marque trouvée',
+        actions: {
+          edit: 'Modifier',
+          disable: 'Désactiver',
+          delete: 'Supprimer',
+        },
+      },
+      status: {
+        active: 'Active',
+        inactive: 'Inactive',
+      },
+      modal: {
+        createTitle: 'Créer une marque',
+        editTitle: 'Modifier la marque',
+        description: 'Gérez les informations du fabricant ou fournisseur de la marque.',
+        fields: {
+          name: {
+            label: 'Nom',
+            required: '(obligatoire)',
+            placeholder: 'Nom de la marque',
+          },
+          website: {
+            label: 'Site web',
+            placeholder: 'https://example.com',
+          },
+          supportEmail: {
+            label: 'Email support',
+            placeholder: 'support@example.com',
+          },
+          supportPhone: {
+            label: 'Téléphone support',
+            placeholder: '+237612345678',
+          },
+          notes: {
+            label: 'Notes',
+            placeholder: 'Informations supplémentaires...',
+          },
+          isActive: {
+            label: 'Marque active',
+          },
+        },
+        actions: {
+          cancel: 'Annuler',
+          save: 'Enregistrer',
+          create: 'Créer',
+          saving: 'Enregistrement...',
+        },
+      },
+      confirmations: {
+        disable: 'Voulez-vous désactiver la marque "{{name}}" ? Elle pourra être réactivée plus tard.',
+        delete: 'Voulez-vous supprimer définitivement la marque "{{name}}" ? Cette action est irréversible.',
+      },
+    },
     sidebar: {
       sections: {
         general: 'Général',
@@ -161,6 +311,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         expandSection: 'Déplier la section',
         collapseSection: 'Replier la section',
         equipmentTypes: 'Types d\'équipement',
+        equipmentBrands: 'Marques d\'équipement',
       },
     },
     header: {
@@ -516,7 +667,14 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           reset: 'Réinitialiser',
         },
         filters: {
-          type: { label: 'Type', all: 'Tous les types' },
+          type: {
+            label: 'Type',
+            all: 'Tous les types',
+          },
+          brand: {
+            label: 'Marque',
+            all: 'Toutes les marques',
+          },
           status: {
             label: 'Statut',
             options: {
@@ -527,7 +685,10 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
               retire: 'Retiré',
             },
           },
-          client: { label: 'Client', all: 'Tous les clients' },
+          client: {
+            label: 'Client',
+            all: 'Tous les clients',
+          },
           clear: 'Réinitialiser',
         },
         table: {
@@ -701,76 +862,6 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         },
       },
     },
-    equipmentTypes: {
-      title: 'Types d\'équipement',
-      subtitle: 'Gérez les différents types d\'équipements de votre système',
-      stats: {
-        total: 'Total',
-        active: 'Actifs',
-        inactive: 'Inactifs',
-      },
-      search: {
-        placeholder: 'Rechercher un type...',
-      },
-      buttons: {
-        showInactive: 'Afficher inactifs',
-        hideInactive: 'Masquer inactifs',
-        newType: 'Nouveau type',
-      },
-      table: {
-        columns: {
-          name: 'Nom',
-          code: 'Code',
-          description: 'Description',
-          status: 'Statut',
-          actions: 'Actions',
-        },
-        empty: 'Aucun type trouvé',
-        actions: {
-          edit: 'Modifier',
-          disable: 'Désactiver',
-          delete: 'Supprimer',
-        },
-      },
-      status: {
-        active: 'Actif',
-        inactive: 'Inactif',
-      },
-      modal: {
-        createTitle: 'Nouveau type',
-        editTitle: 'Modifier le type',
-        fields: {
-          name: {
-            label: 'Nom',
-            placeholder: 'PC / Ordinateur',
-            required: '*',
-          },
-          code: {
-            label: 'Code',
-            placeholder: 'PC',
-            required: '*',
-          },
-          description: {
-            label: 'Description',
-            placeholder: 'Description du type d\'équipement',
-          },
-          icon: {
-            label: 'Icône',
-            placeholder: 'Sélectionner une icône',
-          },
-          isActive: 'Type actif',
-        },
-        actions: {
-          cancel: 'Annuler',
-          save: 'Enregistrer',
-          saving: 'Enregistrement...',
-        },
-      },
-      confirmations: {
-        disable: 'Êtes-vous sûr de vouloir désactiver le type "{{name}}" ?',
-        delete: 'Êtes-vous sûr de vouloir supprimer définitivement le type "{{name}}" ?',
-      },
-    },
     licenseSuppliers: {
       title: 'Éditeurs & Fournisseurs',
       subtitle: 'Gérez les fournisseurs de licences',
@@ -813,6 +904,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       modal: {
         createTitle: 'Nouveau fournisseur',
         editTitle: 'Modifier le fournisseur',
+        description: 'Remplissez les informations du fournisseur',
         fields: {
           name: {
             label: 'Nom du fournisseur',
@@ -838,6 +930,11 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           notes: {
             label: 'Notes',
             placeholder: 'Informations complémentaires (comptes clients, interlocuteurs...)',
+          },
+          status: {
+            label: 'Statut',
+            active: 'Actif',
+            inactive: 'Inactif'
           },
           isActive: 'Fournisseur actif',
         },
@@ -1334,8 +1431,8 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
     },
     equipment: {
       list: {
-        title: 'Equipment',
-        subtitle: 'IT asset management',
+        title: 'Equipment Inventory',
+        subtitle: 'Manage the entire IT fleet',
         count: '({{count}} item{{plural}})',
         actions: {
           refresh: 'Refresh statuses',
@@ -1358,7 +1455,14 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           reset: 'Clear filters',
         },
         filters: {
-          type: { label: 'Type', all: 'All types' },
+          type: {
+            label: 'Type',
+            all: 'All types'
+          },
+          brand: {
+            label: 'Brand',
+            all: 'All brands'
+          },
           status: {
             label: 'Status',
             options: {
@@ -1369,7 +1473,10 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
               retire: 'Retired',
             },
           },
-          client: { label: 'Client', all: 'All clients' },
+          client: {
+            label: 'Client',
+            all: 'All clients'
+          },
           clear: 'Reset',
         },
         table: {
@@ -1544,8 +1651,8 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       },
     },
     equipmentTypes: {
-      title: 'Equipment Types',
-      subtitle: 'Manage your system\'s equipment types',
+      title: 'Equipment types',
+      subtitle: 'Manage your system\'s equipment categories',
       stats: {
         total: 'Total',
         active: 'Active',
@@ -1561,7 +1668,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       },
       table: {
         columns: {
-          name: 'Name',
+          name: 'Type',
           code: 'Code',
           description: 'Description',
           status: 'Status',
@@ -1579,22 +1686,23 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         inactive: 'Inactive',
       },
       modal: {
-        createTitle: 'New type',
+        createTitle: 'Create a type',
         editTitle: 'Edit type',
+        description: 'Manage the equipment type information.',
         fields: {
           name: {
             label: 'Name',
-            placeholder: 'PC / Computer',
-            required: '*',
+            required: ' (required)',
+            placeholder: 'Type name',
           },
           code: {
             label: 'Code',
-            placeholder: 'PC',
-            required: '*',
+            required: ' (required)',
+            placeholder: 'Type code',
           },
           description: {
             label: 'Description',
-            placeholder: 'Equipment type description',
+            placeholder: 'Short description of the type',
           },
           icon: {
             label: 'Icon',
@@ -1605,12 +1713,91 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         actions: {
           cancel: 'Cancel',
           save: 'Save',
+          create: 'Create',
           saving: 'Saving...',
         },
       },
       confirmations: {
-        disable: 'Are you sure you want to disable the type "{{name}}"?',
-        delete: 'Are you sure you want to permanently delete the type "{{name}}"?',
+        disable: 'Do you want to deactivate the type "{{name}}"? You can reactivate it later.',
+        delete: 'Do you want to permanently delete the type "{{name}}"? This action cannot be undone.',
+      },
+    },
+    equipmentBrands: {
+      title: 'Gestion des marques',
+      subtitle: 'Gérez les fabricants et les marques d\'équipements',
+      stats: {
+        total: 'Total des marques',
+        active: 'Actifs',
+        inactive: 'Inactifs',
+
+      },
+      search: {
+        placeholder: 'Search by name, website or contact...',
+      },
+      buttons: {
+        showInactive: 'Show inactive',
+        hideInactive: 'Hide inactive',
+        newBrand: 'New brand',
+      },
+      table: {
+        columns: {
+          name: 'Brand',
+          contact: 'Contact',
+          website: 'Website',
+          status: 'Status',
+          actions: 'Actions',
+        },
+        empty: 'No brand found',
+        actions: {
+          edit: 'Edit',
+          disable: 'Disable',
+          delete: 'Delete',
+        },
+      },
+      status: {
+        active: 'Active',
+        inactive: 'Inactive',
+      },
+      modal: {
+        createTitle: 'Create brand',
+        editTitle: 'Edit brand',
+        description: 'Manage the manufacturer or supplier information for this brand.',
+        fields: {
+          name: {
+            label: 'Name',
+            required: '(required)',
+            placeholder: 'Brand name',
+          },
+          website: {
+            label: 'Website',
+            placeholder: 'https://example.com',
+          },
+          supportEmail: {
+            label: 'Support email',
+            placeholder: 'support@example.com',
+          },
+          supportPhone: {
+            label: 'Support phone',
+            placeholder: '+237612345678',
+          },
+          notes: {
+            label: 'Notes',
+            placeholder: 'Additional information...',
+          },
+          isActive: {
+            label: 'Active brand',
+          },
+        },
+        actions: {
+          cancel: 'Cancel',
+          save: 'Save',
+          create: 'Create',
+          saving: 'Saving...',
+        },
+      },
+      confirmations: {
+        disable: 'Do you want to deactivate the brand "{{name}}"? You can reactivate it later.',
+        delete: 'Do you want to permanently delete the brand "{{name}}"? This action cannot be undone.',
       },
     },
     licenseSuppliers: {
@@ -1650,16 +1837,17 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       },
       confirmations: {
         disable: 'Are you sure you want to deactivate the supplier "{{name}}"? It will no longer appear in lists.',
-        delete: 'The supplier "{{name}}" is already inactive. Do you want to delete it permanently? This action cannot be undone.',
+        delete: 'The supplier "{{name}}" is already inactive. Do you want to delete it permanently? This action cannot be undone.'
       },
       modal: {
         createTitle: 'New supplier',
         editTitle: 'Edit supplier',
+        description: 'Fill in the supplier information',
         fields: {
           name: {
             label: 'Supplier name',
             required: '*',
-            placeholder: 'Ex: Microsoft',
+            placeholder: 'e.g. Microsoft',
           },
           contactEmail: {
             label: 'Contact email',
@@ -1681,15 +1869,20 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
             label: 'Notes',
             placeholder: 'Additional information (customer accounts, contacts...)',
           },
+          status: {
+            label: 'Status',
+            active: 'Active',
+            inactive: 'Inactive'
+          },
           isActive: 'Supplier active',
         },
         actions: {
           cancel: 'Cancel',
           save: 'Save',
-          saving: 'Saving...',
+          submitting: 'Saving...',
         },
       },
-    }
+    },
   },
 }
 

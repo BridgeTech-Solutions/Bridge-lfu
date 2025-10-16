@@ -17,6 +17,7 @@ export type NotificationSettings = Tables<'notification_settings'>
 export type ActivityLog = Tables<'activity_logs'>
 export type AppSetting = Tables<'app_settings'>
 export type LicenseSupplier = Tables<'license_suppliers'>
+export type EquipmentBrand = Tables<'equipment_brands'>
 // Types pour les insertions
 export type ProfileInsert = TablesInsert<'profiles'>
 export type ClientInsert = TablesInsert<'clients'>
@@ -25,6 +26,7 @@ export type EquipmentInsert = TablesInsert<'equipment'>
 export type AppSettingInsert = TablesInsert<'app_settings'>
 export type EquipmentTypeInsert = TablesInsert<'equipment_types'>
 export type LicenseSupplierInsert = TablesInsert<'license_suppliers'>
+export type EquipmentBrandInsert = TablesInsert<'equipment_brands'>
 // Types pour les mises à jour
 export type ProfileUpdate = TablesUpdate<'profiles'>
 export type ClientUpdate = TablesUpdate<'clients'>
@@ -33,6 +35,7 @@ export type EquipmentUpdate = TablesUpdate<'equipment'>
 export type AppSettingUpdate = TablesUpdate<'app_settings'>
 export type EquipmentTypeUpdate = TablesUpdate<'equipment_types'>
 export type LicenseSupplierUpdate = TablesUpdate<'license_suppliers'>
+export type EquipmentBrandUpdate = TablesUpdate<'equipment_brands'>
 
 // Types d'énumérations
 export type UserRole = Enums<'user_role'>
@@ -57,6 +60,10 @@ export interface LicenseWithClient extends License {
 export interface EquipmentWithClient extends Equipment {
   client?: Pick<Client, 'id' | 'name' | 'contact_email'>
   created_by_name?: string
+  brand_name?: string | null
+  type_name?: string | null
+  type_code?: string | null
+  type_icon?: string | null
 }
 
 // Types pour les alertes du dashboard

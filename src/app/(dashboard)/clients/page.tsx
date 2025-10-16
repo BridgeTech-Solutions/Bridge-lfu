@@ -20,9 +20,7 @@ export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSector, setSelectedSector] = useState('');
   const { 
-    page, 
     limit,
-    goToPage 
   } = usePagination(1);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 

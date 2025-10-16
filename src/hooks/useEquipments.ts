@@ -8,7 +8,7 @@ import { useAuth } from './useAuth'
 interface EquipmentFormData {
   name: string
   type_id: string 
-  brand?: string
+  brand_id: string
   model?: string
   serial_number?: string
   purchase_date?: string
@@ -41,16 +41,18 @@ interface EquipmentParams {
   status?: string
   clientId?: string
   typeId?: string 
+  brand?: string
 }
 
 interface EquipmentWithClient {
   id: string
   name: string
   type_id: string
-  type_name: string 
-  type_code: string 
+  type_name: string | null
+  type_code: string | null
   type_icon: string | null // Le nom de l'icône (ex: 'Monitor')
-  brand?: string
+  brand_id?: string
+  brand_name?: string | null
   model?: string
   serial_number?: string
   purchase_date?: string
@@ -240,6 +242,7 @@ const downloadAttachment = async (equipmentId: string, attachmentId: string): Pr
 
   return response.json()
 }
+
 // Ajouter après les autres fonctions de fetch
 const exportEquipment = async (params: EquipmentParams, format: 'xlsx' | 'csv' | 'json' = 'xlsx'): Promise<void> => {
   const url = new URL('/api/equipment/export', window.location.origin)
@@ -248,6 +251,7 @@ const exportEquipment = async (params: EquipmentParams, format: 'xlsx' | 'csv' |
   if (params.status && params.status !== 'all') url.searchParams.set('status', params.status)
   if (params.clientId && params.clientId !== 'all') url.searchParams.set('client_id', params.clientId)
   if (params.typeId && params.typeId !== 'all') url.searchParams.set('type_id', params.typeId)
+  if (params.brand) url.searchParams.set('brand', params.brand)
   url.searchParams.set('format', format)
 
   const response = await fetch(url.toString())
@@ -278,6 +282,7 @@ const exportEquipment = async (params: EquipmentParams, format: 'xlsx' | 'csv' |
   document.body.removeChild(link)
   window.URL.revokeObjectURL(downloadUrl)
 }
+
 // Hook principal pour la gestion des équipements
 export function useEquipments(params: EquipmentParams = {}) {
   const { user, loading } = useAuth()
@@ -290,7 +295,8 @@ export function useEquipments(params: EquipmentParams = {}) {
     params.search, 
     params.status, 
     params.clientId, 
-    params.typeId
+    params.typeId,
+    params.brand
   ]
 
   const { data, isLoading, error, refetch } = useQuery({
