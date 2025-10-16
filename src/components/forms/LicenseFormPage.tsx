@@ -228,7 +228,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
   }
 
   return (
-    <div className="space-y-6 mx-auto px-6 pt-6">
+    <div className="space-y-6 mx-auto py-8 px-6">
       {/* En-tête */}
       <div className="flex items-center gap-4">
         <Button 
