@@ -4,6 +4,45 @@ import { PermissionChecker, usePermissions } from '@/lib/auth/permissions'
 import { useAuthContext } from '@/app/context/auth'
 import { useUserPreferences } from './useUserPreferences'
 
+// Réexport des hooks essentiels depuis leurs fichiers respectifs
+export { useAuth } from './useAuth'
+export { useTranslations } from './useTranslations'
+export {
+  useLicenses,
+  useLicense,
+  useLicenseActions,
+  useLicenseAttachments,
+  useAttachmentActions,
+  type LicenseFormData,
+  type LicenseAttachment,
+  type LicensesParams
+} from './useLicenses'
+export { useClients } from './useClients'
+export { useLicenseSuppliers } from './useLicenseSuppliers'
+export {
+  useEquipmentStats,
+  useLicenseStats,
+  useCombinedStats,
+  useRealtimeStats,
+  useStatsAlerts,
+  useChartColors,
+  type EquipmentStats,
+  type LicenseStats
+} from './useStats'
+
+// Hooks dédiés aux types de licence
+export {
+  useLicenseTypes,
+  useLicenseType,
+  useCreateLicenseType,
+  useUpdateLicenseType,
+  useDeleteLicenseType,
+  useLicenseTypesActions,
+  type LicenseType,
+  type LicenseTypeInsert,
+  type LicenseTypeUpdate
+} from './useLicenseTypes'
+
 // Hook pour les permissions - STABILISÉ
 export function useAuthPermissions() {
   const { user, loading } = useAuthContext()
@@ -76,7 +115,7 @@ export function useStablePermissions() {
         return checker.can(action, resource, resourceData)
       }
     }
-  }, [user?.id, user?.role, user?.client_id, permissions])
+  }, [user, permissions])
 }
 // Hooks utilitaires inchangés
 export function useRealtimeSubscription(table: string, callback: (payload: unknown) => void) {

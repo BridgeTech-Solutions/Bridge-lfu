@@ -481,6 +481,7 @@ export type Database = {
           name: string
           purchase_date: string | null
           status: Database["public"]["Enums"]["license_status"] | null
+          type_id: string | null
           updated_at: string | null
           version: string | null
         }
@@ -497,6 +498,7 @@ export type Database = {
           name: string
           purchase_date?: string | null
           status?: Database["public"]["Enums"]["license_status"] | null
+          type_id?: string | null
           updated_at?: string | null
           version?: string | null
         }
@@ -513,6 +515,7 @@ export type Database = {
           name?: string
           purchase_date?: string | null
           status?: Database["public"]["Enums"]["license_status"] | null
+          type_id?: string | null
           updated_at?: string | null
           version?: string | null
         }
@@ -526,6 +529,55 @@ export type Database = {
           },
           {
             foreignKeyName: "licenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "license_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      
+      license_types: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_types_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -870,6 +922,9 @@ export type Database = {
           name: string | null
           purchase_date: string | null
           status: Database["public"]["Enums"]["license_status"] | null
+          supplier_id: string | null
+          supplier_name: string | null
+          type_id: string | null
           updated_at: string | null
           version: string | null
         }
@@ -886,6 +941,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "license_types"
             referencedColumns: ["id"]
           },
         ]

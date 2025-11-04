@@ -66,20 +66,10 @@ export async function GET(request: NextRequest,  context : any) {
       .eq('id', licenseId)
       .maybeSingle();
 
-    let supplierName: string | null = null;
-    if (licenseMeta?.supplier_id) {
-      const { data: supplierData } = await supabase
-        .from('license_suppliers')
-        .select('name')
-        .eq('id', licenseMeta.supplier_id)
-        .maybeSingle();
-      supplierName = supplierData?.name ?? null;
-    }
-
     const responseData = {
       ...license,
       supplier_id: licenseMeta?.supplier_id ?? null,
-      supplier_name: supplierName,
+      supplier_name: license.supplier_name ?? null,
     };
 
     return NextResponse.json(responseData);
@@ -159,6 +149,7 @@ export async function PUT(request: NextRequest,  context : any) {
         expiry_date: validatedData.expiryDate,
         cost: validatedData.cost,
         client_id: validatedData.clientId,
+        type_id: validatedData.typeId || null,
         description: validatedData.description,
         supplier_id: validatedData.supplierId || null,
         updated_at: new Date().toISOString()

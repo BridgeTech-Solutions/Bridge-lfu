@@ -3,7 +3,6 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from './useAuth'
-import { useStablePermissions } from './index'
 import { useMemo } from 'react'
 
 // Types pour le dashboard
@@ -32,17 +31,21 @@ export interface DashboardAlert {
 export interface DashboardData {
   stats: DashboardStats
   alerts: DashboardAlert[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  expiringSoonBuckets?: any
 }
 
 // Hook principal pour le dashboard
-export function useDashboard() {
+export function useDashboard(clientId?: string) {
   const { user, loading: authLoading } = useAuth()
-  const permissions = useStablePermissions()
   const queryClient = useQueryClient()
 
   // Fonction de fetch optimisée
   const fetchDashboardData = async (): Promise<DashboardData> => {
-    const response = await fetch('/api/dashboard', {
+    const url = new URL('/api/dashboard', window.location.origin)
+    if (clientId) url.searchParams.set('clientId', clientId)
+
+    const response = await fetch(url.toString(), {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -89,7 +92,8 @@ export function useDashboard() {
         obsolete_equipment: data.stats.obsolete_equipment || 0,
         soon_obsolete_equipment: data.stats.soon_obsolete_equipment || 0
       },
-      alerts: validAlerts
+      alerts: validAlerts,
+      expiringSoonBuckets: data.expiringSoonBuckets
     }
   }
 
@@ -97,8 +101,9 @@ export function useDashboard() {
     'dashboardData',
     user?.id,
     user?.role, // Plus stable que les permissions calculées
-    user?.client_id
-  ], [user?.id, user?.role, user?.client_id])
+    user?.client_id,
+    clientId // Ajouter clientId à la clé pour invalider correctement
+  ], [user?.id, user?.role, user?.client_id, clientId])
 
   // Configuration de la query
   const {
@@ -191,6 +196,7 @@ export function useDashboard() {
     // Données principales
     stats: derivedStats,
     alerts: data?.alerts || [],
+    expiringSoonBuckets: data?.expiringSoonBuckets,
     
     // États
     loading: isLoading || authLoading,

@@ -117,6 +117,11 @@ export function Sidebar() {
           name: t('items.licenseSuppliers'),
           href: '/licenses/suppliers',
           permissions: { resource: 'license_suppliers', action: 'read' }
+        },
+        {
+          name: t('items.licenseTypes'),
+          href: '/license-types',
+          permissions: { resource: 'licenses', action: 'read' }
         }
       ]
     },
@@ -199,10 +204,10 @@ export function Sidebar() {
     
     // Pour les clients, considérer actif si on est sur la page détail de leur client
     if (user?.role === 'client' && user?.client_id && href.includes(user.client_id)) {
-      return pathname.includes(`/clients/${user.client_id}`)
+      return pathname?.includes(`/clients/${user.client_id}`)
     }
     
-    return pathname.startsWith(href)
+    return pathname?.startsWith(href)
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

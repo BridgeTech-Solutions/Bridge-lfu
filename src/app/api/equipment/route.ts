@@ -5,8 +5,11 @@ import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 import { ZodError } from 'zod';
 
-
-// GET /api/equipment - Liste des équipements avec pagination et filtres
+/**
+ * GET /api/equipment - List equipment with filters and pagination
+ * @param {NextRequest} request - The request object
+ * @returns {Promise<NextResponse>} Paginated equipment list or error
+ */
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -69,11 +72,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (brand) {
-      query = query.ilike('brand_name', `%${brand}%`);
+      query = query.eq('brand_id', brand);
     }
 
     if (brandId) {
-      query = query.eq('brand_id', brandId);
+      query = query.ilike('brand_name', `%${brandId}%`);
     }
     // Pagination et tri
     const { data: equipment, count, error } = await query

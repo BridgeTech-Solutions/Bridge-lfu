@@ -27,7 +27,6 @@ import {
   Calendar, 
   User,
   Shield,
-  Bell,
   Activity,
   AlertCircle
 } from 'lucide-react'
@@ -80,7 +79,7 @@ function EditUserForm({
       await updateUser({ id: user.id, data: formData })
       onSuccess()
       onClose()
-    } catch (error) {
+    } catch {
       // L'erreur est déjà gérée par le hook
     }
   }
@@ -233,13 +232,12 @@ export default function UserDetailPage() {
 
   const [showEditDialog, setShowEditDialog] = useState(false)
 
-  const userId = params.id as string
+  const userId = params?.id as string
 
   // Utilisation des nouveaux hooks
   const { 
     data: user, 
-    isLoading, 
-    error 
+    isLoading
   } = useUser(userId)
 
   // Query pour récupérer les logs d'activité (si admin)
@@ -255,15 +253,15 @@ export default function UserDetailPage() {
     )
   }
 
-  if (error || !user) {
+  if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
         <AlertCircle className="h-16 w-16 text-red-500" />
-        <h1 className="text-2xl font-bold text-gray-900">{language === 'fr' ? 'Utilisateur non trouvé' : 'User not found'}</h1>
-        <p className="text-gray-600">{language === 'fr' ? "L'utilisateur que vous recherchez n'existe pas ou vous n'avez pas les permissions pour le voir." : 'The requested user does not exist or you do not have permission to view it.'}</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('detail.notFound.title')}</h1>
+        <p className="text-gray-600">{t('detail.notFound.description')}</p>
         <Button onClick={() => router.push('/users')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          {language === 'fr' ? 'Retour à la liste' : 'Back to list'}
+          {t('detail.backToList')}
         </Button>
       </div>
     )
@@ -281,7 +279,7 @@ export default function UserDetailPage() {
             onClick={() => router.push('/users')}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {language === 'fr' ? 'Retour' : 'Back'}
+            {t('detail.back')}
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
@@ -294,7 +292,7 @@ export default function UserDetailPage() {
         {canEdit && (
           <Button onClick={() => setShowEditDialog(true)}>
             <Edit className="h-4 w-4 mr-2" />
-            {language === 'fr' ? 'Modifier' : 'Edit'}
+            {t('detail.edit')}
           </Button>
         )}
       </div>
@@ -303,16 +301,16 @@ export default function UserDetailPage() {
         <TabsList>
           <TabsTrigger value="profile">
             <User className="h-4 w-4 mr-2" />
-            {language === 'fr' ? 'Profil' : 'Profile'}
+            {t('detail.tabs.profile')}
           </TabsTrigger>
           <TabsTrigger value="permissions">
             <Shield className="h-4 w-4 mr-2" />
-            {language === 'fr' ? 'Permissions' : 'Permissions'}
+            {t('detail.tabs.permissions')}
           </TabsTrigger>
           {permissions.canViewActivityLogs() && (
             <TabsTrigger value="activity">
               <Activity className="h-4 w-4 mr-2" />
-              {language === 'fr' ? 'Activité' : 'Activity'}
+              {t('detail.tabs.activity')}
             </TabsTrigger>
           )}
         </TabsList>
@@ -323,16 +321,16 @@ export default function UserDetailPage() {
             {/* Informations principales */}
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>{language === 'fr' ? 'Informations personnelles' : 'Personal information'}</CardTitle>
+                <CardTitle>{t('detail.sections.personalInfo')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Prénom</Label>
+                    <Label className="text-sm font-medium text-gray-500">{t('detail.fields.firstName')}</Label>
                     <p className="text-gray-900">{user.first_name || '-'}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Nom</Label>
+                    <Label className="text-sm font-medium text-gray-500">{t('detail.fields.lastName')}</Label>
                     <p className="text-gray-900">{user.last_name || '-'}</p>
                   </div>
                 </div>
@@ -359,7 +357,7 @@ export default function UserDetailPage() {
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-900">
-                    {language === 'fr' ? 'Membre depuis le ' : 'Member since '}{new Date(user.created_at!).toLocaleDateString(locale)}
+                    {t('detail.fields.memberSince')} {new Date(user.created_at!).toLocaleDateString(locale)}
                   </span>
                 </div>
               </CardContent>
@@ -368,11 +366,11 @@ export default function UserDetailPage() {
             {/* Statut et rôle */}
             <Card>
               <CardHeader>
-                <CardTitle>{language === 'fr' ? 'Statut' : 'Status'}</CardTitle>
+                <CardTitle>{t('detail.sections.status')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">{language === 'fr' ? 'Rôle' : 'Role'}</Label>
+                  <Label className="text-sm font-medium text-gray-500">{t('detail.fields.role')}</Label>
                   <div className="mt-1">
                     {getRoleBadge(user.role!, t)}
                   </div>
@@ -380,13 +378,13 @@ export default function UserDetailPage() {
                 
                 {user.client_id && user.clients && (
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">{language === 'fr' ? 'Client associé' : 'Linked client'}</Label>
+                    <Label className="text-sm font-medium text-gray-500">{t('detail.fields.linkedClient')}</Label>
                     <p className="text-gray-900 mt-1">{user.clients.name}</p>
                   </div>
                 )}
                 
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">{language === 'fr' ? 'Dernière mise à jour' : 'Last updated'}</Label>
+                  <Label className="text-sm font-medium text-gray-500">{t('detail.fields.lastUpdated')}</Label>
                   <p className="text-gray-900 mt-1">
                     {new Date(user.updated_at!).toLocaleDateString(locale)}
                   </p>
@@ -400,36 +398,36 @@ export default function UserDetailPage() {
         <TabsContent value="permissions">
           <Card>
             <CardHeader>
-              <CardTitle>Permissions et accès</CardTitle>
+              <CardTitle>{t('detail.sections.permissions')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-2">Gestion des clients</h4>
+                    <h4 className="font-medium text-gray-900 mb-2">{t('detail.permissions.clientManagement')}</h4>
                     <Badge variant={user.role === 'admin' || user.role === 'technicien' ? 'default' : 'secondary'}>
-                      {user.role === 'admin' || user.role === 'technicien' ? 'Accès complet' : 'Lecture seule'}
+                      {user.role === 'admin' || user.role === 'technicien' ? t('detail.permissions.fullAccess') : t('detail.permissions.readOnly')}
                     </Badge>
                   </div>
                   
                   <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-2">Gestion des licences</h4>
+                    <h4 className="font-medium text-gray-900 mb-2">{t('detail.permissions.licenseManagement')}</h4>
                     <Badge variant={user.role === 'admin' || user.role === 'technicien' ? 'default' : 'secondary'}>
-                      {user.role === 'admin' || user.role === 'technicien' ? 'Accès complet' : 'Lecture limitée'}
+                      {user.role === 'admin' || user.role === 'technicien' ? t('detail.permissions.fullAccess') : t('detail.permissions.readOnly')}
                     </Badge>
                   </div>
                   
                   <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-2">Gestion des équipements</h4>
+                    <h4 className="font-medium text-gray-900 mb-2">{t('detail.permissions.equipmentManagement')}</h4>
                     <Badge variant={user.role === 'admin' || user.role === 'technicien' ? 'default' : 'secondary'}>
-                      {user.role === 'admin' || user.role === 'technicien' ? 'Accès complet' : 'Lecture limitée'}
+                      {user.role === 'admin' || user.role === 'technicien' ? t('detail.permissions.fullAccess') : t('detail.permissions.readOnly')}
                     </Badge>
                   </div>
                   
                   <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-2">Gestion des utilisateurs</h4>
+                    <h4 className="font-medium text-gray-900 mb-2">{t('detail.permissions.userManagement')}</h4>
                     <Badge variant={user.role === 'admin' ? 'default' : 'destructive'}>
-                      {user.role === 'admin' ? 'Accès complet' : 'Aucun accès'}
+                      {user.role === 'admin' ? t('detail.permissions.fullAccess') : t('detail.permissions.noAccess')}
                     </Badge>
                   </div>
                 </div>
@@ -445,10 +443,10 @@ export default function UserDetailPage() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5" />
-                Journal d&apos;activité
+                {t('detail.sections.activityLog')}
                 {userActivity?.data && (
                     <Badge variant="outline" className="ml-auto">
-                    {userActivity.data.length} activités
+                    {userActivity.data.length} {t('detail.activity.activities')}
                     </Badge>
                 )}
                 </CardTitle>
@@ -506,19 +504,19 @@ export default function UserDetailPage() {
                         {/* Détails techniques */}
                         <div className="grid grid-cols-2 gap-4 text-xs">
                             <div className="space-y-1">
-                            <p className="text-gray-500">ID de l&apos;enregistrement:</p>
+                            <p className="text-gray-500">{t('detail.activity.recordId')}:</p>
                             <p className="font-mono text-gray-900 break-all">{log.record_id}</p>
                             </div>
                             <div className="space-y-1">
-                            <p className="text-gray-500">Adresse IP:</p>
-                            <p className="font-mono text-gray-900">{log.ip_address || 'Non disponible'}</p>
+                            <p className="text-gray-500">{t('detail.activity.ipAddress')}:</p>
+                            <p className="font-mono text-gray-900">{log.ip_address || t('detail.activity.notAvailable')}</p>
                             </div>
                         </div>
 
                         {/* Navigateur utilisé */}
                         {log.user_agent && (
                             <div className="text-xs">
-                            <p className="text-gray-500 mb-1">Navigateur:</p>
+                            <p className="text-gray-500 mb-1">{t('detail.activity.browser')}:</p>
                             <p className="font-mono text-gray-700 bg-gray-50 p-2 rounded text-wrap break-words">
                                 {log.user_agent}
                             </p>
@@ -528,7 +526,7 @@ export default function UserDetailPage() {
                         {/* Modifications détaillées pour les updates */}
                         {log.action === 'update' && log.old_values && log.new_values && (
                             <div className="space-y-3">
-                            <h4 className="text-sm font-medium text-gray-900">Modifications apportées:</h4>
+                            <h4 className="text-sm font-medium text-gray-900">{t('detail.activity.changesMade')}</h4>
                             <div className="space-y-2">
                                 {Object.keys(log.new_values).filter(key => 
                                 log.old_values[key] !== log.new_values[key]
@@ -541,17 +539,17 @@ export default function UserDetailPage() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                                     <div className="space-y-1">
-                                        <p className="text-red-600 font-medium">Ancienne valeur:</p>
+                                        <p className="text-red-600 font-medium">{t('detail.activity.oldValue')}:</p>
                                         <div className="bg-red-50 p-2 rounded border border-red-200">
                                         <code className="text-red-800">
                                             {log.old_values[field] === null ? 'null' : 
-                                            log.old_values[field] === '' ? '(vide)' :
+                                            log.old_values[field] === '' ? t('detail.activity.none') :
                                             String(log.old_values[field])}
                                         </code>
                                         </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-green-600 font-medium">Nouvelle valeur:</p>
+                                        <p className="text-green-600 font-medium">{t('detail.activity.newValue')}:</p>
                                         <div className="bg-green-50 p-2 rounded border border-green-200">
                                         <code className="text-green-800">
                                             {log.new_values[field] === null ? 'null' : 
@@ -570,7 +568,7 @@ export default function UserDetailPage() {
                         {/* Données de création */}
                         {log.action === 'create' && log.new_values && (
                             <div className="space-y-3">
-                            <h4 className="text-sm font-medium text-gray-900">Données créées:</h4>
+                            <h4 className="text-sm font-medium text-gray-900">{t('detail.activity.dataCreated')}</h4>
                             <div className="bg-green-50 p-3 rounded border border-green-200">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {Object.entries(log.new_values).map(([key, value]) => (
@@ -593,7 +591,7 @@ export default function UserDetailPage() {
                         {/* Données supprimées */}
                         {log.action === 'delete' && log.old_values && (
                             <div className="space-y-3">
-                            <h4 className="text-sm font-medium text-gray-900">Données supprimées:</h4>
+                            <h4 className="text-sm font-medium text-gray-900">{t('detail.activity.dataDeleted')}</h4>
                             <div className="bg-red-50 p-3 rounded border border-red-200">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {Object.entries(log.old_values).map(([key, value]) => (
@@ -616,34 +614,34 @@ export default function UserDetailPage() {
                         {/* Données de validation */}
                         {log.action === 'validate' && log.old_values && log.new_values && (
                             <div className="space-y-3">
-                            <h4 className="text-sm font-medium text-gray-900">Détails de la validation:</h4>
+                            <h4 className="text-sm font-medium text-gray-900">{t('detail.activity.validationDetails')}</h4>
                             <div className="bg-yellow-50 p-3 rounded border border-yellow-200">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-sm font-medium text-yellow-800 mb-2">Avant validation:</p>
+                                    <p className="text-sm font-medium text-yellow-800 mb-2">{t('detail.activity.beforeValidation')}</p>
                                     <div className="space-y-1">
                                     <div className="text-xs">
-                                        <span className="font-medium">Rôle:</span> 
+                                        <span className="font-medium">{t('detail.activity.role')}:</span> 
                                         <Badge variant="outline" className="ml-1 text-xs">
                                         {log.old_values.role}
                                         </Badge>
                                     </div>
                                     <p className="text-xs">
-                                        <span className="font-medium">Client:</span> {log.old_values.client_id || 'Aucun'}
+                                        <span className="font-medium">{t('detail.activity.client')}:</span> {log.old_values.client_id || 'Aucun'}
                                     </p>
                                     </div>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-yellow-800 mb-2">Après validation:</p>
+                                    <p className="text-sm font-medium text-yellow-800 mb-2">{t('detail.activity.afterValidation')}</p>
                                     <div className="space-y-1">
                                     <p className="text-xs">
-                                        <span className="font-medium">Rôle:</span> 
+                                        <span className="font-medium">{t('detail.activity.role')}:</span> 
                                         <Badge variant="default" className="ml-1 text-xs">
                                         {log.new_values.role}
                                         </Badge>
                                     </p>
                                     <p className="text-xs">
-                                        <span className="font-medium">Client:</span> {log.new_values.client_id || 'Aucun'}
+                                        <span className="font-medium">{t('detail.activity.client')}:</span> {log.new_values.client_id || 'Aucun'}
                                     </p>
                                     </div>
                                 </div>
@@ -665,7 +663,7 @@ export default function UserDetailPage() {
                     {userActivity.data.length === 0 && (
                     <div className="text-center py-8">
                         <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-600">Aucune activité enregistrée pour cet utilisateur</p>
+                        <p className="text-gray-600">{t('detail.activity.noActivity')}</p>
                     </div>
                     )}
                 </div>
@@ -684,7 +682,7 @@ export default function UserDetailPage() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Modifier l&apos;utilisateur</DialogTitle>
+            <DialogTitle>{t('detail.editDialog.title')}</DialogTitle>
           </DialogHeader>
           <EditUserForm
             user={user}

@@ -1,0 +1,678 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Bridge-LFU API",
+    "version": "1.0.0",
+    "description": "Bridge LFU (Licence Follow-Up) — API de suivi des licences logicielles et de l'obsolescence des équipements pour les clients de Bridge.\n\nFonctionnalités principales:\n- Authentification et gestion des utilisateurs (rôles: admin, technicien, client)\n- Gestion des clients, licences, équipements, fournisseurs, types\n- Notifications et alertes (échéances licences, obsolescence équipements)\n- Tableaux de bord et statistiques\n- Rapports exportables (JSON/CSV/PDF/Excel)\n\nConventions d’API:\n- Authentification: session via Supabase (cookies). Lancez d'abord POST /api/auth/login dans le même navigateur/onglet.\n- Pagination: paramètres `page` et `limit`, réponses standard `{ data, count, page, totalPages, hasMore }`.\n- Filtres: exposés par ressource (ex: `status`, `client_id`, `type_id`, `date_from`, `date_to`).\n- Exports: utilisez le paramètre `format` (json|csv|pdf|excel) sur les endpoints de rapports.\n\nSupport: contactez l'équipe Bridge pour l’onboarding et les accès."
+  },
+  "servers": [
+    { "url": "/", "description": "Serveur courant" }
+  ],
+  "tags": [
+    { "name": "Auth", "description": "Connexion, profil, réinitialisation et vérification de compte." },
+    { "name": "Clients", "description": "CRUD clients et métadonnées (secteurs)." },
+    { "name": "Licenses", "description": "CRUD licences, statut, clés, pièces jointes et export." },
+    { "name": "LicenseTypes", "description": "CRUD et export des types de licence." },
+    { "name": "LicenseSuppliers", "description": "CRUD des fournisseurs de licences." },
+    { "name": "Equipment", "description": "CRUD équipements, statut, pièces jointes, rafraîchissement et export." },
+    { "name": "EquipmentBrands", "description": "CRUD des marques d’équipement." },
+    { "name": "EquipmentTypes", "description": "CRUD des types d’équipement (codes)." },
+    { "name": "Notifications", "description": "Liste, marquage lu, envoi et paramètres des notifications." },
+    { "name": "Settings", "description": "Paramètres applicatifs (globaux et par clé)." },
+    { "name": "Users", "description": "Gestion des utilisateurs, préférences, validation et activité." },
+    { "name": "Dashboard", "description": "Résumé des alertes et statistiques clés." },
+    { "name": "Stats", "description": "Statistiques détaillées (licences, équipements)." },
+    { "name": "Reports", "description": "Rapports filtrables et exportables (licences, équipements)." }
+  ],
+  "paths": {
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Connexion utilisateur",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentification réussie",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LoginResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Déconnexion utilisateur",
+        "responses": { "200": { "description": "Déconnecté" } }
+      }
+    },
+    "/api/auth/profile": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Profil utilisateur courant",
+        "responses": {
+          "200": {
+            "description": "Profil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "profile": { "$ref": "#/components/schemas/Profile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "put": {
+        "tags": ["Auth"],
+        "summary": "Mettre à jour le profil courant",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProfileUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profil mis à jour",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "profile": { "$ref": "#/components/schemas/Profile" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Inscription utilisateur",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RegisterRequest" } } } },
+        "responses": { "201": { "description": "Créé" }, "400": { "$ref": "#/components/responses/BadRequest" } }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Demande de réinitialisation du mot de passe",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ResetPasswordRequest" } } } },
+        "responses": { "200": { "description": "Email envoyé" }, "400": { "$ref": "#/components/responses/BadRequest" } }
+      }
+    },
+    "/api/auth/update-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Mettre à jour le mot de passe",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdatePasswordRequest" } } } },
+        "responses": { "200": { "description": "Mis à jour" }, "400": { "$ref": "#/components/responses/BadRequest" } }
+      }
+    },
+    "/api/auth/verify-user": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Vérification du compte utilisateur",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VerifyUserRequest" } } } },
+        "responses": { "200": { "description": "Vérifié" }, "400": { "$ref": "#/components/responses/BadRequest" } }
+      }
+    },
+    "/api/clients": {
+      "get": {
+        "tags": ["Clients"],
+        "summary": "Lister les clients",
+        "parameters": [
+          { "in": "query", "name": "page", "schema": { "type": "integer", "default": 1 }},
+          { "in": "query", "name": "limit", "schema": { "type": "integer", "default": 10 }},
+          { "in": "query", "name": "search", "schema": { "type": "string" }},
+          { "in": "query", "name": "sector", "schema": { "type": "string" }}
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste paginée des clients",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Client" } },
+                    "count": { "type": "integer" },
+                    "page": { "type": "integer" },
+                    "totalPages": { "type": "integer" },
+                    "hasMore": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Clients"],
+        "summary": "Créer un client",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClientCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Client créé",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Client" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/clients/{id}": {
+      "get": {
+        "tags": ["Clients"],
+        "summary": "Obtenir un client",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ],
+        "responses": { "200": { "description": "Client" }, "404": { "$ref": "#/components/responses/NotFound" } }
+      },
+      "put": {
+        "tags": ["Clients"],
+        "summary": "Mettre à jour un client",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ClientCreate" } } } },
+        "responses": { "200": { "description": "Client mis à jour" }, "400": { "$ref": "#/components/responses/BadRequest" }, "404": { "$ref": "#/components/responses/NotFound" } }
+      },
+      "delete": {
+        "tags": ["Clients"],
+        "summary": "Supprimer un client",
+        "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ],
+        "responses": { "204": { "description": "Supprimé" }, "404": { "$ref": "#/components/responses/NotFound" } }
+      }
+    },
+    "/api/clients/sectors": {
+      "get": {
+        "tags": ["Clients"],
+        "summary": "Lister les secteurs clients",
+        "responses": { "200": { "description": "Secteurs" } }
+      }
+    },
+    "/api/licenses": {
+      "get": {
+        "tags": ["Licenses"],
+        "summary": "Lister les licences",
+        "parameters": [
+          { "in": "query", "name": "page", "schema": { "type": "integer", "default": 1 }},
+          { "in": "query", "name": "limit", "schema": { "type": "integer", "default": 10 }},
+          { "in": "query", "name": "search", "schema": { "type": "string" }},
+          { "in": "query", "name": "client_id", "schema": { "type": "string", "format": "uuid" }},
+          { "in": "query", "name": "status", "schema": { "$ref": "#/components/schemas/LicenseStatus" }},
+          { "in": "query", "name": "editor", "schema": { "type": "string" }},
+          { "in": "query", "name": "type_id", "schema": { "type": "string", "format": "uuid" }},
+          { "in": "query", "name": "expiry_date_start", "schema": { "type": "string", "format": "date" }},
+          { "in": "query", "name": "expiry_date_end", "schema": { "type": "string", "format": "date" }}
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste paginée des licences",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PaginatedLicenseResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Licenses"],
+        "summary": "Créer une licence",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LicenseCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Licence créée",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/License" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/licenses/{licenseId}": {
+      "get": { "tags": ["Licenses"], "summary": "Obtenir une licence", "parameters": [ { "in": "path", "name": "licenseId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "Licence" }, "404": { "$ref": "#/components/responses/NotFound" } } },
+      "put": { "tags": ["Licenses"], "summary": "Mettre à jour une licence", "parameters": [ { "in": "path", "name": "licenseId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LicenseCreate" } } } }, "responses": { "200": { "description": "Licence mise à jour" }, "400": { "$ref": "#/components/responses/BadRequest" }, "404": { "$ref": "#/components/responses/NotFound" } } },
+      "delete": { "tags": ["Licenses"], "summary": "Supprimer une licence", "parameters": [ { "in": "path", "name": "licenseId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "204": { "description": "Supprimée" }, "404": { "$ref": "#/components/responses/NotFound" } } }
+    },
+    "/api/licenses/{licenseId}/status": {
+      "get": { "tags": ["Licenses"], "summary": "Statut d'une licence", "parameters": [ { "in": "path", "name": "licenseId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "Statut" } } }
+    },
+    "/api/licenses/{licenseId}/reveal-key": {
+      "get": { "tags": ["Licenses"], "summary": "Révéler la clé de licence (protégé)", "parameters": [ { "in": "path", "name": "licenseId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "Clé en clair (maskée côté UI)" }, "403": { "$ref": "#/components/responses/Forbidden" } } }
+    },
+    "/api/licenses/export": { "get": { "tags": ["Licenses"], "summary": "Exporter les licences", "parameters": [ { "in": "query", "name": "format", "schema": { "type": "string", "enum": ["csv", "xlsx", "pdf"], "default": "csv" } } ], "responses": { "200": { "description": "Fichier export" } } } },
+    "/api/licenses/{licenseId}/attachments": { "post": { "tags": ["Licenses"], "summary": "Uploader une pièce jointe", "parameters": [ { "in": "path", "name": "licenseId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "201": { "description": "Pièce jointe créée" } } } },
+    "/api/licenses/{licenseId}/attachments/{id}": { "get": { "tags": ["Licenses"], "summary": "Obtenir une pièce jointe", "parameters": [ { "in": "path", "name": "licenseId", "required": true, "schema": { "type": "string", "format": "uuid" } }, { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "Pièce jointe" }, "404": { "$ref": "#/components/responses/NotFound" } } }, "delete": { "tags": ["Licenses"], "summary": "Supprimer une pièce jointe", "parameters": [ { "in": "path", "name": "licenseId", "required": true, "schema": { "type": "string", "format": "uuid" } }, { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "204": { "description": "Supprimée" } } } },
+    "/api/licenses/{licenseId}/attachments/{id}/download": { "get": { "tags": ["Licenses"], "summary": "Télécharger une pièce jointe", "parameters": [ { "in": "path", "name": "licenseId", "required": true, "schema": { "type": "string", "format": "uuid" } }, { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "Fichier binaire" } } } },
+    "/api/reports/licenses": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Générer un rapport des licences",
+        "parameters": [
+          { "in": "query", "name": "client_id", "schema": { "type": "string", "format": "uuid" }},
+          { "in": "query", "name": "license_type_id", "schema": { "type": "string", "format": "uuid" }},
+          { "in": "query", "name": "status", "schema": { "$ref": "#/components/schemas/LicenseStatus" }},
+          { "in": "query", "name": "date_from", "schema": { "type": "string", "format": "date" }},
+          { "in": "query", "name": "date_to", "schema": { "type": "string", "format": "date" }},
+          { "in": "query", "name": "format", "schema": { "type": "string", "enum": ["json", "csv", "pdf", "excel"], "default": "json" }}
+        ],
+        "responses": {
+          "200": { "description": "Rapport généré (JSON, CSV, PDF ou Excel)" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    }
+    ,
+    "/api/reports/equipment": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Rapport des équipements",
+        "parameters": [
+          { "in": "query", "name": "client_id", "schema": { "type": "string", "format": "uuid" }},
+          { "in": "query", "name": "equipment_type_id", "schema": { "type": "string", "format": "uuid" }},
+          { "in": "query", "name": "status", "schema": { "type": "string" }},
+          { "in": "query", "name": "date_from", "schema": { "type": "string", "format": "date" }},
+          { "in": "query", "name": "date_to", "schema": { "type": "string", "format": "date" }},
+          { "in": "query", "name": "format", "schema": { "type": "string", "enum": ["json", "csv", "pdf", "excel"], "default": "json" }}
+        ],
+        "responses": { "200": { "description": "Rapport équipements" } }
+      }
+    },
+    
+    "/api/equipment": {
+      "get": {
+        "tags": ["Equipment"],
+        "summary": "Lister les équipements",
+        "parameters": [
+          { "in": "query", "name": "page", "schema": { "type": "integer", "default": 1 } },
+          { "in": "query", "name": "limit", "schema": { "type": "integer", "default": 10 } },
+          { "in": "query", "name": "client_id", "schema": { "type": "string", "format": "uuid" } },
+          { "in": "query", "name": "type_id", "schema": { "type": "string", "format": "uuid" } },
+          { "in": "query", "name": "type_code", "schema": { "type": "string" } },
+          { "in": "query", "name": "type", "schema": { "type": "string", "description": "Alias legacy du code type" } },
+          { "in": "query", "name": "status", "schema": { "type": "string", "enum": ["actif","en_maintenance","bientot_obsolete","obsolete","retire"] } },
+          { "in": "query", "name": "brand", "schema": { "type": "string" } },
+          { "in": "query", "name": "brand_id", "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste paginée des équipements",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PaginatedEquipmentResponse" } } }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Equipment"],
+        "summary": "Créer un équipement",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EquipmentCreate" } } } },
+        "responses": { "201": { "description": "Créé", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Equipment" } } } } }
+      }
+    },
+    "/api/equipment/{equipmentId}": {
+      "get": { "tags": ["Equipment"], "summary": "Obtenir un équipement", "parameters": [ { "in": "path", "name": "equipmentId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "Équipement" } } },
+      "put": { "tags": ["Equipment"], "summary": "Mettre à jour un équipement", "parameters": [ { "in": "path", "name": "equipmentId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "Mis à jour" } } },
+      "delete": { "tags": ["Equipment"], "summary": "Supprimer un équipement", "parameters": [ { "in": "path", "name": "equipmentId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "204": { "description": "Supprimé" } } }
+    },
+    "/api/equipment/{equipmentId}/status": { "get": { "tags": ["Equipment"], "summary": "Statut d'un équipement", "parameters": [ { "in": "path", "name": "equipmentId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "Statut" } } } },
+    "/api/equipment/refresh-status": { "post": { "tags": ["Equipment"], "summary": "Rafraîchir le statut des équipements", "responses": { "200": { "description": "OK" } } } },
+    "/api/equipment/export": { "get": { "tags": ["Equipment"], "summary": "Exporter les équipements", "parameters": [ { "in": "query", "name": "format", "schema": { "type": "string", "enum": ["csv", "xlsx", "pdf"], "default": "csv" } } ], "responses": { "200": { "description": "Fichier export" } } } },
+    "/api/equipment/{equipmentId}/attachments": { "post": { "tags": ["Equipment"], "summary": "Uploader une pièce jointe", "parameters": [ { "in": "path", "name": "equipmentId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "201": { "description": "Pièce jointe créée" } } } },
+    "/api/equipment/{equipmentId}/attachments/{id}": { "get": { "tags": ["Equipment"], "summary": "Obtenir une pièce jointe", "parameters": [ { "in": "path", "name": "equipmentId", "required": true, "schema": { "type": "string", "format": "uuid" } }, { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "Pièce jointe" } } }, "delete": { "tags": ["Equipment"], "summary": "Supprimer une pièce jointe", "parameters": [ { "in": "path", "name": "equipmentId", "required": true, "schema": { "type": "string", "format": "uuid" } }, { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "204": { "description": "Supprimée" } } } },
+    "/api/equipment/{equipmentId}/attachments/{id}/download": { "get": { "tags": ["Equipment"], "summary": "Télécharger une pièce jointe", "parameters": [ { "in": "path", "name": "equipmentId", "required": true, "schema": { "type": "string", "format": "uuid" } }, { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "Binaire" } } } },
+
+    "/api/equipment-brands": {
+      "get": { "tags": ["EquipmentBrands"], "summary": "Lister les marques", "responses": { "200": { "description": "OK" } } },
+      "post": { "tags": ["EquipmentBrands"], "summary": "Créer une marque", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "201": { "description": "Créée" } } }
+    },
+    "/api/equipment-brands/{brandId}": { "get": { "tags": ["EquipmentBrands"], "summary": "Obtenir une marque", "parameters": [ { "in": "path", "name": "brandId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "OK" } } }, "put": { "tags": ["EquipmentBrands"], "summary": "Mettre à jour une marque", "parameters": [ { "in": "path", "name": "brandId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "OK" } } }, "delete": { "tags": ["EquipmentBrands"], "summary": "Supprimer une marque", "parameters": [ { "in": "path", "name": "brandId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "204": { "description": "Supprimée" } } } },
+
+    "/api/equipment-types": { "get": { "tags": ["EquipmentTypes"], "summary": "Lister les types d'équipement", "responses": { "200": { "description": "OK" } } }, "post": { "tags": ["EquipmentTypes"], "summary": "Créer un type d'équipement", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "201": { "description": "Créé" } } } },
+    "/api/equipment-types/{typeId}": { "get": { "tags": ["EquipmentTypes"], "summary": "Obtenir un type d'équipement", "parameters": [ { "in": "path", "name": "typeId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "OK" } } }, "put": { "tags": ["EquipmentTypes"], "summary": "Mettre à jour un type d'équipement", "parameters": [ { "in": "path", "name": "typeId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "OK" } } }, "delete": { "tags": ["EquipmentTypes"], "summary": "Supprimer un type d'équipement", "parameters": [ { "in": "path", "name": "typeId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "204": { "description": "Supprimé" } } } },
+
+    "/api/license-suppliers": { "get": { "tags": ["LicenseSuppliers"], "summary": "Lister les fournisseurs", "responses": { "200": { "description": "OK" } } }, "post": { "tags": ["LicenseSuppliers"], "summary": "Créer un fournisseur", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "201": { "description": "Créé" } } } },
+    "/api/license-suppliers/{supplierId}": { "get": { "tags": ["LicenseSuppliers"], "summary": "Obtenir un fournisseur", "parameters": [ { "in": "path", "name": "supplierId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "OK" } } }, "put": { "tags": ["LicenseSuppliers"], "summary": "Mettre à jour un fournisseur", "parameters": [ { "in": "path", "name": "supplierId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "OK" } } }, "delete": { "tags": ["LicenseSuppliers"], "summary": "Supprimer un fournisseur", "parameters": [ { "in": "path", "name": "supplierId", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "204": { "description": "Supprimé" } } } },
+
+    "/api/license-types": { "get": { "tags": ["LicenseTypes"], "summary": "Lister les types de licences", "responses": { "200": { "description": "OK" } } }, "post": { "tags": ["LicenseTypes"], "summary": "Créer un type de licence", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "201": { "description": "Créé" } } } },
+    "/api/license-types/{id}": { "get": { "tags": ["LicenseTypes"], "summary": "Obtenir un type de licence", "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "OK" } } }, "put": { "tags": ["LicenseTypes"], "summary": "Mettre à jour un type de licence", "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "OK" } } }, "delete": { "tags": ["LicenseTypes"], "summary": "Supprimer un type de licence", "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "204": { "description": "Supprimé" } } } },
+    "/api/license-types/export": { "get": { "tags": ["LicenseTypes"], "summary": "Exporter types de licence", "parameters": [ { "in": "query", "name": "format", "schema": { "type": "string", "enum": ["csv", "xlsx"], "default": "csv" } } ], "responses": { "200": { "description": "Export" } } } },
+
+    "/api/notifications": { "get": { "tags": ["Notifications"], "summary": "Lister les notifications", "responses": { "200": { "description": "OK" } } } },
+    "/api/notifications/{id}": { "put": { "tags": ["Notifications"], "summary": "Mettre à jour une notification (lue/non lue)", "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "OK" } } } },
+    "/api/notifications/mark-all-read": { "post": { "tags": ["Notifications"], "summary": "Tout marquer comme lu", "responses": { "200": { "description": "OK" } } } },
+    "/api/notifications/send-email": { "post": { "tags": ["Notifications"], "summary": "Envoyer un e-mail de notification", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "Envoyé" } } } },
+    "/api/notifications/process-emails": { "post": { "tags": ["Notifications"], "summary": "Traiter l'envoi d'e-mails (cron)", "responses": { "200": { "description": "OK" } } } },
+    "/api/notifications/settings": { "get": { "tags": ["Notifications"], "summary": "Obtenir paramètres de notification", "responses": { "200": { "description": "OK" } } }, "put": { "tags": ["Notifications"], "summary": "Mettre à jour paramètres de notification", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "OK" } } } },
+    "/api/notifications/stats": { "get": { "tags": ["Notifications"], "summary": "Statistiques notifications", "responses": { "200": { "description": "OK" } } } },
+
+    "/api/settings": { "get": { "tags": ["Settings"], "summary": "Lister les paramètres", "responses": { "200": { "description": "OK" } } }, "post": { "tags": ["Settings"], "summary": "Créer/mettre à jour des paramètres", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "OK" } } } },
+    "/api/settings/{key}": { "get": { "tags": ["Settings"], "summary": "Obtenir un paramètre", "parameters": [ { "in": "path", "name": "key", "required": true, "schema": { "type": "string" } } ], "responses": { "200": { "description": "OK" } } }, "put": { "tags": ["Settings"], "summary": "Mettre à jour un paramètre", "parameters": [ { "in": "path", "name": "key", "required": true, "schema": { "type": "string" } } ], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "OK" } } } },
+
+    "/api/users": { "get": { "tags": ["Users"], "summary": "Lister les utilisateurs", "responses": { "200": { "description": "OK" } } }, "post": { "tags": ["Users"], "summary": "Créer un utilisateur", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "201": { "description": "Créé" } } } },
+    "/api/users/{id}": { "get": { "tags": ["Users"], "summary": "Obtenir un utilisateur", "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "OK" } } }, "put": { "tags": ["Users"], "summary": "Mettre à jour un utilisateur", "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "OK" } } } },
+    "/api/users/{id}/validate": { "post": { "tags": ["Users"], "summary": "Valider un utilisateur (onboarding)", "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "Validé" } } } },
+    "/api/users/{id}/activity": { "get": { "tags": ["Users"], "summary": "Historique d'activité", "parameters": [ { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } } ], "responses": { "200": { "description": "OK" } } } },
+    "/api/users/preferences": { "get": { "tags": ["Users"], "summary": "Obtenir préférences utilisateur", "responses": { "200": { "description": "OK" } } }, "put": { "tags": ["Users"], "summary": "Mettre à jour préférences utilisateur", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "OK" } } } },
+
+    "/api/stats/licenses": { "get": { "tags": ["Stats"], "summary": "Statistiques licences", "responses": { "200": { "description": "OK" } } } },
+    "/api/stats/equipment": { "get": { "tags": ["Stats"], "summary": "Statistiques équipements", "responses": { "200": { "description": "OK" } } } },
+    "/api/stats/equipment/trends": {
+      "get": {
+        "tags": ["Stats"],
+        "summary": "Tendances d'obsolescence des équipements (12 mois)",
+        "parameters": [ { "in": "query", "name": "client_id", "schema": { "type": "string", "format": "uuid" } } ],
+        "responses": {
+          "200": {
+            "description": "Séries mensuelles sur 12 mois",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "months": {
+                      "type": "array",
+                      "items": { "type": "object", "properties": { "month": { "type": "string" }, "count": { "type": "integer" } } }
+                    },
+                    "filters": { "type": "object", "properties": { "clientId": { "type": "string", "format": "uuid", "nullable": true } } }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+
+    "/api/dashboard": { "get": { "tags": ["Dashboard"], "summary": "Données de tableau de bord", "responses": { "200": { "description": "OK" } } } },
+    "/api/cron/notifications": { "post": { "tags": ["Notifications"], "summary": "Tâche planifiée: traiter notifications", "responses": { "200": { "description": "OK" } } } }
+  },
+  "components": {
+    "schemas": {
+      "Profile": { "type": "object", "properties": { "id": { "type": "string", "format": "uuid" }, "email": { "type": "string", "format": "email" }, "role": { "type": "string" }, "client_id": { "type": "string", "format": "uuid", "nullable": true } } },
+      "ProfileUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "phone": { "type": "string" },
+          "company": { "type": "string" }
+        }
+      },
+      "RegisterRequest": { "type": "object", "required": ["email", "password"], "properties": { "email": { "type": "string", "format": "email" }, "password": { "type": "string", "format": "password" }, "firstName": { "type": "string" }, "lastName": { "type": "string" } } },
+      "ResetPasswordRequest": { "type": "object", "required": ["email"], "properties": { "email": { "type": "string", "format": "email" } } },
+      "UpdatePasswordRequest": { "type": "object", "required": ["currentPassword", "newPassword"], "properties": { "currentPassword": { "type": "string", "format": "password" }, "newPassword": { "type": "string", "format": "password" } } },
+      "VerifyUserRequest": { "type": "object", "required": ["token"], "properties": { "token": { "type": "string" } } },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "format": "password" }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "user": { "type": "object" },
+          "session": { "type": "object" },
+          "requiresVerification": { "type": "boolean" }
+        }
+      },
+      "Client": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "address": { "type": "string", "nullable": true },
+          "city": { "type": "string", "nullable": true },
+          "postal_code": { "type": "string", "nullable": true },
+          "country": { "type": "string", "nullable": true },
+          "contact_email": { "type": "string", "format": "email", "nullable": true },
+          "contact_phone": { "type": "string", "nullable": true },
+          "contact_person": { "type": "string", "nullable": true },
+          "sector": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ClientCreate": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "address": { "type": "string" },
+          "city": { "type": "string" },
+          "postalCode": { "type": "string" },
+          "country": { "type": "string" },
+          "contactEmail": { "type": "string", "format": "email" },
+          "contactPhone": { "type": "string" },
+          "contactPerson": { "type": "string" },
+          "sector": { "type": "string" }
+        }
+      },
+      "License": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "editor": { "type": "string", "nullable": true },
+          "version": { "type": "string", "nullable": true },
+          "license_key": { "type": "string", "nullable": true },
+          "purchase_date": { "type": "string", "format": "date", "nullable": true },
+          "expiry_date": { "type": "string", "format": "date" },
+          "cost": { "type": "number", "nullable": true },
+          "client_id": { "type": "string", "format": "uuid" },
+          "type_id": { "type": "string", "format": "uuid", "nullable": true },
+          "supplier_id": { "type": "string", "format": "uuid", "nullable": true },
+          "description": { "type": "string", "nullable": true },
+          "status": { "$ref": "#/components/schemas/LicenseStatus" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "LicenseView": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "editor": { "type": "string", "nullable": true },
+          "version": { "type": "string", "nullable": true },
+          "license_key": { "type": "string", "nullable": true },
+          "purchase_date": { "type": "string", "format": "date", "nullable": true },
+          "expiry_date": { "type": "string", "format": "date" },
+          "cost": { "type": "number", "nullable": true },
+          "client_id": { "type": "string", "format": "uuid" },
+          "type_id": { "type": "string", "format": "uuid", "nullable": true },
+          "supplier_id": { "type": "string", "format": "uuid", "nullable": true },
+          "description": { "type": "string", "nullable": true },
+          "status": { "$ref": "#/components/schemas/LicenseStatus" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "client_name": { "type": "string", "nullable": true },
+          "client_email": { "type": "string", "format": "email", "nullable": true },
+          "created_by_name": { "type": "string", "nullable": true },
+          "supplier_name": { "type": "string", "nullable": true },
+          "type_name": { "type": "string", "nullable": true }
+        }
+      },
+      "LicenseCreate": {
+        "type": "object",
+        "required": ["name", "expiryDate", "clientId"],
+        "properties": {
+          "name": { "type": "string" },
+          "editor": { "type": "string" },
+          "version": { "type": "string" },
+          "licenseKey": { "type": "string" },
+          "purchaseDate": { "type": "string", "format": "date" },
+          "expiryDate": { "type": "string", "format": "date" },
+          "cost": { "type": "number" },
+          "clientId": { "type": "string", "format": "uuid" },
+          "typeId": { "type": "string", "format": "uuid" },
+          "supplierId": { "type": "string", "format": "uuid" },
+          "description": { "type": "string" }
+        }
+      },
+      "LicenseStatus": {
+        "type": "string",
+        "enum": ["active", "expired", "about_to_expire", "cancelled"]
+      }
+      ,
+      "PaginatedLicenseResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/LicenseView" } },
+          "count": { "type": "integer" },
+          "page": { "type": "integer" },
+          "totalPages": { "type": "integer" },
+          "hasMore": { "type": "boolean" }
+        }
+      },
+
+      "Equipment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "type_id": { "type": "string", "format": "uuid" },
+          "brand_id": { "type": "string", "format": "uuid", "nullable": true },
+          "model": { "type": "string", "nullable": true },
+          "serial_number": { "type": "string", "nullable": true },
+          "purchase_date": { "type": "string", "format": "date", "nullable": true },
+          "estimated_obsolescence_date": { "type": "string", "format": "date", "nullable": true },
+          "end_of_sale": { "type": "string", "format": "date", "nullable": true },
+          "status": { "type": "string", "enum": ["actif","en_maintenance","bientot_obsolete","obsolete","retire"] },
+          "cost": { "type": "number", "nullable": true },
+          "client_id": { "type": "string", "format": "uuid" },
+          "location": { "type": "string", "nullable": true },
+          "description": { "type": "string", "nullable": true },
+          "warranty_end_date": { "type": "string", "format": "date", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "EquipmentView": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "type_id": { "type": "string", "format": "uuid", "nullable": true },
+          "type_code": { "type": "string", "nullable": true },
+          "type_name": { "type": "string", "nullable": true },
+          "type": { "type": "string", "nullable": true, "description": "Nom du type (convenience)" },
+          "brand_id": { "type": "string", "format": "uuid", "nullable": true },
+          "brand_name": { "type": "string", "nullable": true },
+          "brand": { "type": "string", "nullable": true, "description": "Nom de marque (convenience)" },
+          "model": { "type": "string", "nullable": true },
+          "serial_number": { "type": "string", "nullable": true },
+          "purchase_date": { "type": "string", "format": "date", "nullable": true },
+          "estimated_obsolescence_date": { "type": "string", "format": "date", "nullable": true },
+          "end_of_sale": { "type": "string", "format": "date", "nullable": true },
+          "status": { "type": "string", "enum": ["actif","en_maintenance","bientot_obsolete","obsolete","retire"] },
+          "cost": { "type": "number", "nullable": true },
+          "client_id": { "type": "string", "format": "uuid" },
+          "client_name": { "type": "string", "nullable": true },
+          "location": { "type": "string", "nullable": true },
+          "description": { "type": "string", "nullable": true },
+          "warranty_end_date": { "type": "string", "format": "date", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "EquipmentCreate": {
+        "type": "object",
+        "required": ["name", "client_id"],
+        "properties": {
+          "name": { "type": "string" },
+          "type_id": { "type": "string", "format": "uuid", "description": "Prioritaire si fourni" },
+          "type_code": { "type": "string", "description": "Code de type; utilisé si type_id absent" },
+          "type": { "type": "string", "description": "Alias legacy; utilisé si type_id et type_code absents" },
+          "brand_id": { "type": "string", "format": "uuid" },
+          "model": { "type": "string" },
+          "serial_number": { "type": "string" },
+          "purchase_date": { "type": "string", "format": "date" },
+          "estimated_obsolescence_date": { "type": "string", "format": "date" },
+          "end_of_sale": { "type": "string", "format": "date" },
+          "cost": { "type": "number" },
+          "client_id": { "type": "string", "format": "uuid" },
+          "location": { "type": "string" },
+          "description": { "type": "string" },
+          "warranty_end_date": { "type": "string", "format": "date" }
+        }
+      },
+      "PaginatedEquipmentResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/EquipmentView" } },
+          "count": { "type": "integer" },
+          "page": { "type": "integer" },
+          "totalPages": { "type": "integer" },
+          "hasMore": { "type": "boolean" }
+        }
+      }
+    },
+    "responses": {
+      "NotFound": { "description": "Ressource non trouvée", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "BadRequest": {
+        "description": "Requête invalide",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Unauthorized": {
+        "description": "Non authentifié",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Forbidden": {
+        "description": "Permissions insuffisantes",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
+    }
+  }
+}
+

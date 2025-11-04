@@ -105,7 +105,7 @@ export class EmailService {
                 ` : ''}
                 
                 <div style="margin: 30px 0;">
-                  <a href="${baseUrl}/dashboard/licenses" 
+                  <a href="${baseUrl}/licenses" 
                      style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                     Voir mes licences
                   </a>
@@ -115,7 +115,7 @@ export class EmailService {
               <div style="margin-top: 20px; padding: 15px; background-color: #f9fafb; border-radius: 6px; text-align: center;">
                 <p style="color: #6b7280; font-size: 14px; margin: 0;">
                   Vous recevez cet email car vous avez activé les notifications par email.<br>
-                  <a href="${baseUrl}/dashboard/notifications" style="color: #3b82f6;">Gérer mes préférences</a>
+                  <a href="${baseUrl}/notifications" style="color: #3b82f6;">Gérer mes préférences</a>
                 </p>
               </div>
             </div>
@@ -131,7 +131,7 @@ export class EmailService {
             
             ---
             Vous recevez cet email car vous avez activé les notifications par email.
-            Gérez vos préférences: ${baseUrl}/dashboard/notifications
+            Gérez vos préférences: ${baseUrl}/notifications
           `
         }
 
@@ -157,7 +157,7 @@ export class EmailService {
                 ` : ''}
                 
                 <div style="margin: 30px 0;">
-                  <a href="${baseUrl}/dashboard/equipment" 
+                  <a href="${baseUrl}/equipment" 
                      style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                     Voir mes équipements
                   </a>
@@ -167,7 +167,7 @@ export class EmailService {
               <div style="margin-top: 20px; padding: 15px; background-color: #f9fafb; border-radius: 6px; text-align: center;">
                 <p style="color: #6b7280; font-size: 14px; margin: 0;">
                   Vous recevez cet email car vous avez activé les notifications par email.<br>
-                  <a href="${baseUrl}/dashboard/notifications" style="color: #3b82f6;">Gérer mes préférences</a>
+                  <a href="${baseUrl}/notifications" style="color: #3b82f6;">Gérer mes préférences</a>
                 </p>
               </div>
             </div>
@@ -183,7 +183,7 @@ export class EmailService {
             
             ---
             Vous recevez cet email car vous avez activé les notifications par email.
-            Gérez vos préférences: ${baseUrl}/dashboard/notifications
+            Gérez vos préférences: ${baseUrl}/notifications
           `
         }
 
@@ -211,7 +211,7 @@ export class EmailService {
               <div style="margin-top: 20px; padding: 15px; background-color: #f9fafb; border-radius: 6px; text-align: center;">
                 <p style="color: #6b7280; font-size: 14px; margin: 0;">
                   Vous recevez cet email car vous avez activé les notifications par email.<br>
-                  <a href="${baseUrl}/dashboard/notifications" style="color: #3b82f6;">Gérer mes préférences</a>
+                  <a href="${baseUrl}/notifications" style="color: #3b82f6;">Gérer mes préférences</a>
                 </p>
               </div>
             </div>
@@ -227,7 +227,7 @@ export class EmailService {
             
             ---
             Vous recevez cet email car vous avez activé les notifications par email.
-            Gérez vos préférences: ${baseUrl}/dashboard/notifications
+            Gérez vos préférences: ${baseUrl}/notifications
           `
         }
 

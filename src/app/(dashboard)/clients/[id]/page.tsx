@@ -13,7 +13,7 @@ export default function ClientDetail() {
   const params = useParams()
   const router = useRouter()
   const { t } = useTranslations('clients.detail')
-  const clientId = params.id as string
+  const clientId = params?.id as string
 
   // Utilisation du hook useClient
   const { data: client, isLoading: loadingClient, error: clientError } = useClient(clientId)

@@ -63,6 +63,8 @@ export default function EquipmentPage() {
   const [brandIdFilter, setBrandIdFilter] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<string>('')
   const [selectedClient, setSelectedClient] = useState<string>('')
+  const [obsolescenceStart, setObsolescenceStart] = useState<string>('')
+  const [obsolescenceEnd, setObsolescenceEnd] = useState<string>('')
   const [showFilters, setShowFilters] = useState(false)
   const [deleteDialog, setDeleteDialog] = useState<{ 
     open: boolean
@@ -99,7 +101,9 @@ export default function EquipmentPage() {
     status: selectedStatus,
     clientId: selectedClient,
     typeId: typeIdFilter || undefined,
-    brand: brandIdFilter || undefined
+    brand: brandIdFilter || undefined,
+    obsolescenceStart: obsolescenceStart || undefined,
+    obsolescenceEnd: obsolescenceEnd || undefined
   })
 
   const { clients: clientsData } = useClients({
@@ -120,7 +124,10 @@ export default function EquipmentPage() {
           search: searchTerm,
           status: selectedStatus,
           clientId: selectedClient,
-          typeId: typeIdFilter || undefined
+          typeId: typeIdFilter || undefined,
+          brand: brandIdFilter || undefined,
+          obsolescenceStart: obsolescenceStart || undefined,
+          obsolescenceEnd: obsolescenceEnd || undefined
         },
         format
       })
@@ -260,8 +267,10 @@ export default function EquipmentPage() {
     if (selectedStatus) count++
     if (selectedClient) count++
     if (brandIdFilter) count++
+    if (obsolescenceStart) count++
+    if (obsolescenceEnd) count++
     return count
-  }, [searchTerm, typeIdFilter, selectedStatus, selectedClient, brandIdFilter])
+  }, [searchTerm, typeIdFilter, selectedStatus, selectedClient, brandIdFilter, obsolescenceStart, obsolescenceEnd])
 
   const totalCost = useMemo(
     () => equipment.reduce((sum, item) => sum + (item.cost ?? 0), 0),
@@ -326,6 +335,8 @@ export default function EquipmentPage() {
     setSelectedStatus('')
     setSelectedClient('')
     setBrandIdFilter('')
+    setObsolescenceStart('')
+    setObsolescenceEnd('')
   }
 
   const handleRefreshStatus = async () => {
@@ -472,88 +483,138 @@ export default function EquipmentPage() {
 
         {/* Filtres avancés */}
         {showFilters && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
-            <div>
-              <Label htmlFor="status-filter">{tList('filters.status.label')}</Label>
-              <Select value={selectedStatus || 'all'} onValueChange={(value) => handleStatusChange(value === 'all' ? '' : value)}>
-                <SelectTrigger id="status-filter">
-                  <SelectValue placeholder={tList('filters.status.label')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{tList('filters.status.label')}</SelectItem>
-                  <SelectItem value="actif">{tList('filters.status.options.actif')}</SelectItem>
-                  <SelectItem value="en_maintenance">{tList('filters.status.options.en_maintenance')}</SelectItem>
-                  <SelectItem value="bientot_obsolete">{tList('filters.status.options.bientot_obsolete')}</SelectItem>
-                  <SelectItem value="obsolete">{tList('filters.status.options.obsolete')}</SelectItem>
-                  <SelectItem value="retire">{tList('filters.status.options.retire')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="type-filter">{tList('filters.type.label')}</Label>
-              <Select value={typeIdFilter || 'all'} onValueChange={(value) => handleTypeFilterChange(value === 'all' ? '' : value)}>
-                <SelectTrigger id="type-filter">
-                  <SelectValue placeholder={tList('filters.type.label')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{tList('filters.type.all')}</SelectItem>
-                  {equipmentTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {permissions.canViewAllData() && (
+          <>
+            {/* Filtres principaux */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <Label htmlFor="client-filter">{tList('filters.client.label')}</Label>
-                <Select value={selectedClient || 'all'} onValueChange={(value) => handleClientChange(value === 'all' ? '' : value)}>
-                  <SelectTrigger id="client-filter">
-                    <SelectValue placeholder={tList('filters.client.all')} />
+                <Label htmlFor="status-filter">{tList('filters.status.label')}</Label>
+                <Select value={selectedStatus || 'all'} onValueChange={(value) => handleStatusChange(value === 'all' ? '' : value)}>
+                  <SelectTrigger id="status-filter">
+                    <SelectValue placeholder={tList('filters.status.label')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">{tList('filters.client.all')}</SelectItem>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
+                    <SelectItem value="all">{tList('filters.status.label')}</SelectItem>
+                    <SelectItem value="actif">{tList('filters.status.options.actif')}</SelectItem>
+                    <SelectItem value="en_maintenance">{tList('filters.status.options.en_maintenance')}</SelectItem>
+                    <SelectItem value="bientot_obsolete">{tList('filters.status.options.bientot_obsolete')}</SelectItem>
+                    <SelectItem value="obsolete">{tList('filters.status.options.obsolete')}</SelectItem>
+                    <SelectItem value="retire">{tList('filters.status.options.retire')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="type-filter">{tList('filters.type.label')}</Label>
+                <Select value={typeIdFilter || 'all'} onValueChange={(value) => handleTypeFilterChange(value === 'all' ? '' : value)}>
+                  <SelectTrigger id="type-filter">
+                    <SelectValue placeholder={tList('filters.type.label')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tList('filters.type.all')}</SelectItem>
+                    {equipmentTypes.map((type) => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {type.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            )}
 
-            <div>
-              <Label htmlFor="brand-filter">{tList('filters.brand.label')}</Label>
-              <Select value={brandIdFilter || 'all'} onValueChange={(value) => handleBrandChange(value === 'all' ? '' : value)}>
-                <SelectTrigger id="brand-filter">
-                  <SelectValue placeholder={tList('filters.brand.all')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{tList('filters.brand.all')}</SelectItem>
-                  {equipmentBrands.map((brand) => (
-                    <SelectItem key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {permissions.canViewAllData() && (
+                <div>
+                  <Label htmlFor="client-filter">{tList('filters.client.label')}</Label>
+                  <Select value={selectedClient || 'all'} onValueChange={(value) => handleClientChange(value === 'all' ? '' : value)}>
+                    <SelectTrigger id="client-filter">
+                      <SelectValue placeholder={tList('filters.client.all')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{tList('filters.client.all')}</SelectItem>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="brand-filter">{tList('filters.brand.label')}</Label>
+                <Select value={brandIdFilter || 'all'} onValueChange={(value) => handleBrandChange(value === 'all' ? '' : value)}>
+                  <SelectTrigger id="brand-filter">
+                    <SelectValue placeholder={tList('filters.brand.all')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{tList('filters.brand.all')}</SelectItem>
+                    {equipmentBrands.map((brand) => (
+                      <SelectItem key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="flex items-end">
-              <Button
-                variant="outline"
-                onClick={clearFilters}
-                disabled={activeFiltersCount === 0}
-                className="w-full"
-              >
-                {tList('filters.clear')}
-              </Button>
+            {/* Filtres de dates */}
+            <div className="border-t pt-4">
+              <div className="space-y-2 mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  {tList('filters.obsolescenceSectionTitle')}
+                </label>
+                <p className="text-xs text-gray-500">
+                  {tList('filters.obsolescenceSectionDescription')}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {tList('filters.obsolescenceStartLabel')}
+                  </label>
+                  <Input
+                    id="obsolescence-start"
+                    type="date"
+                    placeholder={tList('filters.obsolescenceStartPlaceholder')}
+                    value={obsolescenceStart}
+                    onChange={(e) => {
+                      setObsolescenceStart(e.target.value)
+                      goToPage(1)
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {tList('filters.obsolescenceEndLabel')}
+                  </label>
+                  <Input
+                    id="obsolescence-end"
+                    type="date"
+                    placeholder={tList('filters.obsolescenceEndPlaceholder')}
+                    value={obsolescenceEnd}
+                    onChange={(e) => {
+                      setObsolescenceEnd(e.target.value)
+                      goToPage(1)
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end mt-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearFilters}
+                  disabled={activeFiltersCount === 0}
+                >
+                  {tList('filters.clear')}
+                </Button>
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
 
@@ -568,7 +629,7 @@ export default function EquipmentPage() {
               {tList('table.empty.title')}
             </h3>
             <p className="text-gray-600 mb-4">
-              {activeFiltersCount > 0 
+              {(activeFiltersCount > 0 || obsolescenceStart || obsolescenceEnd)
                 ? tList('table.empty.descriptionFiltered')
                 : tList('table.empty.descriptionNoFilters')
               }

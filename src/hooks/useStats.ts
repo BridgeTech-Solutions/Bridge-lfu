@@ -5,6 +5,15 @@ import { useEffect, useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from './useAuth'
 
+// Types pour les types de licence
+export interface LicenseType {
+  id: string
+  name: string
+  code: string
+  description?: string
+  is_active: boolean
+}
+
 // Types pour les statistiques d'équipements
 export interface EquipmentStats {
   total: number
@@ -46,13 +55,48 @@ export interface LicenseStats {
     }>
   }
 }
+// Hook pour les tendances d'obsolescence équipements (12 mois)
+export function useEquipmentTrends(clientId?: string) {
+  const { user, loading: authLoading } = useAuth()
+
+  const fetchTrends = async (): Promise<Array<{ month: string; count: number }>> => {
+    const url = new URL('/api/stats/equipment/trends', window.location.origin)
+    if (clientId) url.searchParams.set('client_id', clientId)
+    const res = await fetch(url.toString(), { credentials: 'include' })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.message || `Erreur ${res.status}`)
+    }
+    const data = await res.json()
+    return (data.months || []) as Array<{ month: string; count: number }>
+  }
+
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['equipmentTrends', user?.id, clientId],
+    queryFn: fetchTrends,
+    enabled: !!user && !authLoading,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  })
+
+  return {
+    months: data || [],
+    loading: isLoading || authLoading,
+    error: isError ? (error as Error).message : null,
+    refetch,
+  }
+}
+
 
 // Hook pour les statistiques d'équipements
-export function useEquipmentStats() {
+export function useEquipmentStats(clientId?: string) {
   const { user, loading: authLoading } = useAuth()
 
   const fetchEquipmentStats = async (): Promise<EquipmentStats> => {
-    const response = await fetch('/api/stats/equipment', {
+    const url = new URL('/api/stats/equipment', window.location.origin)
+    if (clientId) url.searchParams.set('client_id', clientId)
+
+    const response = await fetch(url.toString(), {
       method: 'GET',
       credentials: 'include',
     })
@@ -73,7 +117,7 @@ export function useEquipmentStats() {
     refetch,
     isRefetching
   } = useQuery({
-    queryKey: ['equipmentStats', user?.id],
+    queryKey: ['equipmentStats', user?.id, clientId],
     queryFn: fetchEquipmentStats,
     enabled: !!user && !authLoading,
     staleTime: 5 * 60 * 1000,
@@ -97,11 +141,15 @@ export function useEquipmentStats() {
 }
 
 // Hook pour les statistiques de licences
-export function useLicenseStats() {
+export function useLicenseStats(clientId?: string, typeId?: string) {
   const { user, loading: authLoading } = useAuth()
 
   const fetchLicenseStats = async (): Promise<LicenseStats> => {
-    const response = await fetch('/api/stats/licenses', {
+    const url = new URL('/api/stats/licenses', window.location.origin)
+    if (clientId) url.searchParams.set('client_id', clientId)
+    if (typeId) url.searchParams.set('type_id', typeId)
+
+    const response = await fetch(url.toString(), {
       method: 'GET',
       credentials: 'include',
     })
@@ -122,7 +170,7 @@ export function useLicenseStats() {
     refetch,
     isRefetching
   } = useQuery({
-    queryKey: ['licenseStats', user?.id],
+    queryKey: ['licenseStats', user?.id, clientId, typeId],
     queryFn: fetchLicenseStats,
     enabled: !!user && !authLoading,
     staleTime: 5 * 60 * 1000,
@@ -220,9 +268,9 @@ export function useRealtimeStats(options?: {
 }
 
 // Hook pour les alertes basées sur les statistiques
-export function useStatsAlerts() {
-  const { stats: equipmentStats } = useEquipmentStats()
-  const { stats: licenseStats } = useLicenseStats()
+export function useStatsAlerts(clientId?: string) {
+  const { stats: equipmentStats } = useEquipmentStats(clientId)
+  const { stats: licenseStats } = useLicenseStats(clientId)
 
   const alerts = useMemo(() => {
     const alertsList = []

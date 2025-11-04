@@ -4,7 +4,11 @@ import { licenseSchema } from '@/lib/validations';
 import { getCurrentUser } from '@/lib/auth/server';
 import { PermissionChecker } from '@/lib/auth/permissions';
 
-// GET /api/licenses - Liste des licences avec pagination et filtres
+/**
+ * GET /api/licenses - List licenses with filters and pagination
+ * @param {NextRequest} request - The request object
+ * @returns {Promise<NextResponse>} Paginated licenses list or error
+ */
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -28,6 +32,7 @@ export async function GET(request: NextRequest) {
     const clientId = searchParams.get('client_id');
     const status = searchParams.get('status');
     const editor = searchParams.get('editor');
+    const typeId = searchParams.get('type_id');
     const expiryDateStart = searchParams.get('expiry_date_start');
     const expiryDateEnd = searchParams.get('expiry_date_end');
 
@@ -59,6 +64,10 @@ export async function GET(request: NextRequest) {
 
     if (editor) {
       query = query.ilike('editor', `%${editor}%`);
+    }
+
+    if (typeId) {
+      query = query.eq('type_id', typeId);
     }
 
     if (expiryDateStart) {
@@ -151,6 +160,7 @@ export async function POST(request: NextRequest) {
         expiry_date: validatedData.expiryDate,
         cost: validatedData.cost,
         client_id: validatedData.clientId,
+        type_id: validatedData.typeId || null,
         supplier_id: validatedData.supplierId || null,
         description: validatedData.description,
         created_by: user.id

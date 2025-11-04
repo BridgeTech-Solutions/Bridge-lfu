@@ -1,10 +1,10 @@
 // app/licenses/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslations } from '@/hooks/useTranslations'
 import { useRouter } from 'next/navigation'
-import { Search, Plus, Filter, Download, Calendar, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
+import { Search, Plus, Download, Calendar, AlertTriangle, CheckCircle, XCircle, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,6 +17,7 @@ import {
   useDebounce 
 } from '@/hooks'
 import { useLicenses, useLicenseActions } from '@/hooks/useLicenses' // Nouveau hook
+import { useLicenseTypes } from '@/hooks/useLicenseTypes'
 import { useClients } from '@/hooks/useClients' // Nouveau hook
 import type { LicenseStatus } from '@/types'
 import { LicenseTable } from '@/components/tables/LicenseTable'
@@ -34,6 +35,10 @@ export default function LicensesPage() {
   const [statusFilter, setStatusFilter] = useState<LicenseStatus | 'all'>('all')
   const [clientFilter, setClientFilter] = useState<string>('all')
   const [editorFilter, setEditorFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [expiryDateStart, setExpiryDateStart] = useState<string>('')
+  const [expiryDateEnd, setExpiryDateEnd] = useState<string>('')
+  const [showFilters, setShowFilters] = useState(false)
 
   // Valeurs débouncées pour éviter les requêtes excessives
   const debouncedSearch = useDebounce(search, 500)
@@ -57,7 +62,10 @@ export default function LicensesPage() {
     search: debouncedSearch,
     status: statusFilter === 'all' ? undefined : statusFilter,
     clientId: clientFilter === 'all' ? undefined : clientFilter,
-    editor: debouncedEditorFilter
+    editor: debouncedEditorFilter,
+    typeId: typeFilter === 'all' ? undefined : typeFilter,
+    expiryDateStart: expiryDateStart || undefined,
+    expiryDateEnd: expiryDateEnd || undefined
   })
   
   const { 
@@ -73,6 +81,8 @@ export default function LicensesPage() {
   // Hook pour les actions (annuler/réactiver)
   const { updateStatus, isUpdatingStatus } = useLicenseActions()
 
+  const { data: licenseTypes, isLoading: isLicenseTypesLoading } = useLicenseTypes()
+
   // Gestion de l'export
     const handleExport = async (format: 'xlsx' | 'csv' | 'json' = 'xlsx') => {
       try {
@@ -81,7 +91,10 @@ export default function LicensesPage() {
             search: debouncedSearch,
             status: statusFilter === 'all' ? undefined : statusFilter,
             clientId: clientFilter === 'all' ? undefined : clientFilter,
-            editor: debouncedEditorFilter
+            editor: debouncedEditorFilter,
+            typeId: typeFilter === 'all' ? undefined : typeFilter,
+            expiryDateStart: expiryDateStart || undefined,
+            expiryDateEnd: expiryDateEnd || undefined
           },
           format
         })
@@ -138,6 +151,19 @@ export default function LicensesPage() {
   const clients = clientsData || []
   const totalLicenses = pagination?.count || 0
 
+  // Calcul du nombre de filtres actifs
+  const activeFiltersCount = useMemo(() => {
+    let count = 0
+    if (search) count++
+    if (statusFilter !== 'all') count++
+    if (clientFilter !== 'all') count++
+    if (editorFilter) count++
+    if (typeFilter !== 'all') count++
+    if (expiryDateStart) count++
+    if (expiryDateEnd) count++
+    return count
+  }, [search, statusFilter, clientFilter, editorFilter, typeFilter, expiryDateStart, expiryDateEnd])
+
   // Gestion des changements de filtres avec retour à la page 1
   const handleSearchChange = (value: string) => {
     setSearch(value)
@@ -156,6 +182,21 @@ export default function LicensesPage() {
 
   const handleEditorFilterChange = (value: string) => {
     setEditorFilter(value)
+    goToPage(1)
+  }
+
+  const handleTypeFilterChange = (value: string) => {
+    setTypeFilter(value)
+    goToPage(1)
+  }
+
+  const handleExpiryDateStartChange = (value: string) => {
+    setExpiryDateStart(value)
+    goToPage(1)
+  }
+
+  const handleExpiryDateEndChange = (value: string) => {
+    setExpiryDateEnd(value)
     goToPage(1)
   }
 
@@ -342,58 +383,182 @@ export default function LicensesPage() {
       {/* Filtres */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder={t('filters.searchPlaceholder')}
-                  value={search}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-10"
-                />
+          {/* Recherche et bouton de toggle */}
+          <div className="space-y-4">
+            {/* Recherche générale */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                {t('filters.searchLabel')}
+              </label>
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder={t('filters.searchPlaceholder')}
+                    value={search}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="relative shrink-0"
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  {showFilters ? t('filters.hideFiltersButton') : t('filters.showFiltersButton')}
+                  {activeFiltersCount > 0 && (
+                    <Badge variant="destructive" className="ml-2 text-xs">
+                      {activeFiltersCount}
+                    </Badge>
+                  )}
+                </Button>
               </div>
             </div>
-            
-            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder={t('filters.statusPlaceholder')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('filters.statusAll')}</SelectItem>
-                <SelectItem value="active">{t('filters.statusActive')}</SelectItem>
-                <SelectItem value="about_to_expire">{t('filters.statusAboutToExpire')}</SelectItem>
-                <SelectItem value="expired">{t('filters.statusExpired')}</SelectItem>
-                <SelectItem value="cancelled">{t('filters.statusCancelled')}</SelectItem>
-              </SelectContent>
-            </Select>
 
-            {permissions.canViewAllData && (
-              <Select value={clientFilter} onValueChange={handleClientFilterChange}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder={t('filters.clientPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('filters.clientAll')}</SelectItem>
-                  {isClientsLoading ? (
-                    <SelectItem value="loading" disabled>{t('table.loading')}</SelectItem>
-                  ) : (
-                    clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id!}>
-                        {client.name}
-                      </SelectItem>
-                    ))
+            {/* Filtres conditionnels */}
+            {showFilters && (
+              <>
+                {/* Filtres principaux */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {t('filters.statusLabel')}
+                    </label>
+                    <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('filters.statusPlaceholder')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t('filters.statusAll')}</SelectItem>
+                        <SelectItem value="active">{t('filters.statusActive')}</SelectItem>
+                        <SelectItem value="about_to_expire">{t('filters.statusAboutToExpire')}</SelectItem>
+                        <SelectItem value="expired">{t('filters.statusExpired')}</SelectItem>
+                        <SelectItem value="cancelled">{t('filters.statusCancelled')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {permissions.canViewAllData && (
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        {t('filters.clientLabel')}
+                      </label>
+                      <Select value={clientFilter} onValueChange={handleClientFilterChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('filters.clientPlaceholder')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t('filters.clientAll')}</SelectItem>
+                          {isClientsLoading ? (
+                            <SelectItem value="loading" disabled>{t('filters.loading')}</SelectItem>
+                          ) : (
+                            clients.map((client) => (
+                              <SelectItem key={client.id} value={client.id!}>
+                                {client.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   )}
-                </SelectContent>
-              </Select>
-            )}
 
-            <Input
-              placeholder={t('filters.editorPlaceholder')}
-              value={editorFilter}
-              onChange={(e) => handleEditorFilterChange(e.target.value)}
-              className="w-48"
-            />
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {t('filters.editorLabel')}
+                    </label>
+                    <Input
+                      placeholder={t('filters.editorPlaceholder')}
+                      value={editorFilter}
+                      onChange={(e) => handleEditorFilterChange(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {t('filters.typeLabel')}
+                    </label>
+                    <Select value={typeFilter} onValueChange={handleTypeFilterChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('filters.typePlaceholder')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t('filters.typeAll')}</SelectItem>
+                        {isLicenseTypesLoading ? (
+                          <SelectItem value="loading" disabled>{t('filters.loading')}</SelectItem>
+                        ) : (
+                          licenseTypes?.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>
+                              {type.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Filtres de dates */}
+                <div className="border-t pt-4">
+                  <div className="space-y-2 mb-4">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {t('filters.expiryDateSectionTitle')}
+                    </label>
+                    <p className="text-xs text-gray-500">
+                      {t('filters.expiryDateSectionDescription')}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        {t('filters.expiryDateStartLabel')}
+                      </label>
+                      <Input
+                        type="date"
+                        placeholder={t('filters.expiryDateStartPlaceholder')}
+                        value={expiryDateStart}
+                        onChange={(e) => handleExpiryDateStartChange(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        {t('filters.expiryDateEndLabel')}
+                      </label>
+                      <Input
+                        type="date"
+                        placeholder={t('filters.expiryDateEndPlaceholder')}
+                        value={expiryDateEnd}
+                        onChange={(e) => handleExpiryDateEndChange(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end mt-4 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSearch('')
+                        setStatusFilter('all')
+                        setClientFilter('all')
+                        setEditorFilter('')
+                        setTypeFilter('all')
+                        setExpiryDateStart('')
+                        setExpiryDateEnd('')
+                        goToPage(1)
+                      }}
+                    >
+                      {t('filters.resetButton')}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -426,12 +591,12 @@ export default function LicensesPage() {
             <div className="text-center py-8">
               <h3 className="text-lg font-medium text-gray-900 mb-2">{t('table.emptyTitle')}</h3>
               <p className="text-gray-500 mb-4">
-                {debouncedSearch || statusFilter !== 'all' || clientFilter !== 'all' || debouncedEditorFilter ?
+                {search || statusFilter !== 'all' || clientFilter !== 'all' || editorFilter || typeFilter !== 'all' || expiryDateStart || expiryDateEnd ?
                   t('table.emptyFiltered') :
                   t('table.emptyDescription')
                 }
               </p>
-              {permissions.can('create', 'licenses') && !debouncedSearch && statusFilter === 'all' && clientFilter === 'all' && !debouncedEditorFilter && (
+              {permissions.can('create', 'licenses') && !search && statusFilter === 'all' && clientFilter === 'all' && !editorFilter && typeFilter === 'all' && !expiryDateStart && !expiryDateEnd && (
                 <Button onClick={() => router.push('/licenses/new')}>
                   <Plus className="w-4 h-4 mr-2" />
                   {t('actions.new')}

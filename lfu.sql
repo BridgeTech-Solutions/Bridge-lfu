@@ -560,11 +560,15 @@ SELECT
   c.name AS client_name,
   c.contact_email AS client_email,
   p.first_name || ' ' || p.last_name AS created_by_name,
-  ls.name AS supplier_name
+  ls.name AS supplier_name,
+  lt.name AS type_name,
+  lt.code AS type_code,
+  lt.description AS type_description
 FROM public.licenses l
 LEFT JOIN public.clients c ON l.client_id = c.id
 LEFT JOIN public.profiles p ON l.created_by = p.id
-LEFT JOIN public.license_suppliers ls ON l.supplier_id = ls.id;
+LEFT JOIN public.license_suppliers ls ON l.supplier_id = ls.id
+LEFT JOIN public.license_types lt ON l.type_id = lt.id;
 
 -- Vue pour les équipements avec informations client
 CREATE VIEW v_equipment_with_client AS
@@ -580,29 +584,32 @@ LEFT JOIN public.clients c ON e.client_id = c.id
 LEFT JOIN public.profiles p ON e.created_by = p.id;
 
 -- Vue pour le tableau de bord (alertes) - Version complète pour admin/techniciens
-CREATE VIEW v_dashboard_alerts AS
-SELECT 
+CREATE OR REPLACE VIEW v_dashboard_alerts AS
+SELECT
     'license' as type,
     l.id,
     l.name as item_name,
     c.name as client_name,
     l.expiry_date as alert_date,
-    l.status,
+    l.status::text,
     l.client_id,
-    CASE 
+    CASE
         WHEN l.expiry_date < CURRENT_DATE THEN 'expired'
         WHEN l.expiry_date <= CURRENT_DATE + INTERVAL '7 days' THEN 'urgent'
         WHEN l.expiry_date <= CURRENT_DATE + INTERVAL '30 days' THEN 'warning'
         ELSE 'normal'
     END as alert_level,
-    'license_expiry' as alert_type
+    'license_expiry' as alert_type,
+    lt.name as type_name,
+    lt.code as type_code
 FROM public.licenses l
 LEFT JOIN public.clients c ON l.client_id = c.id
+LEFT JOIN public.license_types lt ON l.type_id = lt.id
 WHERE l.expiry_date <= CURRENT_DATE + INTERVAL '90 days'
 
 UNION ALL
 
-SELECT 
+SELECT
     'equipment' as type,
     e.id,
     e.name as item_name,
@@ -610,20 +617,22 @@ SELECT
     e.estimated_obsolescence_date as alert_date,
     e.status::text,
     e.client_id,
-    CASE 
+    CASE
         WHEN e.estimated_obsolescence_date < CURRENT_DATE THEN 'expired'
         WHEN e.estimated_obsolescence_date <= CURRENT_DATE + INTERVAL '30 days' THEN 'urgent'
         WHEN e.estimated_obsolescence_date <= CURRENT_DATE + INTERVAL '90 days' THEN 'warning'
         ELSE 'normal'
     END as alert_level,
-    'equipment_obsolescence' as alert_type
+    'equipment_obsolescence' as alert_type,
+    NULL as type_name,
+    NULL as type_code
 FROM public.equipment e
 LEFT JOIN public.clients c ON e.client_id = c.id
 WHERE e.estimated_obsolescence_date <= CURRENT_DATE + INTERVAL '180 days'
 
 UNION ALL
 
-SELECT 
+SELECT
     'equipment' as type,
     e.id,
     e.name as item_name,
@@ -631,29 +640,31 @@ SELECT
     e.end_of_sale as alert_date,
     e.status::text,
     e.client_id,
-    CASE 
+    CASE
         WHEN e.end_of_sale < CURRENT_DATE THEN 'expired'
         WHEN e.end_of_sale <= CURRENT_DATE + INTERVAL '30 days' THEN 'urgent'
         WHEN e.end_of_sale <= CURRENT_DATE + INTERVAL '90 days' THEN 'warning'
         ELSE 'normal'
     END as alert_level,
-    'equipment_end_of_sale' as alert_type
+    'equipment_end_of_sale' as alert_type,
+    NULL as type_name,
+    NULL as type_code
 FROM public.equipment e
 LEFT JOIN public.clients c ON e.client_id = c.id
-WHERE e.end_of_sale IS NOT NULL 
+WHERE e.end_of_sale IS NOT NULL
 AND e.end_of_sale <= CURRENT_DATE + INTERVAL '180 days'
 
 ORDER BY alert_date ASC;
 
 -- NOUVELLE VUE : Tableau de bord spécifique pour les clients
 CREATE VIEW v_client_dashboard AS
-SELECT 
+SELECT
     'license' as type,
     l.id,
     l.name as item_name,
     l.expiry_date as alert_date,
-    l.status,
-    CASE 
+    l.status::text,
+    CASE
         WHEN l.expiry_date < CURRENT_DATE THEN 'expired'
         WHEN l.expiry_date <= CURRENT_DATE + INTERVAL '7 days' THEN 'urgent'
         WHEN l.expiry_date <= CURRENT_DATE + INTERVAL '30 days' THEN 'warning'
@@ -666,13 +677,13 @@ WHERE l.expiry_date <= CURRENT_DATE + INTERVAL '90 days'
 
 UNION ALL
 
-SELECT 
+SELECT
     'equipment' as type,
     e.id,
     e.name as item_name,
     e.estimated_obsolescence_date as alert_date,
     e.status::text,
-    CASE 
+    CASE
         WHEN e.estimated_obsolescence_date < CURRENT_DATE THEN 'expired'
         WHEN e.estimated_obsolescence_date <= CURRENT_DATE + INTERVAL '30 days' THEN 'urgent'
         WHEN e.estimated_obsolescence_date <= CURRENT_DATE + INTERVAL '90 days' THEN 'warning'
@@ -685,13 +696,13 @@ WHERE e.estimated_obsolescence_date <= CURRENT_DATE + INTERVAL '180 days'
 
 UNION ALL
 
-SELECT 
+SELECT
     'equipment' as type,
     e.id,
     e.name as item_name,
     e.end_of_sale as alert_date,
     e.status::text,
-    CASE 
+    CASE
         WHEN e.end_of_sale < CURRENT_DATE THEN 'expired'
         WHEN e.end_of_sale <= CURRENT_DATE + INTERVAL '30 days' THEN 'urgent'
         WHEN e.end_of_sale <= CURRENT_DATE + INTERVAL '90 days' THEN 'warning'
@@ -700,7 +711,7 @@ SELECT
     e.client_id,
     'equipment_end_of_sale' as alert_type
 FROM public.equipment e
-WHERE e.end_of_sale IS NOT NULL 
+WHERE e.end_of_sale IS NOT NULL
 AND e.end_of_sale <= CURRENT_DATE + INTERVAL '180 days'
 
 ORDER BY alert_date ASC;
@@ -714,6 +725,8 @@ ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.licenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.equipment_brands ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.equipment_types ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.license_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.license_attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.equipment_attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
@@ -1577,7 +1590,91 @@ USING (
     )
 );
 
--- 7. Modifier la table equipment pour utiliser la nouvelle référence
+-- POLICIES RLS POUR LICENSE_TYPES
+-- ==================================================================
+
+-- Policy 1: Tout le monde peut lire les types actifs (lecture publique)
+CREATE POLICY "Everyone can view active license types"
+ON public.license_types
+FOR SELECT
+USING (is_active = TRUE);
+
+-- Policy 2: Les admins et techniciens peuvent tout voir (même les types inactifs)
+CREATE POLICY "Admins and technicians can view all license types"
+ON public.license_types
+FOR SELECT
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND role IN ('admin', 'technicien')
+    )
+);
+
+-- Policy 3: Les admins et techniciens peuvent créer des types
+CREATE POLICY "Admins and technicians can create license types"
+ON public.license_types
+FOR INSERT
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND role IN ('admin', 'technicien')
+    )
+);
+
+-- Policy 4: Les admins et techniciens peuvent modifier des types
+CREATE POLICY "Admins and technicians can update license types"
+ON public.license_types
+FOR UPDATE
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND role IN ('admin', 'technicien')
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND role IN ('admin', 'technicien')
+    )
+);
+
+-- Policy 5: Les admins et techniciens peuvent supprimer des types (soft delete recommandé)
+CREATE POLICY "Admins and technicians can delete license types"
+ON public.license_types
+FOR DELETE
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND role IN ('admin', 'technicien')
+    )
+);
+
+-- Policy 6: Les clients peuvent voir les types actifs (même permission que "Everyone")
+CREATE POLICY "Clients can view active license types"
+ON public.license_types
+FOR SELECT
+USING (is_active = TRUE);
+
+-- Commentaires pour la documentation des policies RLS de license_types
+COMMENT ON POLICY "Everyone can view active license types" ON public.license_types
+IS 'Permet à tous les utilisateurs authentifiés de voir les types de licence actifs';
+
+COMMENT ON POLICY "Admins and technicians can view all license types" ON public.license_types
+IS 'Permet aux administrateurs et techniciens de voir tous les types de licence (actifs et inactifs)';
+
+COMMENT ON POLICY "Admins and technicians can create license types" ON public.license_types
+IS 'Permet aux administrateurs et techniciens de créer de nouveaux types de licence';
+
+COMMENT ON POLICY "Admins and technicians can update license types" ON public.license_types
+IS 'Permet aux administrateurs et techniciens de modifier les types de licence';
+
+COMMENT ON POLICY "Admins and technicians can delete license types" ON public.license_types
+IS 'Permet aux administrateurs et techniciens de supprimer des types de licence';
+
+COMMENT ON POLICY "Clients can view active license types" ON public.license_types
+IS 'Permet aux clients de voir les types de licence actifs (même permission que tout le monde)';
+
+-- POLICIES MISES À JOUR POUR LES PIÈCES JOINTES DES LICENCES
 -- IMPORTANT: À exécuter seulement après avoir migré les données existantes
 
 -- Ajouter la nouvelle colonne type_id

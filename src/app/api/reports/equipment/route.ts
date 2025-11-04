@@ -55,21 +55,21 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const canAccessReports = checker.can('read', 'reports', { client_id: user.client_id });
-    if (!canAccessReports) {
-      return NextResponse.json({ message: 'Permissions insuffisantes pour accéder aux rapports' }, { status: 403 });
-    }
+    const canAccessReports = checker.can('read', 'reports', { client_id: user.client_id });
+    if (!canAccessReports) {
+      return NextResponse.json({ message: 'Permissions insuffisantes pour accéder aux rapports' }, { status: 403 });
+    }
 
-    const status = searchParams.get('status');
-    const type = searchParams.get('type');
-    const format = searchParams.get('format') || 'json';
-    const dateFrom = searchParams.get('date_from');
-    const dateTo = searchParams.get('date_to');
+    const equipmentTypeId = searchParams.get('equipment_type_id');
+    const format = searchParams.get('format') || 'json';
+    const dateFrom = searchParams.get('date_from');
+    const dateTo = searchParams.get('date_to');
+    const status = searchParams.get('status');
 
-    const validation = validateRequestParams(searchParams);
-    if (!validation.isValid) {
-      return NextResponse.json({ errors: validation.errors }, { status: 400 });
-    }
+    const validation = validateRequestParams(searchParams);
+    if (!validation.isValid) {
+      return NextResponse.json({ errors: validation.errors }, { status: 400 });
+    }
 
     let query = supabase.from('v_equipment_with_client').select('*');
 
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) query = query.eq('status', status as EquipmentStatus);
-    if (type) query = query.eq('type_code', type as EquipmentType);
+    if (equipmentTypeId) query = query.eq('type_id', equipmentTypeId);
     if (dateFrom) query = query.gte('estimated_obsolescence_date', dateFrom);
     if (dateTo) query = query.lte('estimated_obsolescence_date', dateTo);
 
@@ -134,14 +134,14 @@ export async function GET(request: NextRequest) {
         return await generatePDFReport(reportData, fontBuffer, {
           title: 'Rapport des Équipements',
           user: user.first_name || user.email,
-          filters: { clientId, clientName, status, type, dateFrom, dateTo },
+          filters: { clientId, clientName, status, equipmentTypeId, dateFrom, dateTo },
           isClientUser: !checker.canViewAllData()
         });
       case 'excel':
         return await generateExcelReport(reportData, {
           title: 'Rapport des Équipements',
           user: user.first_name || user.email,
-          filters: { clientId, clientName, status, type, dateFrom, dateTo },
+          filters: { clientId, clientName, status, equipmentTypeId, dateFrom, dateTo },
           isClientUser: !checker.canViewAllData()
         });
       default:
@@ -206,70 +206,74 @@ function generateCSVReport(data: EquipmentReportData[]): NextResponse {
   });
 }
 
-// Fonction de génération Excel
+// Fonction de génération Excel améliorée pour les équipements
 async function generateExcelReport(
-  data: EquipmentReportData[],
-  options: {
-    title: string;
-    user: string;
-    filters: Record<string, string | null>;
-    isClientUser?: boolean;
-  }
+  data: EquipmentReportData[],
+  options: {
+    title: string;
+    user: string;
+    filters: Record<string, string | null>;
+    isClientUser?: boolean;
+  }
 ): Promise<NextResponse> {
-  const workbook = new ExcelJS.Workbook();
-  
-  workbook.creator = 'Système de Gestion IT';
-  workbook.lastModifiedBy = options.user;
-  workbook.created = new Date();
-  workbook.modified = new Date();
-  
-  const worksheet = workbook.addWorksheet('Rapport des Équipements', {
-    properties: { tabColor: { argb: '059669' } },
-    views: [{ state: 'frozen', xSplit: 0, ySplit: 3 }]
-  });
+  const workbook = new ExcelJS.Workbook();
+  
+  workbook.creator = 'Système de Gestion IT';
+  workbook.lastModifiedBy = options.user;
+  workbook.created = new Date();
+  workbook.modified = new Date();
+  
+  const worksheet = workbook.addWorksheet('Rapport des Équipements', {
+    properties: { tabColor: { argb: '059669' } },
+    views: [{ state: 'frozen', xSplit: 0, ySplit: 4 }]
+  });
 
-  // --- DÉBUT DES CORRECTIONS ---
+  // Configuration des colonnes avec largeurs optimisées
+  worksheet.columns = [
+    { key: 'name', width: 28 },
+    { key: 'type', width: 12 },
+    { key: 'brand', width: 18 },
+    { key: 'model', width: 20 },
+    { key: 'serial_number', width: 18 },
+    { key: 'client_name', width: 25 },
+    { key: 'purchase_date', width: 16 },
+    { key: 'estimated_obsolescence_date', width: 18 },
+    { key: 'end_of_sale', width: 16 },
+    { key: 'status', width: 16 },
+    { key: 'cost', width: 15 },
+    { key: 'days_until_obsolescence', width: 16 },
+    { key: 'days_until_end_of_sale', width: 16 }
+  ];
 
-  // 1. Ajout de la colonne 'days_until_end_of_sale' et ajustement de la largeur des autres colonnes
-  worksheet.columns = [
-    {  key: 'name', width: 30 },
-    {  key: 'type', width: 15 },
-    {  key: 'brand', width: 18 },
-    {  key: 'model', width: 20 },
-    {  key: 'serial_number', width: 20 }, // Ajout de la colonne N° série
-    {  key: 'client_name', width: 25 },
-    {  key: 'purchase_date', width: 18 },
-    {  key: 'estimated_obsolescence_date', width: 20 },
-    {  key: 'end_of_sale', width: 18 },
-    {  key: 'status', width: 18 },
-    {  key: 'cost', width: 15 },
-    {  key: 'days_until_obsolescence', width: 18 },
-    {  key: 'days_until_end_of_sale', width: 18 } // Ajout de la colonne Jours restants (Fin Vente)
-  ];
+  // Titre principal avec style amélioré
+  worksheet.mergeCells('A1:M1');
+  const titleCell = worksheet.getCell('A1');
+  titleCell.value = options.title;
+  titleCell.font = { size: 20, bold: true, color: { argb: 'FFFFFF' } };
+  titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  titleCell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: '059669' }
+  };
+  worksheet.getRow(1).height = 35;
 
-  // 2. Fusion des cellules du titre et des informations pour la nouvelle largeur (A1:M1 et A2:M2)
-  const totalColumns = worksheet.columns.length;
-  const lastColumnLetter = String.fromCharCode(65 + totalColumns - 1); // 65 est 'A'
-  
-  worksheet.mergeCells(`A1:${lastColumnLetter}1`);
-  const titleCell = worksheet.getCell('A1');
-  titleCell.value = options.title;
-  titleCell.font = { size: 18, bold: true, color: { argb: '059669' } };
-  titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
-  titleCell.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'f8fafc' }
-  };
+  // Sous-titre avec informations de génération
+  worksheet.mergeCells('A2:M2');
+  const infoCell = worksheet.getCell('A2');
+  infoCell.value = `Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')} par ${options.user}`;
+  infoCell.font = { size: 10, italic: true, color: { argb: '64748b' } };
+  infoCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  infoCell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'f1f5f9' }
+  };
+  worksheet.getRow(2).height = 20;
 
-  worksheet.mergeCells(`A2:${lastColumnLetter}2`);
-  const infoCell = worksheet.getCell('A2');
-  infoCell.value = `Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')} par ${options.user}`;
-  infoCell.font = { size: 10, italic: true, color: { argb: '64748b' } };
-  infoCell.alignment = { horizontal: 'center' };
+  worksheet.addRow([]);
 
-  worksheet.addRow([]); // Ligne vide
-
+  // En-tête du tableau avec style professionnel
   const headerRow = worksheet.addRow([
     'Nom de l\'équipement',
     'Type',
@@ -282,207 +286,329 @@ async function generateExcelReport(
     'Fin de vente',
     'Statut',
     'Coût (FCFA)',
-    'Jours restants (Obsol.)',
-    'Jours restants (Fin Vente)'
+    'Jours (Obsol.)',
+    'Jours (Fin vente)'
   ]);
-  headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
-  headerRow.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: '059669' }
-  };
-  headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-  headerRow.height = 40; // Augmentation de la hauteur pour le texte wrappé
+  
+  headerRow.font = { bold: true, color: { argb: 'FFFFFF' }, size: 11 };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: '047857' }
+  };
+  headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  headerRow.height = 30;
 
-  data.forEach((item, index) => {
-    const row = worksheet.addRow({
-      name: item.name,
-      type: item.type,
-      brand: item.brand,
-      model: item.model,
-      serial_number: item.serial_number, // Ajout de la donnée
-      client_name: item.client_name,
-      purchase_date: item.purchase_date ? new Date(item.purchase_date) : 'N/A',
-      estimated_obsolescence_date: item.estimated_obsolescence_date ? new Date(item.estimated_obsolescence_date) : 'N/A',
-      end_of_sale: item.end_of_sale ? new Date(item.end_of_sale) : 'N/A',
-      status: item.status,
-      cost: item.cost,
-      days_until_obsolescence: item.days_until_obsolescence,
-      days_until_end_of_sale: item.days_until_end_of_sale // Ajout de la donnée
-    });
+  // Bordures pour l'en-tête
+  headerRow.eachCell((cell) => {
+    cell.border = {
+      top: { style: 'medium', color: { argb: '065f46' } },
+      left: { style: 'thin', color: { argb: '065f46' } },
+      bottom: { style: 'medium', color: { argb: '065f46' } },
+      right: { style: 'thin', color: { argb: '065f46' } }
+    };
+  });
 
-    // Mise en forme de la ligne (couleur de fond alternée)
-    if (index % 2 === 0) {
-      row.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'f8fafc' }
-      };
-    }
+  // Ajout des données avec formatage conditionnel
+  data.forEach((item, index) => {
+    const row = worksheet.addRow({
+      name: item.name,
+      type: item.type,
+      brand: item.brand,
+      model: item.model,
+      serial_number: item.serial_number,
+      client_name: item.client_name,
+      purchase_date: item.purchase_date ? new Date(item.purchase_date) : 'N/A',
+      estimated_obsolescence_date: item.estimated_obsolescence_date ? new Date(item.estimated_obsolescence_date) : 'N/A',
+      end_of_sale: item.end_of_sale ? new Date(item.end_of_sale) : 'N/A',
+      status: item.status,
+      cost: item.cost,
+      days_until_obsolescence: item.days_until_obsolescence ?? 'N/A',
+      days_until_end_of_sale: item.days_until_end_of_sale ?? 'N/A'
+    });
 
-    // Mise en forme des dates et coûts
-    if (item.purchase_date) row.getCell('purchase_date').numFmt = 'dd/mm/yyyy';
-    if (item.estimated_obsolescence_date) row.getCell('estimated_obsolescence_date').numFmt = 'dd/mm/yyyy';
-    if (item.end_of_sale) row.getCell('end_of_sale').numFmt = 'dd/mm/yyyy';
-    row.getCell('cost').numFmt = '#,##0';
+    // Alternance de couleurs pour les lignes
+    if (index % 2 === 0) {
+      row.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'f8fafc' }
+      };
+    }
 
-    // Mise en forme du statut
-    const statusCell = row.getCell('status');
-    const statusColors: Record<string, string> = {
-      'actif': '059669',
-      'obsolete': 'dc2626',
-      'bientot_obsolete': 'd97706',
-      'en_maintenance': '2563eb',
-      'retire': '64748b'
-    };
-    const statusBgColors: Record<string, string> = {
-      'actif': 'd1fae5',
-      'obsolete': 'fee2e2',
-      'bientot_obsolete': 'fed7aa',
-      'en_maintenance': 'dbeafe',
-      'retire': 'f1f5f9'
-    };
-    
-    statusCell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: statusBgColors[item.status] || 'f1f5f9' }
-    };
-    statusCell.font = {
-      color: { argb: statusColors[item.status] || '64748b' },
-      bold: true
-    };
-    statusCell.alignment = { horizontal: 'center' };
+    // Formatage des dates et nombres
+    if (item.purchase_date) {
+      row.getCell('purchase_date').numFmt = 'dd/mm/yyyy';
+      row.getCell('purchase_date').alignment = { horizontal: 'center', vertical: 'middle' };
+    }
+    if (item.estimated_obsolescence_date) {
+      row.getCell('estimated_obsolescence_date').numFmt = 'dd/mm/yyyy';
+      row.getCell('estimated_obsolescence_date').alignment = { horizontal: 'center', vertical: 'middle' };
+    }
+    if (item.end_of_sale) {
+      row.getCell('end_of_sale').numFmt = 'dd/mm/yyyy';
+      row.getCell('end_of_sale').alignment = { horizontal: 'center', vertical: 'middle' };
+    }
+    
+    row.getCell('cost').numFmt = '#,##0';
+    row.getCell('cost').alignment = { horizontal: 'right', vertical: 'middle' };
 
-    // Mise en forme des jours restants obsolescence
-    const daysObsolescenceCell = row.getCell('days_until_obsolescence');
-    if (item.days_until_obsolescence !== null) {
-      if (item.days_until_obsolescence < 0) {
-        daysObsolescenceCell.font = { color: { argb: 'dc2626' }, bold: true };
-      } else if (item.days_until_obsolescence <= 90) {
-        daysObsolescenceCell.font = { color: { argb: 'd97706' }, bold: true };
-      }
-    }
-    daysObsolescenceCell.alignment = { horizontal: 'center' };
+    // Formatage conditionnel du statut
+    const statusCell = row.getCell('status');
+    const statusColors: Record<string, string> = {
+      'actif': '059669',
+      'obsolete': 'dc2626',
+      'bientot_obsolete': 'd97706',
+      'en_maintenance': '2563eb',
+      'retire': '64748b'
+    };
+    const statusBgColors: Record<string, string> = {
+      'actif': 'd1fae5',
+      'obsolete': 'fee2e2',
+      'bientot_obsolete': 'fed7aa',
+      'en_maintenance': 'dbeafe',
+      'retire': 'f1f5f9'
+    };
+    
+    statusCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: statusBgColors[item.status] || 'f1f5f9' }
+    };
+    statusCell.font = {
+      color: { argb: statusColors[item.status] || '64748b' },
+      bold: true,
+      size: 10
+    };
+    statusCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-    // Mise en forme des jours restants fin de vente
-    const daysEndOfSaleCell = row.getCell('days_until_end_of_sale');
-    if (item.days_until_end_of_sale !== null) {
-      if (item.days_until_end_of_sale < 0) {
-        daysEndOfSaleCell.font = { color: { argb: 'dc2626' }, bold: true };
-      } else if (item.days_until_end_of_sale <= 90) {
-        daysEndOfSaleCell.font = { color: { argb: 'd97706' }, bold: true };
-      }
-    }
-    daysEndOfSaleCell.alignment = { horizontal: 'center' };
-  });
+    // Formatage conditionnel des jours restants obsolescence
+    const daysObsolescenceCell = row.getCell('days_until_obsolescence');
+    if (item.days_until_obsolescence !== null) {
+      if (item.days_until_obsolescence < 0) {
+        daysObsolescenceCell.font = { color: { argb: 'dc2626' }, bold: true };
+        daysObsolescenceCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'fee2e2' }
+        };
+      } else if (item.days_until_obsolescence <= 90) {
+        daysObsolescenceCell.font = { color: { argb: 'd97706' }, bold: true };
+        daysObsolescenceCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'fed7aa' }
+        };
+      }
+    }
+    daysObsolescenceCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-  // Application des bordures à toutes les cellules de données
-  const lastRow = worksheet.lastRow?.number || 4;
-  for (let i = 4; i <= lastRow; i++) {
-    const row = worksheet.getRow(i);
-    row.eachCell({ includeEmpty: true }, (cell) => {
-      cell.border = {
-        top: { style: 'thin', color: { argb: 'e2e8f0' } },
-        left: { style: 'thin', color: { argb: 'e2e8f0' } },
-        bottom: { style: 'thin', color: { argb: 'e2e8f0' } },
-        right: { style: 'thin', color: { argb: 'e2e8f0' } }
-      };
-    });
-  }
+    // Formatage conditionnel des jours restants fin de vente
+    const daysEndOfSaleCell = row.getCell('days_until_end_of_sale');
+    if (item.days_until_end_of_sale !== null) {
+      if (item.days_until_end_of_sale < 0) {
+        daysEndOfSaleCell.font = { color: { argb: 'dc2626' }, bold: true };
+        daysEndOfSaleCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'fee2e2' }
+        };
+      } else if (item.days_until_end_of_sale <= 90) {
+        daysEndOfSaleCell.font = { color: { argb: 'd97706' }, bold: true };
+        daysEndOfSaleCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'fed7aa' }
+        };
+      }
+    }
+    daysEndOfSaleCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-  // --- FIN DES CORRECTIONS ---
-  
-  // La feuille de statistiques existait déjà, elle est correctement conservée
-  const statsSheet = workbook.addWorksheet('Statistiques', {
-    properties: { tabColor: { argb: '2563eb' } }
-  });
-
-  const totalEquipment = data.length;
-  const totalCost = data.reduce((sum, e) => sum + (e.cost || 0), 0);
-  const obsoleteCount = data.filter(e => e.status === 'obsolete').length;
-  const soonObsoleteCount = data.filter(e => e.status === 'bientot_obsolete').length;
-  const activeCount = data.filter(e => e.status === 'actif' || e.status === 'bientot_obsolete').length;
-  const maintenanceCount = data.filter(e => e.status === 'en_maintenance').length;
-
-  const typeCount: Record<string, number> = {};
-  data.forEach(e => {
-    typeCount[e.type] = (typeCount[e.type] || 0) + 1;
-  });
-
-  statsSheet.mergeCells('A1:B1');
-  statsSheet.getCell('A1').value = 'Résumé Exécutif';
-  statsSheet.getCell('A1').font = { size: 16, bold: true };
-  statsSheet.getCell('A1').alignment = { horizontal: 'center' };
-
-  const stats = [
-    ['Nombre total d\'équipements', totalEquipment],
-    ['Coût total (FCFA)', totalCost],
-    ['Équipements actifs', activeCount],
-    ['Équipements obsolètes', obsoleteCount],
-    ['Obsolètes bientôt', soonObsoleteCount],
-    ['En maintenance', maintenanceCount]
-  ];
-
-  statsSheet.addRow([]);
-  stats.forEach((stat) => {
-    const row = statsSheet.addRow(stat);
-    row.getCell(1).font = { bold: true };
-    row.getCell(2).numFmt = '#,##0';
-    row.getCell(2).alignment = { horizontal: 'right' };
-  });
-
-  statsSheet.addRow([]);
-  statsSheet.addRow(['Répartition par type']).font = { bold: true, size: 14 };
-  Object.entries(typeCount).forEach(([type, count]) => {
-    const row = statsSheet.addRow([type, count]);
-    row.getCell(1).font = { italic: true };
-    row.getCell(2).alignment = { horizontal: 'right' };
-  });
-
-  statsSheet.columns = [
-    { width: 30 },
-    { width: 20 }
-  ];
-
-  if (Object.values(options.filters).some(v => v)) {
-    statsSheet.addRow([]);
-    statsSheet.addRow(['Filtres appliqués']).font = { bold: true, size: 14 };
-    
-    const filterLabels: Record<string, string> = {
-      clientId: 'Client',
-      status: 'Statut',
-      type: 'Type',
-      dateFrom: 'Date de début (obsolescence)',
-      dateTo: 'Date de fin (obsolescence)'
-    };
-
-    Object.entries(options.filters).forEach(([key, value]) => {
-      if (value) {
-        // Ne pas afficher le filtre 'Client' si l'utilisateur est un client
-        if (key === 'clientId' && options.isClientUser) return;
-        
-        // Utiliser clientName au lieu de clientId si disponible
-        const displayValue = key === 'clientId' && options.filters.clientName 
-          ? options.filters.clientName 
-          : value;
-        statsSheet.addRow([filterLabels[key], displayValue]);
+    // Alignement vertical pour toutes les cellules
+    row.eachCell((cell) => {
+      if (!cell.alignment) {
+        cell.alignment = { vertical: 'middle' };
       }
     });
-  }
 
-  const buffer = await workbook.xlsx.writeBuffer();
-  const filename = `rapport_equipements_${new Date().toISOString().split('T')[0]}.xlsx`;
+    row.height = 22;
+  });
 
-  return new NextResponse(buffer, {
-    headers: {
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${filename}"`
-    }
-  });
+  // Bordures pour toutes les cellules de données
+  const lastRow = worksheet.lastRow?.number || 4;
+  for (let i = 4; i <= lastRow; i++) {
+    const row = worksheet.getRow(i);
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'cbd5e1' } },
+        left: { style: 'thin', color: { argb: 'cbd5e1' } },
+        bottom: { style: 'thin', color: { argb: 'cbd5e1' } },
+        right: { style: 'thin', color: { argb: 'cbd5e1' } }
+      };
+    });
+  }
+
+  // Feuille de statistiques améliorée
+  const statsSheet = workbook.addWorksheet('Statistiques', {
+    properties: { tabColor: { argb: '2563eb' } }
+  });
+
+  // Titre de la feuille statistiques
+  statsSheet.mergeCells('A1:C1');
+  const statsTitleCell = statsSheet.getCell('A1');
+  statsTitleCell.value = 'Résumé Exécutif';
+  statsTitleCell.font = { size: 18, bold: true, color: { argb: 'FFFFFF' } };
+  statsTitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  statsTitleCell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: '059669' }
+  };
+  statsSheet.getRow(1).height = 30;
+
+  statsSheet.addRow([]);
+
+  // Calcul des statistiques
+  const totalEquipment = data.length;
+  const totalCost = data.reduce((sum, e) => sum + (e.cost || 0), 0);
+  const obsoleteCount = data.filter(e => e.status === 'obsolete').length;
+  const soonObsoleteCount = data.filter(e => e.status === 'bientot_obsolete').length;
+  const activeCount = data.filter(e => e.status === 'actif').length;
+  const maintenanceCount = data.filter(e => e.status === 'en_maintenance').length;
+
+  const stats = [
+    { label: 'Nombre total d\'équipements', value: totalEquipment, icon: '📊' },
+    { label: 'Coût total (FCFA)', value: totalCost, icon: '💰' },
+    { label: 'Équipements actifs', value: activeCount, icon: '✅' },
+    { label: 'Équipements obsolètes', value: obsoleteCount, icon: '❌' },
+    { label: 'Obsolètes bientôt', value: soonObsoleteCount, icon: '⚠️' },
+    { label: 'En maintenance', value: maintenanceCount, icon: '🔧' }
+  ];
+
+  stats.forEach((stat, index) => {
+    const row = statsSheet.addRow([stat.icon, stat.label, stat.value]);
+    row.getCell(1).font = { size: 16 };
+    row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+    row.getCell(2).font = { bold: true, size: 11 };
+    row.getCell(2).alignment = { vertical: 'middle' };
+    row.getCell(3).font = { bold: true, size: 12, color: { argb: '059669' } };
+    row.getCell(3).numFmt = '#,##0';
+    row.getCell(3).alignment = { horizontal: 'right', vertical: 'middle' };
+    row.height = 25;
+
+    // Couleur alternée
+    if (index % 2 === 0) {
+      row.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'f8fafc' }
+      };
+    }
+
+    // Bordures
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'cbd5e1' } },
+        left: { style: 'thin', color: { argb: 'cbd5e1' } },
+        bottom: { style: 'thin', color: { argb: 'cbd5e1' } },
+        right: { style: 'thin', color: { argb: 'cbd5e1' } }
+      };
+    });
+  });
+
+  // Répartition par type
+  statsSheet.addRow([]);
+  statsSheet.addRow([]);
+  
+  const typesTitleRow = statsSheet.addRow(['📈', 'Répartition par type', '']);
+  statsSheet.mergeCells(typesTitleRow.number, 2, typesTitleRow.number, 3);
+  typesTitleRow.getCell(2).font = { bold: true, size: 14, color: { argb: '2563eb' } };
+  typesTitleRow.getCell(2).alignment = { vertical: 'middle' };
+  typesTitleRow.height = 25;
+
+  const typeCount: Record<string, number> = {};
+  data.forEach(e => {
+    typeCount[e.type] = (typeCount[e.type] || 0) + 1;
+  });
+
+  Object.entries(typeCount).forEach(([type, count], index) => {
+    const row = statsSheet.addRow(['', type, count]);
+    row.getCell(2).font = { italic: true };
+    row.getCell(3).alignment = { horizontal: 'right', vertical: 'middle' };
+    row.height = 20;
+
+    if (index % 2 === 0) {
+      row.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'f8fafc' }
+      };
+    }
+  });
+
+  statsSheet.columns = [
+    { width: 8 },
+    { width: 35 },
+    { width: 20 }
+  ];
+
+  // Filtres appliqués
+  const filtersToShow = Object.entries(options.filters).filter(([key, value]) => {
+    if (!value) return false;
+    if (key === 'clientId' && options.isClientUser) return false;
+    return true;
+  });
+
+  if (filtersToShow.length > 0) {
+    statsSheet.addRow([]);
+    statsSheet.addRow([]);
+    
+    const filterTitleRow = statsSheet.addRow(['🔍', 'Filtres appliqués', '']);
+    statsSheet.mergeCells(filterTitleRow.number, 2, filterTitleRow.number, 3);
+    filterTitleRow.getCell(2).font = { bold: true, size: 14, color: { argb: '2563eb' } };
+    filterTitleRow.getCell(2).alignment = { vertical: 'middle' };
+    filterTitleRow.height = 25;
+   
+    const filterLabels: Record<string, string> = {
+      clientId: 'Client',
+      status: 'Statut',
+      equipmentTypeId: 'Type',
+      dateFrom: 'Date de début',
+      dateTo: 'Date de fin'
+    };
+
+    filtersToShow.forEach(([key, value], index) => {
+      const displayValue = key === 'clientId' && options.filters.clientName 
+        ? options.filters.clientName 
+        : value;
+      
+      const row = statsSheet.addRow(['', filterLabels[key], displayValue]);
+      row.getCell(2).font = { bold: true };
+      row.getCell(3).font = { color: { argb: '64748b' } };
+      row.height = 20;
+
+      if (index % 2 === 0) {
+        row.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'f8fafc' }
+        };
+      }
+    });
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const filename = `rapport_equipements_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+  return new NextResponse(buffer, {
+    headers: {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`
+    }
+  });
 }
 
-// Fonction de génération PDF (conservée de l'original)
+// Fonction de génération PDF améliorée pour les équipements
 async function generatePDFReport(
   data: EquipmentReportData[], 
   fontBuffer: Buffer,
@@ -504,7 +630,7 @@ async function generatePDFReport(
     const doc = new PDFDocument({
       font: fontBuffer as unknown as string, 
       size: 'A4',
-      margin: 50,
+      margin: 40,
       info: {
         Title: options.title,
         Author: 'Système de Gestion IT',
@@ -529,102 +655,191 @@ async function generatePDFReport(
     doc.on('error', (err) => reject(err));
 
     const colors = {
-      primary: '#2563eb',
+      primary: '#059669', // Vert (couleur dominante de l'Excel)
       secondary: '#64748b',
       success: '#059669',
       warning: '#d97706',
       danger: '#dc2626',
-      text: '#374151',
-      lightGray: '#f8fafc'
+      text: '#1e293b',
+      lightGray: '#f1f5f9',
+      border: '#cbd5e1'
     };
 
-    doc.fontSize(24).fillColor(colors.primary).text(options.title, { align: 'center' });
-    doc.moveDown(0.5);
-    doc.fontSize(12).fillColor(colors.secondary)
-        .text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`, { align: 'center' })
-        .text(`Par: ${options.user}`, { align: 'center' });
-    doc.moveDown(1);
+    // Calcul des dimensions de la page
+    const pageWidth = doc.page.width;
+    const margins = doc.page.margins;
+    const availableWidth = pageWidth - margins.left - margins.right;
 
+    // En-tête du rapport
+    doc.fontSize(22).fillColor(colors.primary).text(options.title, { align: 'center' });
+    doc.moveDown(0.3);
+    doc.fontSize(10).fillColor(colors.secondary)
+      .text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`, { align: 'center' })
+      .text(`Par: ${options.user}`, { align: 'center' });
+    doc.moveDown(0.8);
+
+    // Filtres appliqués
     const filtersToShow = Object.entries(options.filters).filter(([key, value]) => {
-      // 1. Ne pas afficher le filtre 'Client' si l'utilisateur est un client.
       if (key === 'clientId' && options.isClientUser) return false;
-      // 2. N'afficher que les filtres qui ont une valeur (non null/undefined/vide).
+      if (key === 'clientName') return false; 
       return !!value;
     });
 
-    // Afficher la section "Filtres appliqués" uniquement s'il y a des filtres à montrer
     if (filtersToShow.length > 0) {
-      doc.fontSize(14).fillColor(colors.text).text('Filtres appliqués:', { underline: true });
-      doc.moveDown(0.3);
+      doc.fontSize(11).fillColor(colors.text).text('Filtres appliqués:', { underline: true });
+      doc.moveDown(0.2);
 
       const filterLabels: Record<string, string> = {
         clientId: 'Client',
         status: 'Statut',
-        type: 'Type',
-        dateFrom: 'Date de début (obsolescence)',
-        dateTo: 'Date de fin (obsolescence)'
+        equipmentTypeId: 'Type',
+        dateFrom: 'Date de début (Obsol.)',
+        dateTo: 'Date de fin (Obsol.)'
       };
 
       filtersToShow.forEach(([key, value]) => {
-        doc.fontSize(10).fillColor(colors.secondary).text(`${filterLabels[key]}: ${value}`);
+        const displayValue = key === 'clientId' && options.filters.clientName 
+          ? options.filters.clientName 
+          : value;
+        doc.fontSize(9).fillColor(colors.secondary).text(`${filterLabels[key]}: ${displayValue}`);
       });
-      doc.moveDown(1);
+      doc.moveDown(0.8);
     }
 
+    // Résumé exécutif
     const totalEquipment = data.length;
+    const totalCost = data.reduce((sum, e) => sum + (e.cost || 0), 0);
     const obsoleteEquipment = data.filter(e => e.status === 'obsolete').length;
     const soonToBeObsolete = data.filter(e => e.status === 'bientot_obsolete').length;
-    const inMaintenance = data.filter(e => e.status === 'en_maintenance').length;
-    
-    doc.fontSize(14).fillColor(colors.text).text('Résumé Exécutif', { underline: true });
-    doc.moveDown(0.5);
 
-    const summaryData = [
-      { label: 'Nombre total d\'équipements', value: totalEquipment.toString() },
-      { label: 'Équipements obsolètes', value: obsoleteEquipment.toString(), color: obsoleteEquipment > 0 ? colors.danger : colors.text },
-      { label: 'Obsolètes bientôt', value: soonToBeObsolete.toString(), color: soonToBeObsolete > 0 ? colors.warning : colors.text },
-      { label: 'En maintenance', value: inMaintenance.toString(), color: inMaintenance > 0 ? colors.secondary : colors.text }
+    doc.fontSize(12).fillColor(colors.text).text('Résumé Exécutif', { underline: true });
+    doc.moveDown(0.3);
+
+    const summaryY = doc.y;
+    const boxWidth = (availableWidth - 45) / 4;
+    const boxHeight = 45;
+    const boxSpacing = 15;
+
+      // Fonction d'aide pour le formatage de la monnaie
+  function formatCurrency(amount: number, includeCurrency: boolean = true): string {
+    const formattedNumber = new Intl.NumberFormat('fr-FR', {
+      style: 'decimal',
+      minimumFractionDigits: 0
+    }).format(amount).replace(/[\u00A0\u202F]/g, ' ');
+
+    if (includeCurrency) {
+      return formattedNumber + ' FCFA';
+    }
+    return formattedNumber;
+  }
+
+    
+    const summaryBoxes = [
+      { label: 'Total équip.', value: totalEquipment.toString(), color: colors.primary },
+      { label: 'Coût Total', value: formatCurrency(totalCost, true), color: colors.success },
+      { label: 'Obsolètes', value: obsoleteEquipment.toString(), color: colors.danger },
+      { label: 'Bientôt obsol.', value: soonToBeObsolete.toString(), color: colors.warning }
     ];
 
-    summaryData.forEach(item => {
-      doc.fontSize(10).fillColor(colors.secondary).text(`${item.label}:`, { continued: true });
-      doc.fillColor(item.color || colors.text).text(` ${item.value}`);
+    summaryBoxes.forEach((box, index) => {
+      const boxX = margins.left + (index * (boxWidth + boxSpacing));
+      
+      doc.rect(boxX, summaryY, boxWidth, boxHeight)
+        .fillAndStroke(colors.lightGray, colors.border);
+      
+       doc.fontSize(8).fillColor(colors.secondary)
+        .text(box.label, boxX + 10, summaryY + 10, { width: boxWidth - 20 });
+      
+      // CORRECTION 2: Empêche le retour à la ligne du Coût Total ('FCFA' parasite)
+      doc.fontSize(10).fillColor(box.color)
+        .text(box.value, boxX + 10, summaryY + 25, { 
+            width: boxWidth - 20, 
+            align: 'left',
+            lineBreak: false // Ajout pour maintenir le texte sur une ligne
+        });
     });
 
-    doc.moveDown(1.5);
-    doc.fontSize(14).fillColor(colors.text).text('Détail des Équipements', { underline: true });
-    doc.moveDown(0.5);
+    doc.y = summaryY + boxHeight + 20;
+
+     // Tableau des équipements
+    doc.fontSize(12).fillColor(colors.text).text('Détail des Équipements', { underline: true });
+    doc.moveDown(0.5); 
 
     const tableTop = doc.y;
-    const tableHeaders = ['Nom', 'Type', 'Marque', 'Modèle', 'Client', 'Statut', 'Date Obsol.'];
-    const columnWidths = [100, 60, 60, 80, 80, 60, 80];
-    let currentX = 50;
+    const tableHeaders = ['Nom', 'Type', 'Marque', 'Modèle', 'Client', 'Statut', 'Obsol.', 'Jours'];
+    
+    // CORRECTION 1: Définition des largeurs ajustées (Jours = 7%)
+    const baseWidths = [
+        0.16, // Nom (réduit de 20% à 16%)
+        0.10, // Type
+        0.12, // Marque
+        0.15, // Modèle
+        0.18, // Client
+        0.12, // Statut
+        0.10  // Date Obsol.
+    ]; 
+    
+    const columnWidths = baseWidths.map(w => availableWidth * w);
+    
+    // Assurer que la dernière colonne prend la largeur restante (7%)
+    const usedWidth = columnWidths.reduce((sum, w) => sum + w, 0);
+    columnWidths.push(availableWidth - usedWidth); 
 
-    doc.fontSize(8).fillColor(colors.text);
+    let currentX = margins.left;
+
+    // En-tête du tableau
+    doc.fontSize(9).fillColor('#ffffff');
     tableHeaders.forEach((header, index) => {
-      doc.rect(currentX, tableTop, columnWidths[index], 20).fillAndStroke(colors.lightGray, colors.secondary);
-      doc.fillColor(colors.text).text(header, currentX + 5, tableTop + 6, {
-        width: columnWidths[index] - 10,
-        align: 'left'
-      });
+      doc.rect(currentX, tableTop, columnWidths[index], 25)
+        .fillAndStroke(colors.primary, colors.primary);
+      
+      doc.fillColor('#ffffff')
+        .text(header, currentX + 3, tableTop + 8, {
+          width: columnWidths[index] - 6,
+          align: 'center',
+          lineBreak: false,
+          ellipsis: true
+        });
       currentX += columnWidths[index];
     });
 
     let currentY = tableTop + 25;
-    doc.fontSize(7);
+    doc.fontSize(8);
+    const rowHeight = 22;
 
     data.forEach((equipment, index) => {
-      if (currentY > 750) {
+      
+      // Gestion du saut de page
+      if (currentY + rowHeight > 720) { 
         doc.addPage();
-        currentY = 50;
+        currentY = 40;
+        
+        // Répéter l'en-tête
+        currentX = margins.left;
+        doc.fontSize(9).fillColor('#ffffff');
+        tableHeaders.forEach((header, idx) => {
+          doc.rect(currentX, currentY, columnWidths[idx], 25)
+            .fillAndStroke(colors.primary, colors.primary);
+          
+          doc.fillColor('#ffffff')
+            .text(header, currentX + 3, currentY + 8, {
+              width: columnWidths[idx] - 6,
+              align: 'center',
+              lineBreak: false,
+              ellipsis: true
+            });
+          currentX += columnWidths[idx];
+        });
+        currentY += 25;
+        doc.fontSize(8);
       }
 
-      currentX = 50;
-      const rowHeight = 18;
+      currentX = margins.left;
 
-      if (index % 2 === 0) {
-        doc.rect(50, currentY, 520, rowHeight).fillAndStroke('#f8fafc', '#e2e8f0');
-      }
+      // Alternance de couleurs
+      const bgColor = index % 2 === 0 ? '#f8fafc' : '#ffffff';
+      doc.rect(margins.left, currentY, availableWidth, rowHeight)
+        .fillAndStroke(bgColor, colors.border);
 
       const rowData = [
         equipment.name,
@@ -633,79 +848,117 @@ async function generatePDFReport(
         equipment.model,
         equipment.client_name,
         equipment.status,
-        equipment.estimated_obsolescence_date ? new Date(equipment.estimated_obsolescence_date).toLocaleDateString('fr-FR') : 'N/A'
+        equipment.estimated_obsolescence_date ? new Date(equipment.estimated_obsolescence_date).toLocaleDateString('fr-FR') : 'N/A',
+        equipment.days_until_obsolescence !== null ? equipment.days_until_obsolescence.toString() : 'N/A'
       ];
 
       rowData.forEach((cellData, colIndex) => {
         let textColor = colors.text;
-        if (colIndex === 5) {
+        let textAlign: 'left' | 'center' | 'right' = 'left';
+
+        if (colIndex === 5) { // Statut
           textColor = getStatusColor(equipment.status);
-        } else if (colIndex === 6) {
-          if (equipment.days_until_obsolescence !== null && equipment.days_until_obsolescence < 0) {
-            textColor = colors.danger;
-          } else if (equipment.days_until_obsolescence !== null && equipment.days_until_obsolescence <= 90) {
-            textColor = colors.warning;
+          textAlign = 'center';
+        } else if (colIndex === 7) { // Jours
+          if (equipment.days_until_obsolescence !== null) {
+            if (equipment.days_until_obsolescence < 0) {
+              textColor = colors.danger;
+            } else if (equipment.days_until_obsolescence <= 90) {
+              textColor = colors.warning;
+            }
           }
+          textAlign = 'center';
+        } else if (colIndex === 6) { // Date obsol.
+          textAlign = 'center';
+        } else if (colIndex === 1) { // Type
+          textAlign = 'center';
         }
 
-        doc.fillColor(textColor).text(cellData, currentX + 3, currentY + 4, {
-          width: columnWidths[colIndex] - 6,
-          align: 'left',
-          ellipsis: true
+        doc.fillColor(textColor).text(cellData, currentX + 2, currentY + 6, {
+          width: columnWidths[colIndex] - 4,
+          align: textAlign,
+          ellipsis: true,
+          lineBreak: false
         });
         currentX += columnWidths[colIndex];
       });
 
       currentY += rowHeight;
     });
-
+    
+    // Empêcher le débordement du pied de page sur une page vide
+    const footerSafeZone = doc.page.height - 50; 
+    if (currentY > footerSafeZone) {
+      doc.addPage();
+    }
+    
+    // Pied de page
     doc.fontSize(8).fillColor(colors.secondary);
-    const pageCount = doc.bufferedPageRange().count;
-    for (let i = 0; i < pageCount; i++) {
+    
+    // Ricalculer le nombre de pages après l'ajout potentiel
+    const finalPageCount = doc.bufferedPageRange().count;
+    
+    for (let i = 0; i < finalPageCount; i++) {
       doc.switchToPage(i);
-      doc.text(`Page ${i + 1} sur ${pageCount} - Généré le ${new Date().toLocaleDateString('fr-FR')}`, 50, 750, { align: 'center' });
+      const footerY = doc.page.height - 30;
+      doc.text(
+        `Page ${i + 1} sur ${finalPageCount} - Généré le ${new Date().toLocaleDateString('fr-FR')}`, 
+        margins.left, 
+        footerY, 
+        { align: 'center', width: availableWidth }
+      );
     }
     
     doc.end();
   });
 }
 
+
+
+
+
 function getStatusColor(status: string): string {
-  const statusColors: Record<string, string> = {
-    'actif': '#059669',
-    'obsolete': '#dc2626',
-    'bientot_obsolete': '#d97706',
-    'en_maintenance': '#2563eb',
-    'retire': '#64748b'
-  };
-  return statusColors[status] || '#374151';
+  const statusColors: Record<string, string> = {
+    'actif': '#059669',
+    'obsolete': '#dc2626',
+    'bientot_obsolete': '#d97706',
+    'en_maintenance': '#2563eb',
+    'retire': '#64748b'
+  };
+  return statusColors[status] || '#1e293b';
 }
 
 function validateRequestParams(searchParams: URLSearchParams): { isValid: boolean; errors: string[] } {
-  const errors: string[] = [];
-  const format = searchParams.get('format');
-  const dateFrom = searchParams.get('date_from');
-  const dateTo = searchParams.get('date_to');
-  const validFormats = ['json', 'csv', 'pdf', 'excel'];
+  const errors: string[] = [];
+  const format = searchParams.get('format');
+  const dateFrom = searchParams.get('date_from');
+  const dateTo = searchParams.get('date_to');
+  const status = searchParams.get('status');
+  const validFormats = ['json', 'csv', 'pdf', 'excel'];
 
-  if (format && !validFormats.includes(format)) {
-    errors.push(`Format non supporté. Formats acceptés: ${validFormats.join(', ')}`);
-  }
+  if (format && !validFormats.includes(format)) {
+    errors.push(`Format non supporté. Formats acceptés: ${validFormats.join(', ')}`);
+  }
 
-  if (dateFrom && isNaN(Date.parse(dateFrom))) {
-    errors.push('Format de date_from invalide (format attendu: YYYY-MM-DD)');
-  }
+  const validStatuses = ['actif', 'obsolete', 'bientot_obsolete', 'en_maintenance', 'retire'];
+  if (status && !validStatuses.includes(status)) {
+    errors.push(`Statut invalide. Statuts acceptés: ${validStatuses.join(', ')}`);
+  }
 
-  if (dateTo && isNaN(Date.parse(dateTo))) {
-    errors.push('Format de date_to invalide (format attendu: YYYY-MM-DD)');
-  }
+  if (dateFrom && isNaN(Date.parse(dateFrom))) {
+    errors.push('Format de date_from invalide (format attendu: YYYY-MM-DD)');
+  }
 
-  if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
-    errors.push('La date de début doit être antérieure à la date de fin');
-  }
+  if (dateTo && isNaN(Date.parse(dateTo))) {
+    errors.push('Format de date_to invalide (format attendu: YYYY-MM-DD)');
+  }
 
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
+  if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
+    errors.push('La date de début doit être antérieure à la date de fin');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
 }

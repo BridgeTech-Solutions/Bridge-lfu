@@ -36,7 +36,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ListPageSkeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -188,11 +188,7 @@ export default function EquipmentTypesPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
+    return <ListPageSkeleton showStats={true} showFilters={true} statsCount={3} tableRows={5} tableColumns={5} />
   }
 
   return (

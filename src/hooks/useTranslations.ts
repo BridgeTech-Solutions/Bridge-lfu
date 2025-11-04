@@ -14,9 +14,21 @@ export function useTranslations(prefix?: string) {
   }, [prefix])
 
   const t = useCallback(
-    (key: string, fallback?: string) => {
+    (key: string, paramsOrFallback?: Record<string, string | number> | string, fallback?: string) => {
       const scopedKey = resolvedPrefix ? `${resolvedPrefix}.${key}` : key
-      return translate(language, scopedKey, fallback)
+
+      // Handle both old signature (key, fallback) and new signature (key, params, fallback)
+      let params: Record<string, string | number> | undefined
+      let actualFallback: string | undefined
+
+      if (typeof paramsOrFallback === 'object' && paramsOrFallback !== null) {
+        params = paramsOrFallback
+        actualFallback = fallback
+      } else {
+        actualFallback = paramsOrFallback
+      }
+
+      return translate(language, scopedKey, actualFallback, params)
     },
     [language, resolvedPrefix]
   )

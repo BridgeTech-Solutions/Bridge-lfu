@@ -13,29 +13,31 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useAuthPermissions } from '@/hooks'
-import { useLicense, useLicenses } from '@/hooks/useLicenses'
-import { useLicenseSuppliers } from '@/hooks/useLicenseSuppliers'
-import { useClients } from '@/hooks/useClients'
-import { useAuth } from '@/hooks/useAuth'
+import { useLicenseTypes } from '@/hooks/useLicenseTypes'
 import { toast } from 'sonner'
 import { useTranslations } from '@/hooks/useTranslations'
+import { useAuth } from '@/hooks/useAuth'
+import { useAuthPermissions } from '@/hooks'
+import { useClients } from '@/hooks/useClients'
+import { useLicense, useLicenses } from '@/hooks/useLicenses'
+import { useLicenseSuppliers } from '@/hooks/useLicenseSuppliers'
 
-// Schéma de validation
-const licenseSchema = z.object({
-  name: z.string().min(1, 'Le nom est obligatoire'),
+// Fonction pour créer le schéma de validation avec traduction
+const createLicenseSchema = (t: (key: string) => string) => z.object({
+  name: z.string().min(1, t('form.validation.name.required')),
   editor: z.string().optional(),
   version: z.string().optional(),
   licenseKey: z.string().optional(),
   purchaseDate: z.string().optional(),
-  expiryDate: z.string().min(1, 'La date d\'expiration est obligatoire'),
-  cost: z.number().min(0, 'Le coût doit être positif').optional(),
-  clientId: z.string().min(1, 'Le client est obligatoire'),
-  supplierId: z.string().uuid('Fournisseur invalide').optional().or(z.literal('')).nullable(),
+  expiryDate: z.string().min(1, t('form.validation.expiryDate.required')),
+  cost: z.number().min(0, t('form.validation.cost.positive')).optional().or(z.literal(0)),
+  clientId: z.string().min(1, t('form.validation.clientId.required')),
+  typeId: z.string().optional(),
+  supplierId: z.string().uuid(t('form.validation.supplierId.invalid')).optional().or(z.literal('')).nullable(),
   description: z.string().optional()
 })
 
-type LicenseFormData = z.infer<typeof licenseSchema>
+type LicenseFormData = z.infer<ReturnType<typeof createLicenseSchema>>
 
 interface LicenseFormPageProps {
   mode: 'create' | 'edit'
@@ -51,16 +53,17 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
   const [isMounted, setIsMounted] = useState(false) 
   const { t } = useTranslations('licenses')
 
-  const licenseId = mode === 'edit' ? (params.id as string) : ''
+  const licenseId = mode === 'edit' ? (params?.id as string) : ''
 
   // Hooks pour les données
   const { data: license, isLoading: licenseLoading } = useLicense(licenseId)
   const { clients, loading: clientsLoading } = useClients({ page: 1, limit: 100 })
   const { suppliers, loading: suppliersLoading } = useLicenseSuppliers({ limit: 100, activeOnly: true })
+  const { data: licenseTypes } = useLicenseTypes()
   const { createLicense, updateLicense, isCreating, isUpdating } = useLicenses()
 
   const form = useForm<LicenseFormData>({
-    resolver: zodResolver(licenseSchema),
+    resolver: zodResolver(createLicenseSchema(t)),
     defaultValues: {
       name: '',
       editor: '',
@@ -68,8 +71,9 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
       licenseKey: '',
       purchaseDate: '',
       expiryDate: '',
-      cost: undefined,
+      cost: 0,
       clientId: '',
+      typeId: '',
       supplierId: '',
       description: ''
     }
@@ -85,8 +89,9 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
         licenseKey: license.license_key || '',
         purchaseDate: license.purchase_date || '',
         expiryDate: license.expiry_date || '',
-        cost: license.cost || undefined,
+        cost: license.cost || 0,
         clientId: license.client_id || '',
+        typeId: license.type_id || '',
         supplierId: license.supplier_id || '',
         description: license.description || ''
       })
@@ -147,8 +152,9 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
         licenseKey: data.licenseKey || undefined,
         purchaseDate: data.purchaseDate || undefined,
         expiryDate: data.expiryDate,
-        cost: data.cost,
+        cost: data.cost || 0,
         clientId: data.clientId,
+        typeId: data.typeId || undefined,
         supplierId: data.supplierId || undefined,
         description: data.description || undefined
       }
@@ -289,7 +295,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                       <FormLabel>{t('form.fields.supplierId.label')}</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(value === 'none' ? '' : value)}
-                        value={field.value && field.value.length > 0 ? field.value : 'none'}
+                        value={field.value || 'none'}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -351,7 +357,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                     <FormLabel>{t('form.fields.clientId.label')}</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      value={field.value}
+                      value={field.value || 'select'}
                       disabled={user?.role === 'client'}
                     >
                       <FormControl>
@@ -360,9 +366,39 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="select" disabled>{t('form.fields.clientId.placeholder')}</SelectItem>
                         {clients.map((client) => (
                           <SelectItem key={client.id} value={client.id}>
                             {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="typeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('form.fields.typeId.label')}</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || 'select'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('form.fields.typeId.placeholder')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="select" disabled>{t('form.fields.typeId.placeholder')}</SelectItem>
+                        {licenseTypes?.filter(type => type.is_active).map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -428,7 +464,7 @@ export default function LicenseFormPage({ mode }: LicenseFormPageProps) {
                             placeholder={t('form.fields.cost.placeholder')}
                             className="pl-10"
                             {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : 0)}
                           />
                         </div>
                       </FormControl>

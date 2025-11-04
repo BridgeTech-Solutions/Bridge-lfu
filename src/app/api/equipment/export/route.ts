@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
     const typeLegacy = searchParams.get('type')
     const status = searchParams.get('status')
     const format = searchParams.get('format') || 'xlsx'
+    const brand = searchParams.get('brand')
 
     let query = supabase.from('v_equipment_with_client').select('*')
 
@@ -77,6 +78,10 @@ export async function GET(request: NextRequest) {
 
     if (status && ALLOWED_STATUSES.has(status)) {
       query = query.eq('status', status)
+    }
+
+    if (brand) {
+      query = query.eq('brand_id', brand)
     }
 
     const { data: equipment, error } = await query.order('created_at', {
@@ -216,7 +221,7 @@ export async function GET(request: NextRequest) {
 
     worksheet.addRow([])
 
-    if (search || clientId || typeId || typeCode || typeLegacy || status) {
+    if (search || clientId || typeId || typeCode || typeLegacy || status || brand) {
       worksheet.mergeCells('A4:L4')
       const filterCell = worksheet.getCell('A4')
       const filters: string[] = []
@@ -225,6 +230,8 @@ export async function GET(request: NextRequest) {
       if (status) filters.push(`Statut: ${status}`)
       if (clientId)
         filters.push(`Client: ${equipmentData[0]?.client_name || clientId}`)
+      if (brand)
+        filters.push(`Marque: ${equipmentData[0]?.brand_name || brand}`)
 
       filterCell.value = `Filtres appliqués: ${filters.join(' | ')}`
       filterCell.font = {

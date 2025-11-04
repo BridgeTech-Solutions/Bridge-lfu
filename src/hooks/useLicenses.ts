@@ -15,6 +15,7 @@ interface LicenseFormData {
   expiryDate: string
   cost?: number
   clientId: string
+  typeId?: string | null
   supplierId?: string | null
   description?: string
 }
@@ -38,6 +39,9 @@ interface LicensesParams {
   status?: string
   clientId?: string
   editor?: string
+  typeId?: string
+  expiryDateStart?: string
+  expiryDateEnd?: string
 }
 
 interface LicensesResponse {
@@ -58,6 +62,9 @@ const fetchLicenses = async (params: LicensesParams): Promise<LicensesResponse> 
   if (params.status && params.status !== 'all') url.searchParams.set('status', params.status)
   if (params.clientId && params.clientId !== 'all') url.searchParams.set('client_id', params.clientId)
   if (params.editor) url.searchParams.set('editor', params.editor)
+  if (params.typeId && params.typeId !== 'all') url.searchParams.set('type_id', params.typeId)
+  if (params.expiryDateStart) url.searchParams.set('expiry_date_start', params.expiryDateStart)
+  if (params.expiryDateEnd) url.searchParams.set('expiry_date_end', params.expiryDateEnd)
 
   const response = await fetch(url.toString())
   
@@ -89,6 +96,7 @@ const createLicense = async (licenseData: LicenseFormData): Promise<LicenseWithC
     body: JSON.stringify({
       ...licenseData,
       supplierId: licenseData.supplierId || null,
+      typeId: licenseData.typeId || null,
     })
   })
 
@@ -108,6 +116,7 @@ const updateLicense = async (id: string, data: LicenseFormData): Promise<License
     body: JSON.stringify({
       ...data,
       supplierId: data.supplierId || null,
+      typeId: data.typeId || null,
     })
   })
 
@@ -207,6 +216,9 @@ const exportLicenses = async (params: LicensesParams, format: 'xlsx' | 'csv' | '
   if (params.status && params.status !== 'all') url.searchParams.set('status', params.status)
   if (params.clientId && params.clientId !== 'all') url.searchParams.set('client_id', params.clientId)
   if (params.editor) url.searchParams.set('editor', params.editor)
+  if (params.typeId && params.typeId !== 'all') url.searchParams.set('type_id', params.typeId)
+  if (params.expiryDateStart) url.searchParams.set('expiry_date_start', params.expiryDateStart)
+  if (params.expiryDateEnd) url.searchParams.set('expiry_date_end', params.expiryDateEnd)
   url.searchParams.set('format', format)
 
   const response = await fetch(url.toString())
@@ -240,7 +252,7 @@ export function useLicenses(params: LicensesParams = {}) {
   const { user, loading } = useAuth()
   const queryClient = useQueryClient()
 
-  const queryKey = ['licenses', params.page, params.limit, params.search, params.status, params.clientId, params.editor]
+  const queryKey = ['licenses', params.page, params.limit, params.search, params.status, params.clientId, params.editor, params.typeId, params.expiryDateStart, params.expiryDateEnd]
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey,

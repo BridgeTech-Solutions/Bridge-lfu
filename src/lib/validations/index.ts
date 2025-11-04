@@ -80,6 +80,7 @@ export const licenseSchema = z.object({
   expiryDate: z.string().min(1, 'Date d\'expiration requise'),
   cost: z.number().min(0, 'Le coût doit être positif').optional(),
   clientId: z.string().uuid('Client requis'),
+  typeId: z.string().uuid('Type de licence invalide').optional().or(z.literal('')).nullable(),
   supplierId: z.string().uuid('Fournisseur invalide').optional().or(z.literal('')).nullable(),
   description: z.string().optional()
 }).refine(data => {
@@ -204,6 +205,36 @@ export const licenseSupplierUpdateSchema = licenseSupplierBaseSchema.partial().e
 	id: z.string().uuid('Identifiant du fournisseur requis'),
 })
 
+// Schémas types de licences
+export const licenseTypeCreateSchema = z.object({
+	name: z
+		.string()
+		.min(2, 'Le nom doit contenir au moins 2 caractères'),
+	code: z
+		.string()
+		.min(2, 'Le code doit contenir au moins 2 caractères')
+		.max(10, 'Le code ne doit pas dépasser 10 caractères')
+		.regex(/^[A-Z0-9_-]+$/, 'Le code doit être en majuscules sans espaces'),
+	description: z.string().optional().nullable(),
+	is_active: z.boolean().optional().default(true),
+})
+
+export const licenseTypeUpdateSchema = z.object({
+	id: z.string().uuid('Identifiant du type requis'),
+	name: z
+		.string()
+		.min(2, 'Le nom doit contenir au moins 2 caractères')
+		.optional(),
+	code: z
+		.string()
+		.min(2, 'Le code doit contenir au moins 2 caractères')
+		.max(10, 'Le code ne doit pas dépasser 10 caractères')
+		.regex(/^[A-Z0-9_-]+$/, 'Le code doit être en majuscules sans espaces')
+		.optional(),
+	description: z.string().optional().nullable(),
+	is_active: z.boolean().optional().default(true),
+})
+
 // Schéma de paramètres de notification
 export const notificationSettingsSchema = z.object({
   licenseAlertDays: z.array(z.number().min(1).max(365)).default([7, 30]),
@@ -292,6 +323,8 @@ export type LicenseInput = z.infer<typeof licenseSchema>
 export type EquipmentTypeUpdateInput = z.infer<typeof equipmentTypeUpdateSchema>
 export type LicenseSupplierCreateInput = z.infer<typeof licenseSupplierCreateSchema>
 export type LicenseSupplierUpdateInput = z.infer<typeof licenseSupplierUpdateSchema>
+export type LicenseTypeCreateInput = z.infer<typeof licenseTypeCreateSchema>
+export type LicenseTypeUpdateInput = z.infer<typeof licenseTypeUpdateSchema>
 export type EquipmentBrandCreateInput = z.infer<typeof equipmentBrandCreateSchema>
 export type EquipmentBrandUpdateInput = z.infer<typeof equipmentBrandUpdateSchema>
 export type NotificationSettingsInput = z.infer<typeof notificationSettingsSchema>

@@ -42,6 +42,8 @@ interface EquipmentParams {
   clientId?: string
   typeId?: string 
   brand?: string
+  obsolescenceStart?: string
+  obsolescenceEnd?: string
 }
 
 interface EquipmentWithClient {
@@ -90,6 +92,9 @@ const fetchEquipment = async (params: EquipmentParams): Promise<EquipmentRespons
   if (params.status && params.status !== 'all') url.searchParams.set('status', params.status)
   if (params.clientId && params.clientId !== 'all') url.searchParams.set('client_id', params.clientId)
   if (params.typeId && params.typeId !== 'all') url.searchParams.set('type_id', params.typeId)
+  if (params.brand) url.searchParams.set('brand', params.brand)
+  if (params.obsolescenceStart) url.searchParams.set('obsolescence_start', params.obsolescenceStart)
+  if (params.obsolescenceEnd) url.searchParams.set('obsolescence_end', params.obsolescenceEnd)
 
   const response = await fetch(url.toString())
   
@@ -252,6 +257,8 @@ const exportEquipment = async (params: EquipmentParams, format: 'xlsx' | 'csv' |
   if (params.clientId && params.clientId !== 'all') url.searchParams.set('client_id', params.clientId)
   if (params.typeId && params.typeId !== 'all') url.searchParams.set('type_id', params.typeId)
   if (params.brand) url.searchParams.set('brand', params.brand)
+  if (params.obsolescenceStart) url.searchParams.set('obsolescence_start', params.obsolescenceStart)
+  if (params.obsolescenceEnd) url.searchParams.set('obsolescence_end', params.obsolescenceEnd)
   url.searchParams.set('format', format)
 
   const response = await fetch(url.toString())

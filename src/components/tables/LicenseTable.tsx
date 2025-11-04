@@ -90,6 +90,7 @@ export function LicenseTable({ licenses, onView, onEdit, onDelete, onCancel, onR
             {permissions.canViewAllData && <TableHead>{t('table.columns.client')}</TableHead>}
             <TableHead>{t('table.columns.editor')}</TableHead>
             <TableHead>{t('table.columns.version')}</TableHead>
+            <TableHead>{t('table.columns.type')}</TableHead>
             <TableHead>{t('table.columns.expiryDate')}</TableHead>
             <TableHead>{t('table.columns.cost')}</TableHead>
             <TableHead>{t('table.columns.status')}</TableHead>
@@ -129,6 +130,11 @@ export function LicenseTable({ licenses, onView, onEdit, onDelete, onCancel, onR
                 <TableCell>
                   <span className="text-sm font-mono">
                     {license.version || '-'}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">
+                    {license.type_name || '-'}
                   </span>
                 </TableCell>
                 

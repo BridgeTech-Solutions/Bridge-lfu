@@ -18,7 +18,7 @@ export default function LoginPage() {
   
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirectTo') || '/dashboard'
+  const redirectTo = searchParams?.get('redirectTo') || '/dashboard'
   
   const { signIn } = useAuth({ isPublicPage: true })
 

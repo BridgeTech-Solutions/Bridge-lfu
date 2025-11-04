@@ -35,12 +35,14 @@ import { useAuth } from '@/hooks/useAuth'
 import { useLicense, useLicenseAttachments, useLicenseActions, useAttachmentActions } from '@/hooks/useLicenses'
 import type { LicenseStatus } from '@/types'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useTranslations } from '@/hooks/useTranslations'
 
 export default function LicenseDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
   const permissions = useStablePermissions()
+  const { t } = useTranslations('licenses')
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
@@ -53,7 +55,7 @@ export default function LicenseDetailPage() {
   const [revealedKey, setRevealedKey] = useState<string | null>(null)
   const autoHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const licenseId = params.id as string
+  const licenseId = params?.id as string
 
   // Utilisation des nouveaux hooks
   const { 
@@ -81,7 +83,7 @@ export default function LicenseDetailPage() {
 
   // Gestionnaires d'événements
   const handleEdit = () => {
-    router.push(`/licenses/${params.id}/edit`)
+    router.push(`/licenses/${params?.id}/edit`)
   }
 
   const handleDelete = async () => {
@@ -142,7 +144,7 @@ export default function LicenseDetailPage() {
       setRevealedKey(licenseKey)
       setShowKey(true)
       setConfirmDialogOpen(false)
-      toast.success('Clé visible pendant 60 secondes')
+      toast.success(t('detail.keyVisible'))
   
       if (autoHideTimer.current) {
         clearTimeout(autoHideTimer.current)
@@ -175,10 +177,10 @@ export default function LicenseDetailPage() {
   // Fonctions utilitaires
   const getStatusBadge = (status: LicenseStatus | null) => {
     const config = {
-      active: { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Active' },
-      expired: { color: 'bg-red-100 text-red-800', icon: XCircle, label: 'Expirée' },
-      about_to_expire: { color: 'bg-orange-100 text-orange-800', icon: AlertTriangle, label: 'Bientôt expirée' },
-      cancelled: { color: 'bg-gray-100 text-gray-800', icon: XCircle, label: 'Annulée' }
+      active: { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: t('status.active') },
+      expired: { color: 'bg-red-100 text-red-800', icon: XCircle, label: t('status.expired') },
+      about_to_expire: { color: 'bg-orange-100 text-orange-800', icon: AlertTriangle, label: t('status.aboutToExpire') },
+      cancelled: { color: 'bg-gray-100 text-gray-800', icon: XCircle, label: t('status.cancelled') }
     }
 
     const { color, icon: Icon, label } = config[status as keyof typeof config] || config.active
@@ -269,15 +271,15 @@ export default function LicenseDetailPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <XCircle className="w-16 h-16 mx-auto text-red-500 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Licence non trouvée</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('detail.notFound')}</h3>
           <p className="text-gray-500 mb-4">
             {licenseError ? 
               `Erreur: ${(error as Error)?.message}` : 
-              'Cette licence n\'existe pas ou vous n\'avez pas les permissions pour la voir.'
+              t('detail.notFoundDescription')
             }
           </p>
           <Button onClick={() => router.push('/licenses')}>
-            Retour aux licences
+            {t('detail.backToList')}
           </Button>
         </div>
       </div>
@@ -294,11 +296,11 @@ export default function LicenseDetailPage() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => router.back()}
+            onClick={() => router.push('/licenses')}
             className="hover:bg-slate-100"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour
+            {t('detail.back')}
           </Button>
           <div>
             <h1 className="text-3xl font-bold">{license.name}</h1>
@@ -314,7 +316,7 @@ export default function LicenseDetailPage() {
           {permissions.can('update', 'licenses') && (
             <Button variant="outline" onClick={handleEdit}>
               <Edit className="w-4 h-4 mr-2" />
-              Modifier
+                            {t('detail.actions.edit')}
             </Button>
           )}
           {permissions.can('delete', 'licenses') && (
@@ -324,7 +326,7 @@ export default function LicenseDetailPage() {
               disabled={isDeleting}
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Supprimer
+                            {t('detail.actions.delete')}
             </Button>
           )}
         </div>
@@ -336,8 +338,8 @@ export default function LicenseDetailPage() {
           <AlertTriangle className={`h-4 w-4 ${daysUntilExpiry < 0 ? 'text-red-600' : 'text-orange-600'}`} />
           <AlertDescription className={daysUntilExpiry < 0 ? 'text-red-800' : 'text-orange-800'}>
             {daysUntilExpiry < 0 ? 
-              `Cette licence a expiré il y a ${Math.abs(daysUntilExpiry)} jours` :
-              `Cette licence expire dans ${daysUntilExpiry} jours`
+              `${t('detail.expiryAlert.expired')} ${Math.abs(daysUntilExpiry)} ${t('detail.expiryAlert.days')}` :
+              `${t('detail.expiryAlert.expiresIn')} ${daysUntilExpiry} ${t('detail.expiryAlert.days')}`
             }
           </AlertDescription>
         </Alert>
@@ -349,34 +351,38 @@ export default function LicenseDetailPage() {
           {/* Informations générales */}
           <Card>
             <CardHeader>
-              <CardTitle>Informations générales</CardTitle>
+              <CardTitle>{t('detail.sections.generalInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Nom</Label>
+                  <Label className="text-sm font-medium text-gray-500">{t('detail.fields.name')}</Label>
                   <p className="text-sm mt-1">{license.name}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Statut</Label>
+                  <Label className="text-sm font-medium text-gray-500">{t('detail.fields.status')}</Label>
                   <div className="mt-1">{getStatusBadge(license.status)}</div>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Éditeur</Label>
+                  <Label className="text-sm font-medium text-gray-500">{t('detail.fields.editor')}</Label>
                   <p className="text-sm mt-1">{license.editor || '-'}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Version</Label>
+                  <Label className="text-sm font-medium text-gray-500">{t('detail.fields.version')}</Label>
                   <p className="text-sm mt-1">{license.version || '-'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">{t('detail.fields.licenseType')}</Label>
+                  <p className="text-sm mt-1">{license.type_name || '-'}</p>
                 </div>
                 {permissions.canViewAllData && (
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Client</Label>
+                    <Label className="text-sm font-medium text-gray-500">{t('detail.fields.client')}</Label>
                     <p className="text-sm mt-1">{license.client_name || '-'}</p>
                   </div>
                 )}
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Créé par</Label>
+                  <Label className="text-sm font-medium text-gray-500">{t('detail.fields.createdBy')}</Label>
                   <p className="text-sm mt-1">{license.created_by_name || '-'}</p>
                 </div>
               </div>
@@ -385,7 +391,7 @@ export default function LicenseDetailPage() {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-500 flex items-center gap-1">
                     <Key className="w-4 h-4" />
-                    Clé de licence
+                    {t('detail.fields.licenseKey')}
                   </Label>
 
                   <div className="flex items-center gap-2">
@@ -402,7 +408,7 @@ export default function LicenseDetailPage() {
                       onClick={() => (showKey ? handleHideKey() : setConfirmDialogOpen(true))}
                     >
                       <Eye className="w-4 h-4 mr-2" />
-                      {showKey ? 'Masquer' : 'Afficher'}
+                      {showKey ? t('detail.actions.hide') : t('detail.actions.show')}
                     </Button>
                   </div>
                 </div>
@@ -410,7 +416,7 @@ export default function LicenseDetailPage() {
 
               {license.description && (
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Description</Label>
+                  <Label className="text-sm font-medium text-gray-500">{t('detail.fields.description')}</Label>
                   <p className="text-sm mt-1 whitespace-pre-wrap">{license.description}</p>
                 </div>
               )}
@@ -421,9 +427,9 @@ export default function LicenseDetailPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>
-                Pièces jointes ({attachments.length})
+                {t('detail.sections.attachments')} ({attachments.length})
                 {attachmentsLoading && (
-                  <span className="ml-2 text-sm text-gray-500">Chargement...</span>
+                  <span className="ml-2 text-sm text-gray-500">{t('common.loading')}</span>
                 )}
               </CardTitle>
               {permissions.can('update', 'licenses') && (
@@ -434,7 +440,7 @@ export default function LicenseDetailPage() {
                   disabled={isUploading}
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Ajouter un fichier
+                                    {t('detail.actions.addFile')}
                 </Button>
               )}
             </CardHeader>
@@ -449,12 +455,12 @@ export default function LicenseDetailPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nom du fichier</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Taille</TableHead>
-                      <TableHead>Ajouté par</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead>{t('detail.tableHeaders.fileName')}</TableHead>
+                      <TableHead>{t('detail.tableHeaders.type')}</TableHead>
+                      <TableHead>{t('detail.tableHeaders.size')}</TableHead>
+                      <TableHead>{t('detail.tableHeaders.uploadedBy')}</TableHead>
+                      <TableHead>{t('detail.tableHeaders.date')}</TableHead>
+                      <TableHead>{t('detail.tableHeaders.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -468,10 +474,10 @@ export default function LicenseDetailPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {attachment.file_type === 'contract' ? 'Contrat' :
-                             attachment.file_type === 'invoice' ? 'Facture' :
-                             attachment.file_type === 'certificate' ? 'Certificat' :
-                             attachment.file_type === 'manual' ? 'Manuel' : 'Autre'}
+                            {attachment.file_type === 'contract' ? t('detail.fileTypes.contract') :
+                             attachment.file_type === 'invoice' ? t('detail.fileTypes.invoice') :
+                             attachment.file_type === 'certificate' ? t('detail.fileTypes.certificate') :
+                             attachment.file_type === 'manual' ? t('detail.fileTypes.manual') : t('detail.fileTypes.other')}
                           </Badge>
                         </TableCell>
                         <TableCell>{formatFileSize(attachment.file_size)}</TableCell>
@@ -510,14 +516,14 @@ export default function LicenseDetailPage() {
               ) : (
                 <div className="text-center py-8">
                   <FileText className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune pièce jointe</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{t('detail.emptyState.noAttachments')}</h3>
                   <p className="text-gray-500 mb-4">
-                    Aucun fichier n&apos;a été ajouté à cette licence.
+                    {t('detail.emptyState.noFilesAdded')}
                   </p>
                   {permissions.can('update', 'licenses') && (
                     <Button variant="outline" onClick={() => setUploadDialogOpen(true)}>
                       <Upload className="w-4 h-4 mr-2" />
-                      Ajouter le premier fichier
+                      {t('detail.emptyState.addFirstFile')}
                     </Button>
                   )}
                 </div>
@@ -533,17 +539,17 @@ export default function LicenseDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
-                Dates importantes
+                {t('detail.sections.importantDates')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label className="text-sm font-medium text-gray-500">Date d&apos;achat</Label>
+                <Label className="text-sm font-medium text-gray-500">{t('detail.fields.purchaseDate')}</Label>
                 <p className="text-sm mt-1">{formatDate(license.purchase_date)}</p>
               </div>
               <Separator />
               <div>
-                <Label className="text-sm font-medium text-gray-500">Date d&apos;expiration</Label>
+                <Label className="text-sm font-medium text-gray-500">{t('detail.fields.expiryDate')}</Label>
                 <p className="text-sm mt-1">{formatDate(license.expiry_date)}</p>
                 {daysUntilExpiry !== null && (
                   <p className={`text-xs mt-1 ${
@@ -553,22 +559,22 @@ export default function LicenseDetailPage() {
                     'text-green-600'
                   }`}>
                     {daysUntilExpiry < 0 ? 
-                      `Expirée depuis ${Math.abs(daysUntilExpiry)} jours` :
-                      `Expire dans ${daysUntilExpiry} jours`
+                      `${t('detail.expiryAlert.expired')} ${Math.abs(daysUntilExpiry)} ${t('detail.expiryAlert.days')}` :
+                      `${t('detail.expiryAlert.expiresIn')} ${daysUntilExpiry} ${t('detail.expiryAlert.days')}`
                     }
                   </p>
                 )}
               </div>
               <Separator />
               <div>
-                <Label className="text-sm font-medium text-gray-500">Créée le</Label>
+                <Label className="text-sm font-medium text-gray-500">{t('detail.fields.createdAt')}</Label>
                 <p className="text-sm mt-1">{formatDate(license.created_at)}</p>
               </div>
               {license.updated_at !== license.created_at && (
                 <>
                   <Separator />
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Modifiée le</Label>
+                    <Label className="text-sm font-medium text-gray-500">{t('detail.fields.updatedAt')}</Label>
                     <p className="text-sm mt-1">{formatDate(license.updated_at)}</p>
                   </div>
                 </>
@@ -581,12 +587,12 @@ export default function LicenseDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <DollarSign className="w-5 h-5" />
-                Informations financières
+                {t('detail.sections.financialInfo')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label className="text-sm font-medium text-gray-500">Coût total</Label>
+                <Label className="text-sm font-medium text-gray-500">{t('detail.fields.totalCost')}</Label>
                 <p className="text-2xl font-bold mt-1">{formatCurrency(license.cost)}</p>
               </div>
               
@@ -594,15 +600,15 @@ export default function LicenseDetailPage() {
                 <>
                   <Separator />
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Durée de la licence</Label>
+                    <Label className="text-sm font-medium text-gray-500">{t('detail.fields.licenseDuration')}</Label>
                     <p className="text-sm mt-1">
-                      {Math.ceil((new Date(license.expiry_date).getTime() - new Date(license.purchase_date).getTime()) / (1000 * 60 * 60 * 24))} jours
+                      {Math.ceil((new Date(license.expiry_date).getTime() - new Date(license.purchase_date).getTime()) / (1000 * 60 * 60 * 24))} {t('detail.expiryAlert.days')}
                     </p>
                   </div>
                   
                   {license.cost && (
                     <div>
-                      <Label className="text-sm font-medium text-gray-500">Coût par jour</Label>
+                      <Label className="text-sm font-medium text-gray-500">{t('detail.fields.costPerDay')}</Label>
                       <p className="text-sm mt-1">
                         {formatCurrency(
                           license.cost / Math.ceil((new Date(license.expiry_date).getTime() - new Date(license.purchase_date).getTime()) / (1000 * 60 * 60 * 24))
@@ -618,13 +624,13 @@ export default function LicenseDetailPage() {
           {/* Actions rapides */}
           <Card>
             <CardHeader>
-              <CardTitle>Actions rapides</CardTitle>
+              <CardTitle>{t('detail.sections.quickActions')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {permissions.can('update', 'licenses') && (
                 <Button variant="outline" className="w-full justify-start" onClick={handleEdit}>
                   <Edit className="w-4 h-4 mr-2" />
-                  Modifier la licence
+                  {t('detail.actions.edit')} {t('detail.license')}
                 </Button>
               )}
               
@@ -636,7 +642,7 @@ export default function LicenseDetailPage() {
                   disabled={isUploading}
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Ajouter un fichier
+                                    {t('detail.actions.addFile')}
                 </Button>
               )}
               
@@ -649,7 +655,7 @@ export default function LicenseDetailPage() {
                   disabled={isDeleting}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Supprimer
+                                {t('detail.actions.delete')}
                 </Button>
               )}
             </CardContent>
@@ -660,13 +666,13 @@ export default function LicenseDetailPage() {
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmer votre identité</DialogTitle>
+            <DialogTitle>{t('detail.keyDialog.title')}</DialogTitle>
             <DialogDescription>
-              Entrez votre mot de passe pour afficher la clé.
+              {t('detail.keyDialog.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <Label htmlFor="license-password">Mot de passe</Label>
+            <Label htmlFor="license-password">{t('detail.keyDialog.fields.password')}</Label>
             <Input
               id="license-password"
               type="password"
@@ -677,14 +683,14 @@ export default function LicenseDetailPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
-              Annuler
+              {t('detail.keyDialog.actions.cancel')}
             </Button>
             <Button
               onClick={handleRevealKey}
               disabled={!password || isRevealing}
             >
               {isRevealing && <LoadingSpinner size="sm" className="mr-2" />}
-              Afficher
+              {t('detail.keyDialog.actions.show')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -693,9 +699,9 @@ export default function LicenseDetailPage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Supprimer la licence</DialogTitle>
+            <DialogTitle>{t('detail.deleteDialog.title')}</DialogTitle>
             <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer cette licence ? Cette action est irréversible et supprimera également toutes les pièces jointes associées.
+              {t('detail.deleteDialog.description')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -707,7 +713,7 @@ export default function LicenseDetailPage() {
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? 'Suppression...' : 'Supprimer'}
+              {isDeleting ? t('detail.actions.deleting') : t('detail.actions.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -717,15 +723,15 @@ export default function LicenseDetailPage() {
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Ajouter une pièce jointe</DialogTitle>
+            <DialogTitle>{t('detail.uploadDialog.title')}</DialogTitle>
             <DialogDescription>
-              Sélectionnez un fichier à ajouter à cette licence. Formats acceptés : PDF, images, documents Office.
+              {t('detail.uploadDialog.description')}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             <div>
-              <Label htmlFor="file">Fichier</Label>
+              <Label htmlFor="file">{t('detail.uploadDialog.fields.file')}</Label>
               <Input
                 id="file"
                 type="file"
@@ -741,17 +747,17 @@ export default function LicenseDetailPage() {
             </div>
             
             <div>
-              <Label htmlFor="fileType">Type de fichier</Label>
+              <Label htmlFor="fileType">{t('detail.uploadDialog.fields.fileType')}</Label>
               <Select value={fileType} onValueChange={setFileType}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="contract">Contrat</SelectItem>
-                  <SelectItem value="invoice">Facture</SelectItem>
-                  <SelectItem value="certificate">Certificat</SelectItem>
-                  <SelectItem value="manual">Manuel</SelectItem>
-                  <SelectItem value="other">Autre</SelectItem>
+                  <SelectItem value="contract">{t('detail.fileTypes.contract')}</SelectItem>
+                  <SelectItem value="invoice">{t('detail.fileTypes.invoice')}</SelectItem>
+                  <SelectItem value="certificate">{t('detail.fileTypes.certificate')}</SelectItem>
+                  <SelectItem value="manual">{t('detail.fileTypes.manual')}</SelectItem>
+                  <SelectItem value="other">{t('detail.fileTypes.other')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -763,7 +769,7 @@ export default function LicenseDetailPage() {
               onClick={() => setUploadDialogOpen(false)} 
               disabled={isUploading}
             >
-              Annuler
+              {t('detail.uploadDialog.actions.cancel')}
             </Button>
             <Button 
               onClick={handleFileUpload} 
@@ -777,7 +783,7 @@ export default function LicenseDetailPage() {
               ) : (
                 <>
                   <Upload className="w-4 h-4 mr-2" />
-                  Ajouter
+                  {t('detail.uploadDialog.actions.add')}
                 </>
               )}
             </Button>

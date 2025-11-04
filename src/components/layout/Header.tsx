@@ -32,6 +32,7 @@ interface NotificationDropdownProps {
 
 function NotificationDropdown({ isOpen, onClose }: NotificationDropdownProps) {
   const { t } = useTranslations('header.notifications')
+  const router = useRouter()
 
   const filters = { page: 1, limit: 10, is_read: false }
   const {
@@ -46,7 +47,16 @@ function NotificationDropdown({ isOpen, onClose }: NotificationDropdownProps) {
   const { data: stats, refetch: refetchStats } = useNotificationStats()
 
   if (!isOpen) return null
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleNotificationClick = (notification: any) => {
+    if (notification.related_id && notification.related_type) {
+      if (notification.related_type === 'license') {
+        router.push(`/licenses/${notification.related_id}`)
+      } else if (notification.related_type === 'equipment') {
+        router.push(`/equipment/${notification.related_id}`)
+      }
+    }
+  }
   const handleMarkAsRead = async (id: string, currentStatus: boolean) => {
     try {
       await markAsRead({ id, isRead: !currentStatus })
@@ -183,9 +193,11 @@ function NotificationDropdown({ isOpen, onClose }: NotificationDropdownProps) {
               <div
                 key={notification.id}
                 className={cn(
-                  'px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors',
+                  'px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors cursor-pointer',
                   !notification.is_read && 'bg-blue-50'
                 )}
+                onClick={() => handleNotificationClick(notification)}
+                title="Cliquer pour voir les détails"
               >
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0 pt-1">

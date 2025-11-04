@@ -32,7 +32,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
   const { can } = useAuthPermissions();
   const { t } = useTranslations('clients.form');
   
-  const clientId = mode === 'edit' ? params.id as string : null;
+  const clientId = mode === 'edit' ? params?.id as string : null;
   
   const { data: existingClient, isLoading: loadingClient } = useClient(clientId || '');
     // Initialisation de la liste des pays (une fois au montage)

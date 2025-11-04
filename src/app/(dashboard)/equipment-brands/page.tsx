@@ -33,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ListPageSkeleton } from '@/components/ui/skeleton'
 import type { EquipmentBrand } from '@/types'
 
 interface FormData {
@@ -156,11 +156,7 @@ export default function EquipmentBrandsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
+    return <ListPageSkeleton showStats={true} showFilters={true} statsCount={3} tableRows={5} tableColumns={5} />
   }
 
   return (

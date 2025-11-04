@@ -18,6 +18,7 @@ export const metadata: Metadata = {
     // apple: '/apple-touch-icon.png', // Icône pour les appareils Apple
   },
 }
+
 export default function RootLayout({
   children,
 }: {
@@ -25,14 +26,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr" className="h-full">
-      <body className={`${inter.className} h-full bg-gray-50 antialiased`}>
+      <body className={`${inter.className} h-full antialiased`}>
         <div id="root" className="min-h-full">
-          {/* Utilisez le composant Providers ici */}
           <Providers>
             {children}
           </Providers> 
         </div>
-
       </body>
     </html>
   )

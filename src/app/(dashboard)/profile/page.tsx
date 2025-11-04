@@ -31,7 +31,6 @@ import {
   Users,
   AlertCircle
 } from 'lucide-react'
-import { toast } from 'sonner'
 import { useTranslations } from '@/hooks/useTranslations'
 
 interface ProfileFormData {
@@ -79,7 +78,7 @@ export default function ProfilePage() {
     confirmPassword: ''
   })
 
-  // Initialiser le formulaire avec les données du profil
+  // Initialize form with profile data
   const initializeProfileForm = () => {
     if (profile) {
       setProfileForm({
@@ -102,7 +101,7 @@ export default function ProfilePage() {
       await updateProfile(profileForm)
       setIsEditDialogOpen(false)
     } catch (error) {
-      // L'erreur est déjà gérée par le hook
+      // Error is already handled by the hook
     }
   }
 
@@ -116,7 +115,7 @@ export default function ProfilePage() {
         confirmPassword: ''
       })
     } catch (error) {
-      // L'erreur est déjà gérée par le hook
+      // Error is already handled by the hook
     }
   }
 
@@ -152,10 +151,10 @@ export default function ProfilePage() {
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Profil non trouvé
+              {t('status.notFoundTitle')}
             </h2>
             <p className="text-gray-500">
-              Impossible de charger les informations du profil.
+              {t('status.notFoundDescription')}
             </p>
           </div>
         </div>
@@ -168,10 +167,10 @@ export default function ProfilePage() {
       {/* En-tête */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Mon Profil
+          {t('header.title')}
         </h1>
         <p className="text-gray-600">
-          Gérez vos informations personnelles et vos paramètres de compte.
+          {t('header.subtitle')}
         </p>
       </div>
 
@@ -182,9 +181,9 @@ export default function ProfilePage() {
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">Informations personnelles</CardTitle>
+                  <CardTitle className="text-lg">{t('cards.personalInfo.title')}</CardTitle>
                   <CardDescription>
-                    Vos informations de base et de contact
+                    {t('cards.personalInfo.description')}
                   </CardDescription>
                 </div>
                 <Button 
@@ -194,7 +193,7 @@ export default function ProfilePage() {
                   disabled={isUpdating}
                 >
                   <Edit className="h-4 w-4 mr-2" />
-                  Modifier
+                  {t('common.edit')}
                 </Button>
               </div>
             </CardHeader>
@@ -203,7 +202,7 @@ export default function ProfilePage() {
                 <div className="flex items-center space-x-3">
                   <User className="h-5 w-5 text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Nom complet</p>
+                    <p className="text-sm font-medium text-gray-500">{t('cards.personalInfo.fields.fullName')}</p>
                     <p className="text-gray-900">{getFullName()}</p>
                   </div>
                 </div>
@@ -211,7 +210,7 @@ export default function ProfilePage() {
                 <div className="flex items-center space-x-3">
                   <Mail className="h-5 w-5 text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Email</p>
+                    <p className="text-sm font-medium text-gray-500">{t('cards.personalInfo.fields.email')}</p>
                     <p className="text-gray-900">{profile.email}</p>
                   </div>
                 </div>
@@ -219,16 +218,16 @@ export default function ProfilePage() {
                 <div className="flex items-center space-x-3">
                   <Phone className="h-5 w-5 text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Téléphone</p>
-                    <p className="text-gray-900">{profile.phone || 'Non renseigné'}</p>
+                    <p className="text-sm font-medium text-gray-500">{t('cards.personalInfo.fields.phone')}</p>
+                    <p className="text-gray-900">{profile.phone || t('cards.personalInfo.fields.phoneFallback')}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-3">
                   <Building className="h-5 w-5 text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Entreprise</p>
-                    <p className="text-gray-900">{profile.company || 'Non renseignée'}</p>
+                    <p className="text-sm font-medium text-gray-500">{t('cards.personalInfo.fields.company')}</p>
+                    <p className="text-gray-900">{profile.company || t('cards.personalInfo.fields.companyFallback')}</p>
                   </div>
                 </div>
               </div>
@@ -240,9 +239,9 @@ export default function ProfilePage() {
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">Sécurité</CardTitle>
+                  <CardTitle className="text-lg">{t('cards.security.title')}</CardTitle>
                   <CardDescription>
-                    Gérez votre mot de passe et vos paramètres de sécurité
+                    {t('cards.security.description')}
                   </CardDescription>
                 </div>
               </div>
@@ -253,8 +252,8 @@ export default function ProfilePage() {
                   <div className="flex items-center space-x-3">
                     <KeyRound className="h-5 w-5 text-gray-400" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Mot de passe</p>
-                      <p className="text-sm text-gray-500">••••••••••••</p>
+                      <p className="text-sm font-medium text-gray-900">{t('cards.security.passwordLabel')}</p>
+                      <p className="text-sm text-gray-500">{t('cards.security.maskedValue')}</p>
                     </div>
                   </div>
                   <Button
@@ -263,7 +262,7 @@ export default function ProfilePage() {
                     onClick={() => setIsPasswordDialogOpen(true)}
                     disabled={isUpdating}
                   >
-                    Modifier
+                    {t('common.edit')}
                   </Button>
                 </div>
               </div>
@@ -299,13 +298,13 @@ export default function ProfilePage() {
           {/* Carte informations compte */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Informations du compte</CardTitle>
+              <CardTitle className="text-lg">{t('cards.account.title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-3">
                 <Calendar className="h-4 w-4 text-gray-400" />
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Membre depuis</p>
+                  <p className="text-sm font-medium text-gray-500">{t('cards.account.memberSince')}</p>
                   <p className="text-sm text-gray-900">
                     {profile.created_at 
                       ? new Date(profile.created_at).toLocaleDateString('fr-FR', {
@@ -313,7 +312,7 @@ export default function ProfilePage() {
                           month: 'long',
                           day: 'numeric'
                         })
-                      : 'Non disponible'
+                      : t('cards.account.memberSinceFallback')
                     }
                   </p>
                 </div>
@@ -323,11 +322,11 @@ export default function ProfilePage() {
                 <div className="flex items-center space-x-3">
                   <Users className="h-4 w-4 text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Client associé</p>
+                    <p className="text-sm font-medium text-gray-500">{t('cards.account.client')}</p>
                     <p className="text-sm text-gray-900">
                       {typeof profile.clients === 'object' && profile.clients.name 
                         ? profile.clients.name 
-                        : 'Non associé'
+                        : t('cards.account.clientFallback')
                       }
                     </p>
                   </div>
@@ -342,74 +341,74 @@ export default function ProfilePage() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Modifier le profil</DialogTitle>
+            <DialogTitle>{t('dialogs.edit.title')}</DialogTitle>
             <DialogDescription>
-              Modifiez vos informations personnelles. Les modifications seront sauvegardées automatiquement.
+              {t('dialogs.edit.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName">Prénom</Label>
+                <Label htmlFor="firstName">{t('dialogs.edit.fields.firstName.label')}</Label>
                 <Input
                   id="firstName"
                   value={profileForm.firstName}
                   onChange={(e) => setProfileForm(prev => ({ ...prev, firstName: e.target.value }))}
-                  placeholder="Votre prénom"
+                  placeholder={t('dialogs.edit.fields.firstName.placeholder')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Nom</Label>
+                <Label htmlFor="lastName">{t('dialogs.edit.fields.lastName.label')}</Label>
                 <Input
                   id="lastName"
                   value={profileForm.lastName}
                   onChange={(e) => setProfileForm(prev => ({ ...prev, lastName: e.target.value }))}
-                  placeholder="Votre nom"
+                  placeholder={t('dialogs.edit.fields.lastName.placeholder')}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('dialogs.edit.fields.email.label')}</Label>
               <Input
                 id="email"
                 type="email"
                 value={profileForm.email}
                 onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="votre@email.com"
+                placeholder={t('dialogs.edit.fields.email.placeholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Téléphone</Label>
+              <Label htmlFor="phone">{t('dialogs.edit.fields.phone.label')}</Label>
               <Input
                 id="phone"
                 type="tel"
                 value={profileForm.phone}
                 onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="+237 6XX XXX XXX"
+                placeholder={t('dialogs.edit.fields.phone.placeholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company">Entreprise</Label>
+              <Label htmlFor="company">{t('dialogs.edit.fields.company.label')}</Label>
               <Input
                 id="company"
                 value={profileForm.company}
                 onChange={(e) => setProfileForm(prev => ({ ...prev, company: e.target.value }))}
-                placeholder="Nom de votre entreprise"
+                placeholder={t('dialogs.edit.fields.company.placeholder')}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Annuler
+              {t('dialogs.edit.actions.cancel')}
             </Button>
             <Button onClick={handleSaveProfile} disabled={isUpdating}>
               {isUpdating ? (
                 <>
                   <LoadingSpinner size="sm" className="mr-2" />
-                  Enregistrement...
+                  {t('dialogs.edit.actions.saving')}
                 </>
               ) : (
-                'Enregistrer'
+                t('dialogs.edit.actions.save')
               )}
             </Button>
           </DialogFooter>
@@ -420,54 +419,54 @@ export default function ProfilePage() {
       <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Changer le mot de passe</DialogTitle>
+            <DialogTitle>{t('dialogs.password.title')}</DialogTitle>
             <DialogDescription>
-              Saisissez votre mot de passe actuel puis votre nouveau mot de passe.
+              {t('dialogs.password.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="currentPassword">Mot de passe actuel</Label>
+              <Label htmlFor="currentPassword">{t('dialogs.password.fields.current.label')}</Label>
               <Input
                 id="currentPassword"
                 type="password"
                 value={passwordForm.currentPassword}
                 onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-                placeholder="Votre mot de passe actuel"
+                placeholder={t('dialogs.password.fields.current.placeholder')}
               />
             </div>
             <Separator />
             <div className="space-y-2">
-              <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+              <Label htmlFor="newPassword">{t('dialogs.password.fields.new.label')}</Label>
               <Input
                 id="newPassword"
                 type="password"
                 value={passwordForm.newPassword}
                 onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                placeholder="Au moins 8 caractères"
+                placeholder={t('dialogs.password.fields.new.placeholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmer le nouveau mot de passe</Label>
+              <Label htmlFor="confirmPassword">{t('dialogs.password.fields.confirm.label')}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 value={passwordForm.confirmPassword}
                 onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                placeholder="Confirmez votre nouveau mot de passe"
+                placeholder={t('dialogs.password.fields.confirm.placeholder')}
               />
             </div>
             {passwordForm.newPassword && passwordForm.confirmPassword && 
              passwordForm.newPassword !== passwordForm.confirmPassword && (
               <div className="text-sm text-red-600 flex items-center">
                 <AlertCircle className="h-4 w-4 mr-1" />
-                Les mots de passe ne correspondent pas
+                {t('dialogs.password.validations.mismatch')}
               </div>
             )}
             {passwordForm.newPassword && passwordForm.newPassword.length < 6 && (
               <div className="text-sm text-red-600 flex items-center">
                 <AlertCircle className="h-4 w-4 mr-1" />
-                Le mot de passe doit contenir au moins 6 caractères
+                {t('dialogs.password.validations.minLength')}
               </div>
             )}
           </div>
@@ -480,7 +479,7 @@ export default function ProfilePage() {
                 confirmPassword: ''
               })
             }}>
-              Annuler
+              {t('dialogs.password.actions.cancel')}
             </Button>
             <Button 
               onClick={handleChangePassword} 
@@ -496,10 +495,10 @@ export default function ProfilePage() {
               {isUpdating ? (
                 <>
                   <LoadingSpinner size="sm" className="mr-2" />
-                  Modification...
+                  {t('dialogs.password.actions.submitting')}
                 </>
               ) : (
-                'Changer le mot de passe'
+                t('dialogs.password.actions.submit')
               )}
             </Button>
           </DialogFooter>

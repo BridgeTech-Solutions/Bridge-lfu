@@ -17,12 +17,29 @@ export async function GET(request: NextRequest) {
 
     const supabase = createSupabaseServerClient();
     const checker = new PermissionChecker(user);
+    const { searchParams } = new URL(request.url);
+    const clientId = searchParams.get('client_id');
+    const typeId = searchParams.get('type_id');
 
-    let query = supabase.from('licenses').select('status, expiry_date, cost, client_id');
+    // Vérifier les permissions si un client spécifique est demandé
+    if (clientId && !checker.canViewAllData() && clientId !== user.client_id) {
+      return NextResponse.json(
+        { message: 'Vous ne pouvez pas accéder aux statistiques d\'un autre client' },
+        { status: 403 }
+      );
+    }
 
-    // Filtrage par permissions
+    let query = supabase.from('v_licenses_with_client').select('status, expiry_date, cost, client_id, type_id');
+
+    // Filtrage par permissions et clientId
     if (!checker.canViewAllData() && user.client_id) {
       query = query.eq('client_id', user.client_id);
+    } else if (clientId) {
+      query = query.eq('client_id', clientId);
+    }
+
+    if (typeId) {
+      query = query.eq('type_id', typeId);
     }
 
     const { data: licenses, error } = await query;

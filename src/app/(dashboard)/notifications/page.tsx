@@ -28,14 +28,17 @@ import {
   NotificationSettings
 } from '@/hooks/useNotifications'
 import { useAuth } from '@/hooks/useAuth'
+import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { useTranslations } from '@/hooks/useTranslations'
 
 
 // Composant principal
 export default function NotificationsPage() {
 
   const { user,loading: userLoading } = useAuth()
+  const router = useRouter()
+  const { t } = useTranslations('notifications.page')
 
   
   // États
@@ -49,36 +52,33 @@ export default function NotificationsPage() {
   const {
     notifications: notificationsData,
     isLoading: notificationsLoading,
-    pagination,
     markAsRead,
-    deleteNotification,
     markAllAsRead,
+    deleteNotification,
+    pagination,
     isMarkingAsRead,
     isDeleting,
     isMarkingAllRead,
   } = useNotifications(filters);
 
-    const { 
-    settings, 
-    isLoading: settingsLoading, 
-    updateSettings, 
-    isUpdating,
-    updateError,
+  const {
+    settings,
+    isLoading: settingsLoading,
+    updateSettings,
+    isUpdating
   } = useNotificationSettings();
 
-const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
-  // Use a fallback for any settings that might be missing
-  const completeSettings = {
-    licenseAlertDays: settings.license_alert_days ?? [], // Provide a default empty array
-    equipmentAlertDays: settings.equipment_alert_days ?? [], // Provide a default empty array
-    emailEnabled: settings.email_enabled ?? false, // Provide a default false value
+  const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
+    // Use a fallback for any settings that might be missing
+    const completeSettings = {
+      licenseAlertDays: settings.license_alert_days ?? [], // Provide a default empty array
+      equipmentAlertDays: settings.equipment_alert_days ?? [], // Provide a default empty array
+      emailEnabled: settings.email_enabled ?? false, // Provide a default false value
+    };
+    
+    // Now, call the useMutation function with the complete object
+    updateSettings(completeSettings);
   };
-  
-  // Now, call the useMutation function with the complete object
-  updateSettings(completeSettings);
-};
-
-
   // Fonctions utilitaires
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -108,6 +108,17 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
     })
   }
 
+  // Fonction pour naviguer vers les détails
+  const handleNotificationClick = (notification: Notification) => {
+    if (notification.related_id && notification.related_type) {
+      if (notification.related_type === 'license') {
+        router.push(`/licenses/${notification.related_id}`)
+      } else if (notification.related_type === 'equipment') {
+        router.push(`/equipment/${notification.related_id}`)
+      }
+    }
+  }
+
   // Effet pour mettre à jour les filtres selon l'onglet actif
   useEffect(() => {
     if (activeTab === 'unread') {
@@ -135,11 +146,16 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Bell className="h-6 w-6" />
-            Notifications
+            {t('title')}
           </h1>
           {stats && (
             <p className="text-sm text-gray-600 mt-1">
-              {stats.unread} non lue{stats.unread > 1 ? 's' : ''} sur {stats.total} notification{stats.total > 1 ? 's' : ''}
+              {t('unreadCount', {
+                unread: stats.unread,
+                total: stats.total,
+                plural: stats.unread > 1 ? 's' : '',
+                totalPlural: stats.total > 1 ? 's' : ''
+              })}
             </p>
           )}
         </div>
@@ -152,7 +168,7 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
               className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
             >
               <CheckCheck className="h-4 w-4" />
-              Tout marquer comme lu
+              {t('actions.markAllAsRead')}
             </button>
           )}
           
@@ -166,7 +182,7 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
             )}
           >
             <Filter className="h-4 w-4" />
-            Filtrer
+            {t('actions.filter')}
           </button>
         </div>
       </div>
@@ -177,7 +193,7 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
           <div className="bg-white p-4 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total</p>
+                <p className="text-sm text-gray-600">{t('stats.total')}</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
               </div>
               <Bell className="h-8 w-8 text-gray-400" />
@@ -187,7 +203,7 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
           <div className="bg-white p-4 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Non lues</p>
+                <p className="text-sm text-gray-600">{t('stats.unread')}</p>
                 <p className="text-2xl font-bold text-orange-600">{stats.unread}</p>
               </div>
               <AlertTriangle className="h-8 w-8 text-orange-400" />
@@ -197,7 +213,7 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
           <div className="bg-white p-4 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Licences</p>
+                <p className="text-sm text-gray-600">{t('stats.licenses')}</p>
                 <p className="text-2xl font-bold text-blue-600">{stats.by_type.license_expiry}</p>
               </div>
               <Shield className="h-8 w-8 text-blue-400" />
@@ -207,7 +223,7 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
           <div className="bg-white p-4 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Équipements</p>
+                <p className="text-sm text-gray-600">{t('stats.equipment')}</p>
                 <p className="text-2xl font-bold text-red-600">{stats.by_type.equipment_obsolescence}</p>
               </div>
               <Server className="h-8 w-8 text-red-400" />
@@ -228,7 +244,7 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
                 : "text-gray-600 hover:text-gray-900"
             )}
           >
-            Toutes ({stats?.total || 0})
+            {t('tabs.all', { count: stats?.total || 0 })}
           </button>
           <button
             onClick={() => setActiveTab('unread')}
@@ -239,7 +255,7 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
                 : "text-gray-600 hover:text-gray-900"
             )}
           >
-            Non lues ({stats?.unread || 0})
+            {t('tabs.unread', { count: stats?.unread || 0 })}
           </button>
           <button
             onClick={() => setActiveTab('settings')}
@@ -251,7 +267,7 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
             )}
           >
             <Settings className="h-4 w-4 mr-2" />
-            Paramètres
+            {t('tabs.settings')}
           </button>
         </div>
       </div>
@@ -265,7 +281,7 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Rechercher dans les notifications..."
+                placeholder={t('filters.searchPlaceholder')}
                 value={filters.search}
                 onChange={(e) => updateFilter('search', e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -278,11 +294,11 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
               onChange={(e) => updateFilter('type', e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">Tous les types</option>
-              <option value="license_expiry">Expiration licence</option>
-              <option value="equipment_obsolescence">Obsolescence équipement</option>
-              <option value="general">Général</option>
-              <option value="new_unverified_user">Nouvel utilisateur</option>
+              <option value="">{t('filters.typePlaceholder')}</option>
+              <option value="license_expiry">{t('filters.typeOptions.license_expiry')}</option>
+              <option value="equipment_obsolescence">{t('filters.typeOptions.equipment_obsolescence')}</option>
+              <option value="general">{t('filters.typeOptions.general')}</option>
+              <option value="new_unverified_user">{t('filters.typeOptions.new_unverified_user')}</option>
             </select>
 
             {/* Statut de lecture */}
@@ -291,9 +307,9 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
               onChange={(e) =>updateFilter('is_read', e.target.value === '' ? undefined : e.target.value === 'true')}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">Tous les statuts</option>
-              <option value="false">Non lues</option>
-              <option value="true">Lues</option>
+              <option value="">{t('filters.statusPlaceholder')}</option>
+              <option value="false">{t('filters.statusOptions.unread')}</option>
+              <option value="true">{t('filters.statusOptions.read')}</option>
             </select>
           </div>
         </div>
@@ -318,6 +334,7 @@ const handleUpdateSettings = (settings: Partial<NotificationSettings>) => {
           getNotificationIcon={getNotificationIcon}
           getNotificationTypeLabel={getNotificationTypeLabel}
           formatDate={formatDate}
+          onNotificationClick={handleNotificationClick}
         />
       )}
     </div>
@@ -334,7 +351,8 @@ function NotificationsList({
   onDelete,
   getNotificationIcon,
   getNotificationTypeLabel,
-  formatDate
+  formatDate,
+  onNotificationClick
 }: {
   notifications: Notification[]
   isLoading: boolean
@@ -345,13 +363,15 @@ function NotificationsList({
   getNotificationIcon: (type: string) => React.ReactNode
   getNotificationTypeLabel: (type: string) => string
   formatDate: (date: string) => string
+  onNotificationClick: (notification: Notification) => void
 }) {
+  const { t } = useTranslations('notifications.page')
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-8">
         <div className="flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-gray-600">Chargement des notifications...</span>
+          <span className="ml-2 text-gray-600">{t('list.loading')}</span>
         </div>
       </div>
     )
@@ -361,8 +381,8 @@ function NotificationsList({
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
         <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune notification</h3>
-        <p className="text-gray-600">Vous n&apos;avez aucune notification pour le moment.</p>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">{t('list.empty')}</h3>
+        <p className="text-gray-600">{t('list.emptyDescription')}</p>
       </div>
     )
   }
@@ -375,9 +395,11 @@ function NotificationsList({
           <div
             key={notification.id}
             className={cn(
-              "p-4 hover:bg-gray-50 transition-colors",
+              "p-4 hover:bg-gray-50 transition-colors cursor-pointer",
               !notification.is_read && "bg-blue-50 border-l-4 border-l-blue-500"
             )}
+            onClick={() => onNotificationClick(notification)}
+            title={t('list.actions.viewDetails')}
           >
             <div className="flex items-start justify-between">
               <div className="flex items-start space-x-3 flex-1">
@@ -420,9 +442,9 @@ function NotificationsList({
               {/* Actions */}
               <div className="flex items-center space-x-2 ml-4">
                 <button
-                  onClick={() => onMarkAsRead(notification.id, !notification.is_read)}
+                  onClick={(e) => { e.stopPropagation(); onMarkAsRead(notification.id, !notification.is_read); }}
                   className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                  title={notification.is_read ? "Marquer comme non lue" : "Marquer comme lue"}
+                  title={notification.is_read ? t('list.actions.markAsUnread') : t('list.actions.markAsRead')}
                 >
                   {notification.is_read ? (
                     <EyeOff className="h-4 w-4" />
@@ -432,9 +454,9 @@ function NotificationsList({
                 </button>
                 
                 <button
-                  onClick={() => onDelete(notification.id)}
+                  onClick={(e) => { e.stopPropagation(); onDelete(notification.id); }}
                   className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                  title="Supprimer"
+                  title={t('list.actions.delete')}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -448,7 +470,7 @@ function NotificationsList({
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg">
           <div className="flex items-center text-sm text-gray-700">
-            Page {pagination.page} sur {pagination.totalPages}
+            {t('pagination.page', { current: pagination.page, total: pagination.totalPages })}
           </div>
           
           <div className="flex items-center space-x-2">
@@ -457,7 +479,7 @@ function NotificationsList({
               disabled={pagination.page === 1}
               className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Précédent
+              {t('pagination.previous')}
             </button>
             
             <button
@@ -465,7 +487,7 @@ function NotificationsList({
               disabled={!pagination.hasMore}
               className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Suivant
+              {t('pagination.next')}
             </button>
           </div>
         </div>
@@ -484,6 +506,7 @@ function NotificationSettingsPanel({
   onUpdate: (settings: Partial<NotificationSettings>) => void
   isUpdating: boolean
 }) {
+  const { t } = useTranslations('notifications.page')
   const [localSettings, setLocalSettings] = useState({
     license_alert_days: [7, 30],
     equipment_alert_days: [30, 90],
@@ -533,14 +556,14 @@ function NotificationSettingsPanel({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-6">Paramètres des notifications</h2>
+      <h2 className="text-lg font-semibold text-gray-900 mb-6">{t('settings.title')}</h2>
       
       <div className="space-y-6">
         {/* Notifications par email */}
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-medium text-gray-900">Notifications par email</h3>
-            <p className="text-sm text-gray-600">Recevoir les notifications par email</p>
+            <h3 className="text-sm font-medium text-gray-900">{t('settings.emailLabel')}</h3>
+            <p className="text-sm text-gray-600">{t('settings.emailDescription')}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input
@@ -555,8 +578,8 @@ function NotificationSettingsPanel({
 
         {/* Alertes licences */}
         <div>
-          <h3 className="text-sm font-medium text-gray-900 mb-3">Alertes d&apos;expiration des licences</h3>
-          <p className="text-sm text-gray-600 mb-3">Jours avant expiration pour recevoir une alerte</p>
+          <h3 className="text-sm font-medium text-gray-900 mb-3">{t('settings.licenseAlertsLabel')}</h3>
+          <p className="text-sm text-gray-600 mb-3">{t('settings.licenseAlertsDescription')}</p>
           
           <div className="flex flex-wrap gap-2 mb-3">
             {localSettings.license_alert_days.map((day) => (
@@ -564,7 +587,7 @@ function NotificationSettingsPanel({
                 key={day}
                 className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
               >
-                {day} jour{day > 1 ? 's' : ''}
+                {day} {t('settings.daySuffix', { plural: day > 1 ? 's' : '' })}
                 <button
                   onClick={() => removeAlertDay('license', day)}
                   className="ml-2 text-blue-600 hover:text-blue-800"
@@ -579,14 +602,14 @@ function NotificationSettingsPanel({
             onClick={() => addAlertDay('license')}
             className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
           >
-            + Ajouter
+            {t('settings.addButton')}
           </button>
         </div>
 
         {/* Alertes équipements */}
         <div>
-          <h3 className="text-sm font-medium text-gray-900 mb-3">Alertes d&apos;obsolescence des équipements</h3>
-          <p className="text-sm text-gray-600 mb-3">Jours avant obsolescence pour recevoir une alerte</p>
+          <h3 className="text-sm font-medium text-gray-900 mb-3">{t('settings.equipmentAlertsLabel')}</h3>
+          <p className="text-sm text-gray-600 mb-3">{t('settings.equipmentAlertsDescription')}</p>
           
           <div className="flex flex-wrap gap-2 mb-3">
             {localSettings.equipment_alert_days.map((day) => (
@@ -594,7 +617,7 @@ function NotificationSettingsPanel({
                 key={day}
                 className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-red-100 text-red-800"
               >
-                {day} jour{day > 1 ? 's' : ''}
+                {day} {t('settings.daySuffix', { plural: day > 1 ? 's' : '' })}
                 <button
                   onClick={() => removeAlertDay('equipment', day)}
                   className="ml-2 text-red-600 hover:text-red-800"
@@ -609,7 +632,7 @@ function NotificationSettingsPanel({
             onClick={() => addAlertDay('equipment')}
             className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
           >
-            + Ajouter
+            {t('settings.addButton')}
           </button>
         </div>
 
@@ -621,7 +644,7 @@ function NotificationSettingsPanel({
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isUpdating && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
-            Sauvegarder les paramètres
+            {isUpdating ? t('settings.saving') : t('settings.saveButton')}
           </button>
         </div>
       </div>

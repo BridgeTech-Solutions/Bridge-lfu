@@ -22,7 +22,7 @@ import { Separator } from '@/components/ui/separator'
 export const metadata: Metadata = {
   title: "Centre d'aide | Bridge LFU",
   description:
-    'Guide utilisateur pour comprendre Bridge LFU selon votre rôle : administrateur, technicien ou client.'
+    'Guide utilisateur pour comprendre Bridge LFU selon votre rôle : administrateur, technicien, client ou utilisateur non vérifié.'
 }
 
 const quickStartSteps = [
@@ -46,12 +46,12 @@ const roleGuides = [
     title: 'Administrateur',
     icon: Shield,
     description:
-      'Pilote la configuration globale : création des entreprises clientes, gestion des utilisateurs internes, supervision du parc et des rapports.',
+      'Administrateur système avec accès complet : gestion des clients, utilisateurs, licences, équipements et rapports. Peut voir toutes les données et effectuer toutes les opérations.',
     responsibilities: [
       'Enregistrer les nouveaux clients et mettre à jour leurs informations.',
       'Créer des utilisateurs, attribuer les rôles et vérifier les accès.',
       'Assurer la conformité des licences et planifier les renouvellements.',
-      'Superviser l’état du parc matériel et la stratégie de maintenance.'
+      'Superviser l\'état du parc matériel et la stratégie de maintenance.'
     ],
     checklist: [
       'Chaque matin : parcourir le Tableau de bord et les alertes critiques.',
@@ -74,50 +74,79 @@ const roleGuides = [
     title: 'Technicien',
     icon: Wrench,
     description:
-      'Opère les interventions quotidiennes : suivi des licences et équipements, maintien des alertes à jour, assistance aux clients.',
+      'Opère les interventions quotidiennes : suivi des licences et équipements, maintien des alertes à jour, assistance aux clients. Peut gérer les licences et équipements mais pas les utilisateurs ou clients.',
     responsibilities: [
       'Mettre à jour les fiches licences après chaque renouvellement ou incident.',
       'Suivre les équipements en maintenance et consigner les dates clés.',
       'Répondre aux notifications techniques et informer les clients impactés.',
-      'Préparer les exports demandés par l’équipe de pilotage.'
+      'Préparer les exports demandés par l\'équipe de pilotage.',
+      'Personnaliser ses paramètres utilisateur selon ses préférences.'
     ],
     checklist: [
       'Consulter le Tableau de bord puis la liste Licences pour identifier les urgences.',
-      'Actualiser le statut et les notes d’un équipement après intervention.',
+      'Actualiser le statut et les notes d\'un équipement après intervention.',
       'Marquer les notifications traitées comme lues pour éviter les doublons.',
-      'Exporter un rapport si un client demande un récapitulatif détaillé.'
+      'Exporter un rapport si un client demande un récapitulatif détaillé.',
+      'Ajuster vos paramètres selon vos préférences de travail.'
     ],
     links: [
       { label: 'Tableau de bord', href: '/dashboard' },
       { label: 'Licences', href: '/licenses' },
       { label: 'Équipements', href: '/equipment' },
       { label: 'Notifications', href: '/notifications' },
-      { label: 'Rapports', href: '/reports' }
+      { label: 'Rapports', href: '/reports' },
+      { label: 'Paramètres', href: '/settings' }
     ]
   },
   {
     id: 'client-guide',
-    title: 'Client (responsable d’entreprise)',
+    title: 'Client',
     icon: Users,
     description:
-      'Suit les actifs de son entreprise : dates de renouvellement, équipements déployés, alertes reçues par email ou via l’application.',
+      'Utilisateur client avec accès en lecture seule à ses propres données : consultation du tableau de bord personnalisé, visualisation des licences et équipements de son entreprise, réception des notifications et génération de rapports personnalisés.',
     responsibilities: [
-      'Consulter « Mon Entreprise » pour vérifier le matériel et les licences en cours.',
-      'Transmettre les documents nécessaires (factures, contrats) à l’équipe support.',
-      'Valider la réception d’un équipement ou d’une licence nouvellement installée.',
-      'Tenir à jour les contacts de référence afin de recevoir les alertes au bon endroit.'
+      'Consulter le tableau de bord personnalisé pour voir l\'état de vos actifs.',
+      'Visualiser les licences et équipements de votre entreprise (lecture seule).',
+      'Recevoir et traiter les notifications liées à vos actifs.',
+      'Générer des rapports sur vos propres données.',
+      'Personnaliser vos paramètres utilisateur.',
+      'Contacter le support pour toute demande spécifique.'
     ],
     checklist: [
-      'Dans Mon Entreprise : surveiller les licences qui expirent bientôt.',
-      'Informer BridgeTech d’un changement via la page Notifications ou par email.',
-      'Mettre à jour les coordonnées de l’entreprise pour garantir la bonne réception des alertes.',
-      'Télécharger un rapport si la direction demande un état des lieux.'
+      'Consulter votre tableau de bord personnalisé pour un aperçu rapide.',
+      'Vérifier régulièrement l\'état de vos licences et équipements.',
+      'Traiter les notifications reçues dans les délais.',
+      'Générer des rapports quand nécessaire pour votre gestion interne.',
+      'Ajuster vos paramètres selon vos préférences.',
+      'Contacter le support technique en cas de problème.'
     ],
     links: [
+      { label: 'Tableau de bord', href: '/dashboard' },
+      { label: 'Licences', href: '/licenses' },
+      { label: 'Équipements', href: '/equipment' },
       { label: 'Mon Entreprise', href: '/my-company' },
       { label: 'Notifications', href: '/notifications' },
-      { label: 'Rapports personnalisés', href: '/reports' }
+      { label: 'Rapports personnalisés', href: '/reports' },
+      { label: 'Paramètres', href: '/settings' }
     ]
+  },
+  {
+    id: 'unverified-guide',
+    title: 'Non vérifié',
+    icon: AlertTriangle,
+    description:
+      'Utilisateur en attente de vérification par un administrateur. Aucun accès aux fonctionnalités de l\'application tant que le compte n\'est pas validé.',
+    responsibilities: [
+      'Attendre la vérification du compte par un administrateur.',
+      'Ne pas avoir accès aux fonctionnalités de l\'application.',
+      'Contacter le support en cas de problème d\'accès.'
+    ],
+    checklist: [
+      'Vérifier que votre compte a été créé correctement.',
+      'Attendre la validation par un administrateur.',
+      'Contacter le support si la vérification prend trop de temps.'
+    ],
+    links: []
   }
 ]
 
@@ -126,13 +155,13 @@ const featureGuides = [
     id: 'dashboard',
     title: 'Tableau de bord',
     icon: LayoutDashboard,
-    audience: 'Tous les rôles',
+    audience: 'Tous les rôles vérifiés',
     purpose:
-      'Centralise les indicateurs clés : alertes critiques, actifs en fin de vie, état général du parc.',
+      'Vue d\'ensemble personnalisée selon votre rôle : alertes, statistiques et éléments nécessitant votre attention.',
     steps: [
-      'Ouvrez le Tableau de bord pour voir en un coup d’œil les urgences et éléments récents.',
-      'Cliquez sur une carte pour accéder directement à la liste détaillée correspondante.',
-      'Utilisez les informations pour planifier vos interventions ou informer votre équipe.'
+      'Consulter le résumé des éléments critiques selon votre rôle.',
+      'Accéder directement aux détails en cliquant sur les cartes.',
+      'Utiliser les filtres pour personnaliser votre vue.'
     ],
     href: '/dashboard'
   },
@@ -182,7 +211,7 @@ const featureGuides = [
     id: 'reports',
     title: 'Rapports & exports',
     icon: FileText,
-    audience: 'Administrateur, Technicien',
+    audience: 'Administrateur, Technicien, Client',
     purpose:
       'Préparer des synthèses pour la direction, les clients ou les auditeurs.',
     steps: [
@@ -210,9 +239,9 @@ const featureGuides = [
 
 const faq = [
   {
-    question: 'Je ne vois que l’onglet « Mon Entreprise ». Est-ce normal ?',
+    question: 'Quels écrans puis-je consulter en tant que client ?',
     answer:
-      'Oui. Votre rôle « Client » limite l’accès aux informations de votre propre entreprise pour protéger les autres organisations. Contactez votre administrateur si vous devez étendre votre périmètre.'
+      'En tant que client, vous avez accès en lecture seule à : votre tableau de bord personnalisé, vos licences, vos équipements, Mon Entreprise, les notifications, les rapports personnalisés et vos paramètres. Vous ne pouvez pas gérer les données des autres clients ni créer/modifier des éléments.'
   },
   {
     question: 'Comment savoir qui doit traiter une alerte ?',
@@ -238,28 +267,16 @@ const supportChannels = [
     actions: [
       {
         label: 'Écrire au support',
-        href: 'mailto:support@bridgetech.co',
+        href: 'mailto:support@bridgetech-solutions.com',
         style: 'primary'
       },
       {
         label: 'Appeler le support',
-        href: 'tel:+237000000000',
+        href: 'tel:+237650000000',
         style: 'outline'
       }
     ]
   },
-  {
-    title: 'Remonter une demande interne',
-    description:
-      'Informez votre administrateur ou technicien référent en créant une notification interne ou en lui envoyant un message direct.',
-    actions: [
-      {
-        label: 'Ouvrir les notifications',
-        href: '/notifications',
-        style: 'outline'
-      }
-    ]
-  }
 ]
 
 export default function HelpPage() {
@@ -273,7 +290,7 @@ export default function HelpPage() {
           </div>
           <h1 className="text-4xl font-bold text-slate-900">Utiliser Bridge LFU selon votre rôle</h1>
           <p className="text-base text-slate-600 max-w-3xl mx-auto">
-            Ce guide s’adresse aux utilisateurs finaux. Il présente les bonnes pratiques à adopter que vous soyez administrateur, technicien ou responsable côté client.
+            Ce guide s’adresse aux utilisateurs finaux. Il présente les bonnes pratiques à adopter que vous soyez administrateur, technicien, client ou utilisateur en attente de vérification.
           </p>
         </header>
 
@@ -339,21 +356,26 @@ export default function HelpPage() {
                     <div>
                       <p className="text-xs uppercase tracking-wide text-slate-500">Écrans à connaître</p>
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {guide.links.map((link) => (
-                          <Link
-                            key={link.href}
-                            href={link.href}
-                            className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-                          >
-                            {link.label}
-                          </Link>
-                        ))}
+                        {guide.links.length > 0 ? (
+                          guide.links.map((link) => (
+                            <Link
+                              key={link.href}
+                              href={link.href}
+                              className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                            >
+                              {link.label}
+                            </Link>
+                          ))
+                        ) : (
+                          <p className="text-sm text-slate-500 italic">Aucun écran disponible tant que le compte n&apos;est pas vérifié par un administrateur.</p>
+                        )}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               )
             })}
+
           </div>
         </section>
 
@@ -433,12 +455,12 @@ export default function HelpPage() {
               <Card key={channel.title} className="h-full border border-slate-200 shadow-sm">
                 <CardHeader className="space-y-2">
                   <CardTitle className="text-lg text-slate-900 flex items-center gap-2">
+                    {channel.title}
                     {channel.title.includes('BridgeTech') ? (
                       <Headset className="h-5 w-5 text-blue-600" />
                     ) : (
                       <PhoneCall className="h-5 w-5 text-blue-600" />
                     )}
-                    {channel.title}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm text-slate-600">

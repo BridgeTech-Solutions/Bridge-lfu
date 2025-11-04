@@ -26,7 +26,7 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import type { LicenseSupplier } from '@/types'
-
+import { ListPageSkeleton } from '@/components/ui/skeleton'
 interface FormData {
   name: string
   contactEmail: string
@@ -153,7 +153,7 @@ export default function LicenseSuppliersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg" />
+        <ListPageSkeleton showStats={true} showFilters={true} statsCount={3} tableRows={5} tableColumns={5} />
       </div>
     )
   }

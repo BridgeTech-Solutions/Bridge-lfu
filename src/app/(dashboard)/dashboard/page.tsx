@@ -5,13 +5,17 @@ import {
   useEquipmentStats,
   useLicenseStats,
   useStatsAlerts,
+  useEquipmentTrends,
 } from '@/hooks/useStats'
 import { useStablePermissions } from '@/hooks/index'
 import { useDashboard } from '@/hooks/useDashboard'
+import { useClients } from '@/hooks/useClients'
+import { useState } from 'react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Users,
   Shield,
@@ -27,6 +31,7 @@ import {
 
 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   PieChart,
@@ -179,7 +184,9 @@ function AlertsCardSkeleton({ count = 4 }: { count?: number }) {
   )
 }
 export default function DashboardPage() {
-  const { stats, loading, error } = useDashboard()
+  const router = useRouter()
+  const [selectedClient, setSelectedClient] = useState('all')  // Changer à 'all' par défaut
+  const { stats, loading, error } = useDashboard(selectedClient === 'all' ? undefined : selectedClient)
   const { t } = useTranslations('dashboard')
   const statsTranslations = useTranslations('dashboard.stats')
   const chartsTranslations = useTranslations('dashboard.charts')
@@ -188,11 +195,15 @@ export default function DashboardPage() {
   const clientSummaryTranslations = useTranslations('dashboard.clientSummary')
   const overviewTranslations = useTranslations('dashboard.overview')
   const errorsTranslations = useTranslations('dashboard.errors')
-    
-    // NOUVEAUX hooks pour les statistiques
-    const { stats: equipmentStats, loading: equipmentLoading, error: equipmentError } = useEquipmentStats()
-    const { stats: licenseStats, loading: licenseLoading, error: licenseError } = useLicenseStats()
-    const statsAlerts = useStatsAlerts() // Alertes intelligentes
+  
+  // Récupérer la liste des clients pour le sélecteur
+  const { clients } = useClients({ limit: 1000 }) // Récupérer tous les clients
+  
+  // NOUVEAUX hooks pour les statistiques avec filtrage par client
+  const { stats: equipmentStats, loading: equipmentLoading, error: equipmentError } = useEquipmentStats(selectedClient === 'all' ? undefined : selectedClient)
+  const { stats: licenseStats, loading: licenseLoading, error: licenseError } = useLicenseStats(selectedClient === 'all' ? undefined : selectedClient)
+  const equipmentTrends = useEquipmentTrends(selectedClient === 'all' ? undefined : selectedClient)
+  const statsAlerts = useStatsAlerts(selectedClient === 'all' ? undefined : selectedClient) // Passer clientId ici
 
     const operationalLicenseCount = useMemo(() => {
       if (!licenseStats || !licenseStats.by_status) return 0;
@@ -245,15 +256,39 @@ export default function DashboardPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
-        <p className="text-gray-600 mt-2">
-          {overviewTranslations.t('subtitle').replace(
-            '{{context}}',
-            overviewTranslations.t(
-              `context.${stablePermissions.canViewAllData ? 'platform' : 'account'}`
-            )
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
+            <p className="text-gray-600 mt-2">
+              {overviewTranslations.t('subtitle').replace(
+                '{{context}}',
+                overviewTranslations.t(
+                  `context.${stablePermissions.canViewAllData ? 'platform' : 'account'}`
+                )
+              )}
+            </p>
+          </div>
+          {stablePermissions.canViewAllData && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="client-select" className="text-sm font-medium text-gray-700">
+                {t('clientFilter.label')}
+              </label>
+              <Select value={selectedClient} onValueChange={setSelectedClient}>
+                <SelectTrigger id="client-select" className="w-64">
+                  <SelectValue placeholder={t('clientFilter.placeholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('clientFilter.allClients')}</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
-        </p>
+        </div>
       </div>
 
         {/* Stats Grid - AMÉLIORÉ avec les nouvelles données */}
@@ -317,7 +352,6 @@ export default function DashboardPage() {
         {/* Section graphiques - OPTIMISÉE */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Équipements - Utilise les nouvelles données */}
-          {/*  eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain */}
           {equipmentLoading ? (
             <ChartCardSkeleton title={chartsTranslations.t('equipmentByType')} />
           ) : !equipmentStats?.chart_data?.types?.length ? (
@@ -337,9 +371,17 @@ export default function DashboardPage() {
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
+                    onClick={(data, index) => {
+                      const entry = equipmentStats.chart_data.types[index]
+                      if (entry?.name) {
+                        const url = new URL('/equipment', window.location.origin)
+                        url.searchParams.set('type', entry.name)
+                        router.push(url.pathname + '?' + url.searchParams.toString())
+                      }
+                    }}
                   >
                     {equipmentStats.chart_data.types.map((_, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} style={{ cursor: 'pointer' }} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -360,12 +402,36 @@ export default function DashboardPage() {
           ) : (
             <ChartCard title={chartsTranslations.t('licenseStatus')}>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={licenseStats.chart_data.statuses}>
+                <BarChart data={[
+                  // Barre combinée : Actif + bientôt expiré
+                  {
+                    name: 'Actif',
+                    value: (licenseStats.chart_data.statuses.find(s => s.name === 'active')?.value || 0) + (licenseStats.by_status.about_to_expire || 0),
+                    percentage: 0
+                  },
+                  // Barre séparée : bientôt expiré
+                  licenseStats.chart_data.statuses.find(s => s.name === 'about_to_expire') || { name: 'about_to_expire', value: 0, percentage: 0 },
+                  // Barre séparée : expired
+                  licenseStats.chart_data.statuses.find(s => s.name === 'expired') || { name: 'expired', value: 0, percentage: 0 }
+                ].filter(item => item.value > 0)}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
+                  <XAxis dataKey="name" interval={0} />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#0088FE" />
+                  <Bar dataKey="value" fill="#0088FE" onClick={(data) => {
+                    const name = (data && (data as unknown as { activeLabel?: string }).activeLabel) || ''
+                    const statusMap: Record<string, string> = { active: 'active', about_to_expire: 'about_to_expire', expired: 'expired', Actif: 'active' }
+                    const status = statusMap[name] || name
+                    if (status) {
+                      const url = new URL('/licenses', window.location.origin)
+                      if (status === 'active') {
+                        // Pas de filtre explicite pour la barre combinée; on renvoie vers la liste
+                      } else {
+                        url.searchParams.set('status', status)
+                      }
+                      router.push(url.pathname + (url.search ? '?' + url.searchParams.toString() : ''))
+                    }
+                  }} cursor="pointer" />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -397,6 +463,37 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </ChartCard>
           )}
+
+          {/* Nouveau: Obsolescence équipements (12 mois) */}
+          {equipmentTrends.loading ? (
+            <ChartCardSkeleton title={chartsTranslations.t('equipmentObsolescence')} />
+          ) : equipmentTrends.months.length === 0 ? (
+            <ChartCard title={chartsTranslations.t('equipmentObsolescence')}>
+              <div className="flex items-center justify-center h-[300px] text-gray-500 text-center">{chartsTranslations.t('empty.equipmentObsolescence')}</div>
+            </ChartCard>
+          ) : (
+            <ChartCard title={chartsTranslations.t('equipmentObsolescence')}>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={equipmentTrends.months} onClick={(e) => {
+                  const payload = (e && (e as unknown as { activeLabel?: string })).activeLabel
+                  // payload est comme 'nov. 2025' → pas de filtre direct par mois dans /equipment; à implémenter plus tard si nécessaire
+                }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="count" 
+                    stroke="#2563EB" 
+                    strokeWidth={2}
+                    name={chartsTranslations.t('equipmentObsolescenceSeries')}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          )}
           
 
           {/* Statuts des équipements */}
@@ -409,12 +506,32 @@ export default function DashboardPage() {
           ) : (
             <ChartCard title={chartsTranslations.t('equipmentStatus')}>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={equipmentStats.chart_data.statuses}>
+                <BarChart data={[
+                  // Barre combinée : Actif + bientôt obsolète
+                  {
+                    name: 'Actif',
+                    value: (equipmentStats.chart_data.statuses.find(s => s.name === 'actif')?.value || 0) + (equipmentStats.by_status.bientot_obsolete || 0),
+                    percentage: 0
+                  },
+                  // Barre séparée : bientôt obsolète
+                  equipmentStats.chart_data.statuses.find(s => s.name === 'bientot_obsolete') || { name: 'bientot_obsolete', value: 0, percentage: 0 },
+                  // Barre séparée : obsolete
+                  equipmentStats.chart_data.statuses.find(s => s.name === 'obsolete') || { name: 'obsolete', value: 0, percentage: 0 }
+                ].filter(item => item.value > 0)}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
+                  <XAxis dataKey="name" interval={0} />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#00C49F" />
+                  <Bar dataKey="value" fill="#00C49F" onClick={(data) => {
+                    const name = (data && (data as unknown as { activeLabel?: string }).activeLabel) || ''
+                    const statusMap: Record<string, string> = { Actif: 'actif', bientot_obsolete: 'bientot_obsolete', obsolete: 'obsolete' }
+                    const status = statusMap[name] || name
+                    const url = new URL('/equipment', window.location.origin)
+                    if (status && status !== 'Actif') {
+                      url.searchParams.set('status', status)
+                    }
+                    router.push(url.pathname + (url.search ? '?' + url.searchParams.toString() : ''))
+                  }} cursor="pointer" />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>

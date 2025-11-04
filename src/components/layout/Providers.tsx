@@ -3,6 +3,7 @@
 
 import { AuthProvider } from '@/app/context/auth'
 import { LanguageProvider } from '@/app/context/language'
+import { ThemeProvider } from '@/app/context/ThemeContext'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/react-query/client'
 import { Toaster } from 'sonner' // Si vous utilisez Toaster dans les Clients Components
@@ -15,7 +16,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       */}
       <QueryClientProvider client={queryClient}> 
         <LanguageProvider>
-          {children}
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
         </LanguageProvider>
       </QueryClientProvider>
       

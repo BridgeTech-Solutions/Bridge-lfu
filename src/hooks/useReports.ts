@@ -12,6 +12,8 @@ export interface ReportConfig {
   format: 'json' | 'csv' | 'pdf' | 'excel'  // Ajout de 'excel'
   dateFrom: string
   dateTo: string
+  licenseTypeId?: string  // Filtre pour les types de licences
+  equipmentTypeId?: string  // Filtre pour les types d'équipements
 }
 
 export interface ReportData {
@@ -76,6 +78,8 @@ export function useReports() {
       if (finalConfig.status) params.append('status', finalConfig.status)
       if (finalConfig.dateFrom) params.append('date_from', finalConfig.dateFrom)
       if (finalConfig.dateTo) params.append('date_to', finalConfig.dateTo)
+      if (finalConfig.licenseTypeId) params.append('license_type_id', finalConfig.licenseTypeId)
+      if (finalConfig.equipmentTypeId) params.append('equipment_type_id', finalConfig.equipmentTypeId)
       params.append('format', finalConfig.format)
 
       const endpoint = finalConfig.type === 'licenses' 

@@ -18,6 +18,7 @@ export type ActivityLog = Tables<'activity_logs'>
 export type AppSetting = Tables<'app_settings'>
 export type LicenseSupplier = Tables<'license_suppliers'>
 export type EquipmentBrand = Tables<'equipment_brands'>
+export type LicenseType = Tables<'license_types'>
 // Types pour les insertions
 export type ProfileInsert = TablesInsert<'profiles'>
 export type ClientInsert = TablesInsert<'clients'>
@@ -27,6 +28,7 @@ export type AppSettingInsert = TablesInsert<'app_settings'>
 export type EquipmentTypeInsert = TablesInsert<'equipment_types'>
 export type LicenseSupplierInsert = TablesInsert<'license_suppliers'>
 export type EquipmentBrandInsert = TablesInsert<'equipment_brands'>
+export type LicenseTypeInsert = TablesInsert<'license_types'>
 // Types pour les mises à jour
 export type ProfileUpdate = TablesUpdate<'profiles'>
 export type ClientUpdate = TablesUpdate<'clients'>
@@ -330,6 +332,17 @@ export interface ExportResult {
   size: number
   created_at: string
   expires_at: string
+}
+
+// Types spécifiques pour l'export des types de licences
+export interface LicenseTypeExport {
+  id: string
+  name: string
+  code: string
+  description: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
 } 
 //
 // Types pour les vues de la base de données
@@ -355,6 +368,7 @@ export interface LicenseWithClientView {
   expiry_date: string | null
   cost: number | null
   client_id: string | null
+  type_id: string | null
   status: LicenseStatus | null
   description: string | null
   created_by: string | null
@@ -365,6 +379,7 @@ export interface LicenseWithClientView {
   created_by_name: string | null
   supplier_id?: string | null
   supplier_name?: string | null
+  type_name?: string | null
 }
 
 export interface EquipmentWithClientView {

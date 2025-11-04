@@ -10,7 +10,7 @@ import { AlertTriangle } from 'lucide-react'
 
 export default function EditEquipmentPageWrapper() {
   const params = useParams()
-  const equipmentId = params.id as string
+  const equipmentId = params?.id as string
   const permissions = useAuthPermissions()
   const canUpdateEquipment = permissions.can('update', 'equipment')
 

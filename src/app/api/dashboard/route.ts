@@ -7,6 +7,8 @@ import { Database } from '@/types/database';
 
 type LicenseStatusRow = Pick<Database['public']['Tables']['licenses']['Row'], 'status'>
 type EquipmentStatusRow = Pick<Database['public']['Tables']['equipment']['Row'], 'status'>
+type LicenseDateRow = Pick<Database['public']['Tables']['licenses']['Row'], 'expiry_date' | 'status'>
+type EquipmentDateRow = Pick<Database['public']['Tables']['equipment']['Row'], 'estimated_obsolescence_date' | 'status'>
 
 interface DashboardStats {
   total_clients: number
@@ -30,9 +32,17 @@ interface DashboardAlert {
   client_id?: string
 }
 
+/**
+ * GET /api/dashboard - Get dashboard statistics and alerts
+ * @param {NextRequest} request - The request object with optional clientId query parameter
+ * @returns {Promise<NextResponse>} Dashboard data with stats and alerts or error
+ */
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
+    const { searchParams } = new URL(request.url);
+    const clientId = searchParams.get('clientId');
+
     if (!user) {
       return NextResponse.json(
         { message: 'Non authentifié' },
@@ -40,16 +50,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = createSupabaseServerClient();
     const checker = new PermissionChecker(user);
 
-    // === RÉCUPÉRATION DES ALERTES ===
+    // Vérifier les permissions si un client spécifique est demandé
+    if (clientId && !checker.canViewAllData() && clientId !== user.client_id) {
+      return NextResponse.json(
+        { message: 'Vous ne pouvez pas accéder aux données d\'un autre client' },
+        { status: 403 }
+      );
+    }
+
+    const supabase = createSupabaseServerClient();
     const alertsView = checker.canViewAllData() ? 'v_dashboard_alerts' : 'v_client_dashboard';
     let alertsQuery = supabase.from(alertsView).select('*');
 
     // Filtrer par client si nécessaire
     if (!checker.canViewAllData() && user.client_id) {
       alertsQuery = alertsQuery.eq('client_id', user.client_id);
+    } else if (clientId) {
+      alertsQuery = alertsQuery.eq('client_id', clientId);
     }
 
     // Récupérer les alertes (limitées aux 15 plus urgentes)
@@ -93,10 +112,21 @@ export async function GET(request: NextRequest) {
     if (checker.canViewAllData()) {
       // Statistiques globales pour admin/technicien
       try {
+        let clientsQuery = supabase.from('clients').select('*', { count: 'exact', head: true });
+        let licensesQuery = supabase.from('licenses').select('status');
+        let equipmentQuery = supabase.from('equipment').select('status');
+
+        if (clientId) {
+          // Filtrer tous les éléments par client_id
+          clientsQuery = clientsQuery.eq('id', clientId);
+          licensesQuery = licensesQuery.eq('client_id', clientId);
+          equipmentQuery = equipmentQuery.eq('client_id', clientId);
+        }
+
         const [clientsRes, licensesRes, equipmentRes] = await Promise.allSettled([
-          supabase.from('clients').select('*', { count: 'exact', head: true }),
-          supabase.from('licenses').select('status'),
-          supabase.from('equipment').select('status')
+          clientsQuery,
+          licensesQuery,
+          equipmentQuery
         ]);
 
         // Gestion des résultats avec fallback
@@ -135,10 +165,12 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      const targetClientId = clientId || user.client_id;
+
       try {
         const [licensesRes, equipmentRes] = await Promise.allSettled([
-          supabase.from('licenses').select('status').eq('client_id', user.client_id),
-          supabase.from('equipment').select('status').eq('client_id', user.client_id)
+          supabase.from('licenses').select('status').eq('client_id', targetClientId),
+          supabase.from('equipment').select('status').eq('client_id', targetClientId)
         ]);
 
         // Gestion des résultats avec fallback
@@ -208,7 +240,7 @@ export async function GET(request: NextRequest) {
 }
 
 // Optionnel : Endpoint POST pour forcer le rafraîchissement des statistiques
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const user = await getCurrentUser();
     if (!user) {

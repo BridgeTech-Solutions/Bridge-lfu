@@ -21,7 +21,16 @@ export async function GET(request: NextRequest) {
     const clientId = searchParams.get('client_id');
     const status = searchParams.get('status');
     const editor = searchParams.get('editor');
+    const typeId = searchParams.get('typeId');
+    const expiryDateStart = searchParams.get('expiry_date_start');
+    const expiryDateEnd = searchParams.get('expiry_date_end');
     const format = searchParams.get('format') || 'xlsx';
+
+    // Récupérer les types de licences pour l'affichage des filtres
+    const { data: licenseTypes } = await supabase
+      .from('license_types')
+      .select('id, name')
+      .eq('is_active', true);
 
     let query = supabase
       .from('v_licenses_with_client')
@@ -39,6 +48,15 @@ export async function GET(request: NextRequest) {
     if (clientId && clientId !== 'all') query = query.eq('client_id', clientId);
     if (status && status !== 'all') query = query.eq('status', status);
     if (editor) query = query.ilike('editor', `%${editor}%`);
+    if (typeId && typeId !== 'all') query = query.eq('type_id', typeId);
+
+    if (expiryDateStart) {
+      query = query.gte('expiry_date', expiryDateStart);
+    }
+
+    if (expiryDateEnd) {
+      query = query.lte('expiry_date', expiryDateEnd);
+    }
 
     const { data: licenses, error } = await query.order('expiry_date', { ascending: true });
 
@@ -65,6 +83,7 @@ export async function GET(request: NextRequest) {
         'Nom',
         'Éditeur',
         'Version',
+        'Type de licence',
         'Statut',
         'Client',
         'Date d\'achat',
@@ -75,8 +94,9 @@ export async function GET(request: NextRequest) {
 
       const csvRows = licenses.map(item => [
         `"${item.name || ''}"`,
-        `"${item.editor || ''}"`,
+        `"${item.supplier_name || ''}"`,
         `"${item.version || ''}"`,
+        `"${item.type_name || ''}"`,
         `"${item.status || ''}"`,
         `"${item.client_name || ''}"`,
         item.purchase_date || '',
@@ -120,7 +140,7 @@ export async function GET(request: NextRequest) {
     });
 
     // En-tête du document
-    worksheet.mergeCells('A1:J1');
+    worksheet.mergeCells('A1:K1');
     const titleCell = worksheet.getCell('A1');
     titleCell.value = 'BRIDGE LFU - INVENTAIRE DES LICENCES';
     titleCell.font = { 
@@ -141,7 +161,7 @@ export async function GET(request: NextRequest) {
     worksheet.getRow(1).height = 35;
 
     // Informations de génération
-    worksheet.mergeCells('A2:J2');
+    worksheet.mergeCells('A2:K2');
     const infoCell = worksheet.getCell('A2');
     infoCell.value = `Généré le ${new Date().toLocaleDateString('fr-FR', { 
       weekday: 'long', 
@@ -166,12 +186,17 @@ export async function GET(request: NextRequest) {
     worksheet.addRow([]);
 
     // Filtres appliqués
-    if (search || clientId || status || editor) {
-      worksheet.mergeCells('A4:J4');
+    if (search || clientId || status || editor || typeId || expiryDateStart || expiryDateEnd) {
+      worksheet.mergeCells('A4:K4');
       const filterCell = worksheet.getCell('A4');
       const filters = [];
       if (search) filters.push(`Recherche: "${search}"`);
-      if (status && status !== 'all') filters.push(`Statut: ${status}`);
+      if (typeId && typeId !== 'all') {
+        const licenseType = licenseTypes?.find((lt: { id: string; name: string }) => lt.id === typeId);
+        filters.push(`Type: ${licenseType?.name || typeId}`);
+      }
+      if (expiryDateStart) filters.push(`Expiration à partir de: ${expiryDateStart}`);
+      if (expiryDateEnd) filters.push(`Expiration jusqu'à: ${expiryDateEnd}`);
       if (editor) filters.push(`Éditeur: ${editor}`);
       if (clientId && clientId !== 'all') filters.push(`Client: ${licenses[0]?.client_name || clientId}`);
       
@@ -195,6 +220,7 @@ export async function GET(request: NextRequest) {
       'Nom',
       'Éditeur',
       'Version',
+      'Type de licence',
       'Statut',
       'Client',
       'Date d\'achat',
@@ -267,8 +293,9 @@ export async function GET(request: NextRequest) {
       
       const row = worksheet.addRow([
         item.name || '',
-        item.editor || '',
+        item.supplier_name || '',
         item.version || '',
+        item.type_name || '',
         getStatusLabel(item.status),
         item.client_name || '',
         item.purchase_date ? new Date(item.purchase_date) : '',
@@ -296,11 +323,11 @@ export async function GET(request: NextRequest) {
 
         cell.alignment = { 
           vertical: 'middle',
-          horizontal: [8, 9].includes(colNumber) ? 'right' : 'left'
+          horizontal: [8, 9, 10].includes(colNumber) ? 'right' : 'left'
         };
 
         // Colonne Statut avec couleur
-        if (colNumber === 4) {
+        if (colNumber === 5) {
           cell.font = { 
             bold: true, 
             color: { argb: 'FFFFFFFF' } 
@@ -317,7 +344,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Jours restants avec couleur conditionnelle
-        if (colNumber === 8 && daysRemaining !== null) {
+        if (colNumber === 9 && daysRemaining !== null) {
           if (daysRemaining < 0) {
             cell.font = { bold: true, color: { argb: 'FFDC3545' } };
           } else if (daysRemaining <= 30) {
@@ -330,14 +357,14 @@ export async function GET(request: NextRequest) {
 
       // Format des dates
       if (item.purchase_date) {
-        row.getCell(6).numFmt = 'dd/mm/yyyy';
+        row.getCell(7).numFmt = 'dd/mm/yyyy';
       }
       if (item.expiry_date) {
-        row.getCell(7).numFmt = 'dd/mm/yyyy';
+        row.getCell(8).numFmt = 'dd/mm/yyyy';
       }
 
       // Format du coût
-      row.getCell(9).numFmt = '#,##0" XAF"';
+      row.getCell(10).numFmt = '#,##0" XAF"';
     });
 
     // Largeurs des colonnes
@@ -345,6 +372,7 @@ export async function GET(request: NextRequest) {
       { width: 30 }, // Nom
       { width: 20 }, // Éditeur
       { width: 15 }, // Version
+      { width: 18 }, // Type de licence
       { width: 18 }, // Statut
       { width: 25 }, // Client
       { width: 15 }, // Date achat
@@ -358,15 +386,15 @@ export async function GET(request: NextRequest) {
     worksheet.addRow([]);
     
     const statsRow = worksheet.addRow([
-      'STATISTIQUES', '', '', '', '', '', '', '', 'TOTAL:', 
+      'STATISTIQUES', '', '', '', '', '', '', '', '', 'TOTAL:', 
       licenses.reduce((sum, item) => sum + (item.cost || 0), 0)
     ]);
     statsRow.font = { bold: true, size: 11 };
-    statsRow.getCell(9).alignment = { horizontal: 'right' };
-    statsRow.getCell(10).numFmt = '#,##0" XAF"';
-    statsRow.getCell(10).font = { bold: true, size: 12, color: { argb: 'FF0066CC' } };
+    statsRow.getCell(10).alignment = { horizontal: 'right' };
+    statsRow.getCell(11).numFmt = '#,##0" XAF"';
+    statsRow.getCell(11).font = { bold: true, size: 12, color: { argb: 'FF0066CC' } };
     
-    worksheet.mergeCells(`A${statsRow.number}:H${statsRow.number}`);
+    worksheet.mergeCells(`A${statsRow.number}:I${statsRow.number}`);
     statsRow.getCell(1).fill = {
       type: 'pattern',
       pattern: 'solid',
@@ -381,10 +409,11 @@ export async function GET(request: NextRequest) {
 
     const statusRow = worksheet.addRow([
       '',
-      `Actives: ${statusCounts.active + statusCounts.about_to_expire || 0}`,
+      `Actives: ${(statusCounts.active || 0) + (statusCounts.about_to_expire || 0)}`,
       `Bientôt expirées: ${statusCounts.about_to_expire || 0}`,
       `Expirées: ${statusCounts.expired || 0}`,
       `Annulées: ${statusCounts.cancelled || 0}`,
+      '',
       '',
       '',
       '',

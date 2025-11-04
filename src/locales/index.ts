@@ -8,6 +8,7 @@ export type TranslationTree = {
 
 const translations: Record<SupportedLanguage, TranslationTree> = {
   fr: {
+
     settings: {
       title: 'Paramètres',
       subtitle: 'Gérez vos préférences personnelles et paramètres de notification',
@@ -157,15 +158,33 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       },
       filters: {
         searchPlaceholder: 'Rechercher une licence...',
+        searchLabel: 'Recherche',
         statusPlaceholder: 'Filtrer par statut',
+        statusLabel: 'Statut',
         statusAll: 'Tous les statuts',
         statusActive: 'Actives',
         statusAboutToExpire: 'Bientôt expirées',
         statusExpired: 'Expirées',
         statusCancelled: 'Annulées',
         clientPlaceholder: 'Filtrer par client',
+        clientLabel: 'Client',
         clientAll: 'Tous les clients',
-        editorPlaceholder: 'Éditeur...'
+        editorPlaceholder: 'Éditeur...',
+        editorLabel: 'Éditeur',
+        typePlaceholder: 'Type de licence',
+        typeLabel: 'Type de licence',
+        typeAll: 'Tous les types',
+        loading: 'Chargement...',
+        showFiltersButton: 'Afficher les filtres',
+        hideFiltersButton: 'Masquer les filtres',
+        filtersToggle: 'Filtres',
+        expiryDateStartPlaceholder: 'Date début expiration',
+        expiryDateEndPlaceholder: 'Date fin expiration',
+        expiryDateStartLabel: 'Date début expiration',
+        expiryDateEndLabel: 'Date fin expiration',
+        expiryDateSectionTitle: 'Période d&apos;expiration',
+        expiryDateSectionDescription: 'Filtrer les licences par date d&apos;expiration',
+        resetButton: 'Réinitialiser'
       },
       table: {
         title: 'Liste des licences',
@@ -178,6 +197,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           client: 'Client',
           editor: 'Éditeur',
           version: 'Version',
+          type: 'Type',
           expiryDate: "Date d'expiration",
           cost: 'Coût',
           status: 'Statut',
@@ -242,6 +262,10 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
             placeholder: 'Sélectionner un fournisseur',
             none: 'Aucun',
           },
+          clientId: {
+            label: 'Client *',
+            placeholder: 'Sélectionner un client',
+          },
           version: {
             label: 'Version',
             placeholder: 'Ex: 2023',
@@ -250,9 +274,9 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
             label: 'Clé de licence',
             placeholder: 'Clé de licence (masquée)'
           },
-          clientId: {
-            label: 'Client *',
-            placeholder: 'Sélectionner un client',
+          typeId: {
+            label: 'Type de licence',
+            placeholder: 'Sélectionner un type',
           },
           purchaseDate: {
             label: "Date d'achat",
@@ -284,7 +308,114 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         toasts: {
           created: 'Licence créée avec succès.',
           updated: 'Licence mise à jour avec succès.',
-          submitError: 'Une erreur est survenue lors de la soumission.'
+          submitError: 'Une erreur est survenue lors de la soumission.',
+          keyVisible: 'Clé de licence visible pendant 60 secondes.'
+        },
+        validation: {
+          name: {
+            required: 'Le nom est obligatoire'
+          },
+          expiryDate: {
+            required: "La date d'expiration est obligatoire"
+          },
+          clientId: {
+            required: 'Le client est obligatoire'
+          },
+        }
+      }
+      ,
+      detail: {
+        back: 'Retour',
+        actions: {
+          edit: 'Modifier',
+          delete: 'Supprimer',
+          hide: 'Masquer',
+          show: 'Afficher',
+          addFile: 'Ajouter un fichier'
+        },
+        sections: {
+          generalInfo: 'Informations générales',
+          attachments: 'Pièces jointes',
+          importantDates: 'Dates importantes',
+          financialInfo: 'Informations financières',
+          quickActions: 'Actions rapides'
+        },
+        fields: {
+          name: 'Nom',
+          status: 'Statut',
+          editor: 'Éditeur',
+          version: 'Version',
+          licenseType: 'Type de licence',
+          client: 'Client',
+          createdBy: 'Créé par',
+          licenseKey: 'Clé de licence',
+          description: 'Description',
+          purchaseDate: "Date d'achat",
+          expiryDate: "Date d'expiration",
+          createdAt: 'Créé le',
+          updatedAt: 'Modifié le',
+          totalCost: 'Coût total',
+          licenseDuration: 'Durée de la licence',
+          costPerDay: 'Coût par jour'
+        },
+        tableHeaders: {
+          fileName: 'Nom du fichier',
+          type: 'Type',
+          size: 'Taille',
+          uploadedBy: 'Ajouté par',
+          date: 'Date',
+          actions: 'Actions'
+        },
+        fileTypes: {
+          contract: 'Contrat',
+          invoice: 'Facture',
+          certificate: 'Certificat',
+          manual: 'Manuel',
+          other: 'Autre'
+        },
+        fileSizes: {
+          bytes: 'octets',
+          kb: 'Ko',
+          mb: 'Mo',
+          gb: 'Go'
+        },
+        expiryAlert: {
+          expired: 'Expirée depuis',
+          expiresIn: 'Expire dans',
+          days: 'jours'
+        },
+        license: 'la licence',
+        keyDialog: {
+          title: 'Révéler la clé de licence',
+          description: 'Entrez votre mot de passe pour révéler la clé de licence.',
+          fields: {
+            password: 'Mot de passe'
+          },
+          actions: {
+            cancel: 'Annuler',
+            show: 'Afficher'
+          }
+        },
+        deleteDialog: {
+          title: 'Confirmer la suppression',
+          description: 'Êtes-vous sûr de vouloir supprimer cette licence ? Cette action est irréversible.'
+        },
+        uploadDialog: {
+          title: 'Ajouter une pièce jointe',
+          description: 'Sélectionnez un fichier à ajouter à cette licence.',
+          fields: {
+            file: 'Fichier',
+            fileType: 'Type de fichier'
+          },
+          actions: {
+            cancel: 'Annuler',
+            add: 'Ajouter'
+          }
+        },
+        emptyState: {
+          noAttachments: 'Aucune pièce jointe',
+          noFilesAdded: 'Aucun fichier n\'a été ajouté à cette licence.',
+          addFirstFile: 'Ajouter le premier fichier'
         }
       }
     },
@@ -322,12 +453,18 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         formatPlaceholder: 'Choisir un format',
         dateFrom: 'Date de début',
         dateTo: 'Date de fin',
+        licenseType: 'Type de licence',
+        equipmentType: 'Type d\'équipement',
+        licenseTypePlaceholder: 'Tous les types',
+        equipmentTypePlaceholder: 'Tous les types',
       },
       options: {
         typeLicenses: 'Licences',
         typeEquipment: 'Équipements',
         statusAll: 'Tous les statuts',
         clientAll: 'Tous les clients',
+        licenseTypeAll: 'Tous les types de licences',
+        equipmentTypeAll: 'Tous les types d\'équipements',
         statusLicense: {
           active: 'Actif',
           expired: 'Expiré',
@@ -447,6 +584,89 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       common: {
         edit: 'Modifier',
       },
+    },
+    notifications: {
+      page: {
+        title: 'Notifications',
+        unreadCount: '{{unread}} non lue{{plural}} sur {{total}} notification{{totalPlural}}',
+        tabs: {
+          all: 'Toutes ({{count}})',
+          unread: 'Non lues ({{count}})',
+          settings: 'Paramètres'
+        },
+        actions: {
+          markAllAsRead: 'Tout marquer comme lu',
+          filter: 'Filtrer'
+        },
+        stats: {
+          total: 'Total',
+          unread: 'Non lues',
+          licenses: 'Licences',
+          equipment: 'Équipements'
+        },
+        filters: {
+          searchPlaceholder: 'Rechercher dans les notifications...',
+          typePlaceholder: 'Tous les types',
+          typeOptions: {
+            license_expiry: 'Expiration licence',
+            equipment_obsolescence: 'Obsolescence équipement',
+            new_unverified_user: 'Nouvel utilisateur',
+            general: 'Général'
+          },
+          statusPlaceholder: 'Tous les statuts',
+          statusOptions: {
+            read: 'Lues',
+            unread: 'Non lues'
+          }
+        },
+        list: {
+          loading: 'Chargement des notifications...',
+          empty: 'Aucune notification',
+          emptyDescription: 'Vous n\'avez aucune notification pour le moment.',
+          noUnread: 'Aucune notification non lue',
+          actions: {
+            markAsRead: 'Marquer comme lue',
+            markAsUnread: 'Marquer comme non lue',
+            delete: 'Supprimer',
+            viewDetails: 'Cliquer pour voir les détails'
+          },
+          types: {
+            license_expiry: 'Expiration licence',
+            equipment_obsolescence: 'Obsolescence équipement',
+            new_unverified_user: 'Nouvel utilisateur',
+            general: 'Général'
+          },
+          time: {
+            justNow: "À l'instant",
+            minutes: 'Il y a {{count}} minute',
+            minutesPlural: 'Il y a {{count}} minutes',
+            hours: 'Il y a {{count}} heure',
+            hoursPlural: 'Il y a {{count}} heures',
+            days: 'Il y a {{count}} jour',
+            daysPlural: 'Il y a {{count}} jours'
+          }
+        },
+        pagination: {
+          page: 'Page {{current}} sur {{total}}',
+          previous: 'Précédent',
+          next: 'Suivant'
+        },
+        settings: {
+          title: 'Paramètres des notifications',
+          emailLabel: 'Notifications par email',
+          emailDescription: 'Recevoir les notifications par email',
+          licenseAlertsLabel: 'Alertes d\'expiration des licences',
+          licenseAlertsDescription: 'Jours avant expiration pour recevoir une alerte',
+          equipmentAlertsLabel: 'Alertes d\'obsolescence des équipements',
+          equipmentAlertsDescription: 'Jours avant obsolescence pour recevoir une alerte',
+          addButton: '+ Ajouter',
+          saveButton: 'Sauvegarder les paramètres',
+          saving: 'Sauvegarde...',
+          addAlertPrompt: 'Ajouter une alerte {{type}} (nombre de jours):',
+          daySuffix: 'jour{{plural}}',
+          cancel: 'Annuler'
+        }
+      }
     },
     equipmentTypes: {                               
       title: 'Gestion des types d\'équipement',
@@ -614,6 +834,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         licensesList: 'Liste des licences',
         licensesCreate: 'Ajouter une licence',
         licenseSuppliers: 'Éditeurs & Fournisseurs',
+        licenseTypes: 'Types de licences',
         equipment: 'Équipements',
         equipmentList: 'Liste des équipements',
         equipmentCreate: 'Ajouter un équipement',
@@ -708,15 +929,24 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         equipmentByType: 'Répartition des équipements par type',
         licenseStatus: 'Statut des licences',
         upcomingExpirations: 'Expirations à venir (6 mois)',
+        equipmentObsolescence: 'Évolution de l\'obsolescence des équipements (12 mois)',
         equipmentStatus: 'Statut des équipements',
         expirationsSeries: 'Expirations',
+        equipmentObsolescenceSeries: 'Obsolescences',
         empty: {
           equipmentByType: "Aucun équipement enregistré. Ajoutez des équipements pour voir la répartition par type.",
           licenseStatus: "Aucune licence enregistrée. Ajoutez des licences pour visualiser les statuts.",
           upcomingExpirations: "Aucune expiration à venir. Les expirations apparaîtront lorsque des licences auront des dates d'échéance.",
-          equipmentStatus: "Aucun équipement enregistré. Les statuts apparaîtront après l'ajout d'équipements."
+          equipmentStatus: "Aucun équipement enregistré. Les statuts apparaîtront après l'ajout d'équipements.",
+          equipmentObsolescence: 'Aucune obsolescence prévue pour les 12 prochains mois.'
         }
       },
+      clientFilter: {
+        label: 'Filtrer par client :',
+        placeholder: 'Sélectionner un client',
+        allClients: 'Tous les clients'
+      },
+
       alerts: {
         title: 'Alertes récentes',
         viewAll: 'Voir tout',
@@ -742,6 +972,81 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         totalValue: 'Valeur totale',
       },
     },
+      licenseTypes: {
+        title: 'Gestion des types de licence',
+        subtitle: 'Gérez les différentes catégories de licence',
+        loading: 'Chargement...',
+        stats: {
+          total: 'Total des types',
+          active: 'Actifs',
+          inactive: 'Inactifs',
+        },
+        search: {
+          placeholder: 'Rechercher par nom, code ou description...',
+        },
+        buttons: {
+          showInactive: 'Afficher les inactifs',
+          hideInactive: 'Masquer les inactifs',
+          newType: 'Nouveau type',
+        },
+        table: {
+          columns: {
+            name: 'Nom',
+            code: 'Code',
+            description: 'Description',
+            status: 'Statut',
+            actions: 'Actions',
+          },
+          empty: 'Aucun type trouvé',
+          actions: {
+            view: 'Voir',
+            edit: 'Modifier',
+            delete: 'Supprimer',
+          },
+        },
+        status: {
+          active: 'Actif',
+          inactive: 'Inactif',
+        },
+        dialogs: {
+          create: {
+            title: 'Créer un type de licence',
+            description: 'Créez un nouveau type de licence pour organiser vos licences.',
+          },
+          edit: {
+            title: 'Modifier le type de licence',
+            description: 'Modifiez les informations du type de licence.',
+          },
+          delete: {
+            title: 'Confirmer la suppression',
+            description: 'Êtes-vous sûr de vouloir supprimer ce type de licence ? Cette action est irréversible.',
+            cancel: 'Annuler',
+            confirm: 'Supprimer',
+          },
+        },
+        form: {
+          name: 'Nom',
+          code: 'Code',
+          description: 'Description',
+          isActive: 'Type actif',
+          actions: {
+            cancel: 'Annuler',
+            create: 'Créer',
+            save: 'Enregistrer',
+          },
+          'name.placeholder': 'Ex: Logiciel',
+          'code.placeholder': 'Ex: SOFTWARE',
+          'description.placeholder': 'Description du type de licence',
+        },
+        messages: {
+          createSuccess: 'Type de licence créé avec succès',
+          updateSuccess: 'Type de licence modifié avec succès',
+          deleteSuccess: 'Type de licence supprimé avec succès',
+          createError: 'Erreur lors de la création',
+          updateError: 'Erreur lors de la modification',
+          deleteError: 'Erreur lors de la suppression',
+        },
+      },
     clients: {
       title: 'Gestion des clients',
       subtitle: 'Gérez votre portefeuille client efficacement',
@@ -1012,6 +1317,12 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
             all: 'Tous les clients',
           },
           clear: 'Réinitialiser',
+          obsolescenceStartLabel: 'Date début obsolescence',
+          obsolescenceEndLabel: 'Date fin obsolescence', 
+          obsolescenceStartPlaceholder: 'Date début obsolescence',
+          obsolescenceEndPlaceholder: 'Date fin obsolescence',
+          obsolescenceSectionTitle: 'Période d\'obsolescence',
+          obsolescenceSectionDescription: 'Filtrer les équipements par date d&apos;obsolescence',
         },
         table: {
           headers: {
@@ -1263,6 +1574,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
     },
   },
   en: {
+
     settings: {
       title: 'Settings',
       subtitle: 'Manage your personal preferences and notification options',
@@ -1386,6 +1698,56 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           text: 'Validate {{firstName}} {{lastName}} ({{email}})'
         },
         notAssigned: 'Not assigned',
+      },
+      detail: {
+        notFound: {
+          title: 'User not found',
+          description: 'The requested user does not exist or you do not have permission to view it.'
+        },
+        backToList: 'Back to list',
+        back: 'Back',
+        edit: 'Edit',
+        tabs: {
+          profile: 'Profile',
+          permissions: 'Permissions',
+          activity: 'Activity'
+        },
+        sections: {
+          personalInfo: 'Personal information',
+          status: 'Status',
+          permissions: 'Permissions and access',
+          activityLog: 'Activity log'
+        },
+        fields: {
+          firstName: 'First name',
+          lastName: 'Last name',
+          memberSince: 'Member since',
+          role: 'Role',
+          linkedClient: 'Linked client',
+          lastUpdated: 'Last updated'
+        },
+        activity: {
+          activities: 'activities',
+          noActivity: 'No activity recorded for this user',
+          validationDetails: 'Validation details',
+          beforeValidation: 'Before validation',
+          afterValidation: 'After validation',
+          role: 'Role',
+          client: 'Client',
+          none: 'None',
+          recordId: 'Record ID',
+          ipAddress: 'IP address',
+          notAvailable: 'Not available',
+          browser: 'Browser',
+          changesMade: 'Changes made',
+          oldValue: 'Old value',
+          newValue: 'New value',
+          dataCreated: 'Data created',
+          dataDeleted: 'Data deleted'
+        },
+        editDialog: {
+          title: 'Edit user'
+        }
       }
     },
     licenses: {
@@ -1412,15 +1774,33 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       },
       filters: {
         searchPlaceholder: 'Search a license...',
+        searchLabel: 'Search',
         statusPlaceholder: 'Filter by status',
+        statusLabel: 'Status',
         statusAll: 'All statuses',
         statusActive: 'Active',
         statusAboutToExpire: 'Expiring soon',
         statusExpired: 'Expired',
         statusCancelled: 'Cancelled',
         clientPlaceholder: 'Filter by client',
+        clientLabel: 'Client',
         clientAll: 'All clients',
-        editorPlaceholder: 'Editor...'
+        editorPlaceholder: 'Editor...',
+        editorLabel: 'Editor',
+        typePlaceholder: 'License type',
+        typeLabel: 'License type',
+        typeAll: 'All types',
+        loading: 'Loading...',
+        showFiltersButton: 'Show filters',
+        hideFiltersButton: 'Hide filters',
+        filtersToggle: 'Filters',
+        expiryDateStartPlaceholder: 'Start expiration date',
+        expiryDateEndPlaceholder: 'End expiration date',
+        expiryDateStartLabel: 'Start expiration date',
+        expiryDateEndLabel: 'End expiration date',
+        expiryDateSectionTitle: 'Expiration period',
+        expiryDateSectionDescription: 'Filter licenses by expiration date',
+        resetButton: 'Reset'
       },
       table: {
         title: 'Licenses list',
@@ -1504,6 +1884,10 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
             label: 'License key',
             placeholder: 'License key (hidden)'
           },
+          typeId: {
+            label: 'License type',
+            placeholder: 'Select a type',
+          },
           clientId: {
             label: 'Client *',
             placeholder: 'Select a client',
@@ -1539,27 +1923,134 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           created: 'License created successfully.',
           updated: 'License updated successfully.',
           submitError: 'An error occurred during submission.'
+        },
+        validation: {
+          name: {
+            required: 'Name is required'
+          },
+          expiryDate: {
+            required: 'Expiration date is required'
+          },
+          clientId: {
+            required: 'Client is required'
+          },
+          cost: {
+            positive: 'Cost must be positive'
+          },
+          }
+      },
+      detail: {
+        back: 'Back',
+        actions: {
+          edit: 'Edit',
+          delete: 'Delete',
+          hide: 'Hide',
+          show: 'Show',
+          addFile: 'Add file'
+        },
+        sections: {
+          generalInfo: 'General information',
+          attachments: 'Attachments',
+          importantDates: 'Important dates',
+          financialInfo: 'Financial information',
+          quickActions: 'Quick actions'
+        },
+        fields: {
+          name: 'Name',
+          status: 'Status',
+          editor: 'Editor',
+          version: 'Version',
+          client: 'Client',
+          createdBy: 'Created by',
+          licenseKey: 'License key',
+          description: 'Description',
+          purchaseDate: 'Purchase date',
+          expiryDate: 'Expiration date',
+          createdAt: 'Created on',
+          updatedAt: 'Updated on',
+          totalCost: 'Total cost',
+          licenseDuration: 'License duration',
+          costPerDay: 'Cost per day'
+        },
+        tableHeaders: {
+          fileName: 'File name',
+          type: 'Type',
+          size: 'Size',
+          uploadedBy: 'Uploaded by',
+          date: 'Date',
+          actions: 'Actions'
+        },
+        fileTypes: {
+          contract: 'Contract',
+          invoice: 'Invoice',
+          certificate: 'Certificate',
+          manual: 'Manual',
+          other: 'Other'
+        },
+        fileSizes: {
+          bytes: 'bytes',
+          kb: 'KB',
+          mb: 'MB',
+          gb: 'GB'
+        },
+        expiryAlert: {
+          expired: 'Expired',
+          expiresIn: 'Expires in',
+          days: 'days'
+        },
+        license: 'license',
+        keyDialog: {
+          title: 'Reveal license key',
+          description: 'Enter your password to reveal the license key.',
+          fields: {
+            password: 'Password'
+          },
+          actions: {
+            cancel: 'Cancel',
+            show: 'Show'
+          }
+        },
+        deleteDialog: {
+          title: 'Confirm deletion',
+          description: 'Are you sure you want to delete this license? This action cannot be undone.'
+        },
+        uploadDialog: {
+          title: 'Add attachment',
+          description: 'Select a file to add to this license.',
+          fields: {
+            file: 'File',
+            fileType: 'File type'
+          },
+          actions: {
+            cancel: 'Cancel',
+            add: 'Add'
+          }
+        },
+        emptyState: {
+          noAttachments: 'No attachments',
+          noFilesAdded: 'No files have been added to this license.',
+          addFirstFile: 'Add the first file'
         }
       }
     },
     reports: {
       charts: {
-        licenseStatusTitle: 'License Statuses',
-        equipmentStatusTitle: 'Equipment Statuses',
-        monthlyExpirationsTitle: 'License Expirations by Month',
+        licenseStatusTitle: 'License Status Overview',
+        equipmentStatusTitle: 'Equipment Status Overview',
+        monthlyExpirationsTitle: 'Monthly License Expirations',
       },
       empty: {
-        licenseStatus: 'No licenses recorded yet. Add licenses to see their statuses.',
-        equipmentStatus: 'No equipment recorded yet. Statuses will appear after adding equipment.',
+        licenseStatus: 'No licenses recorded yet. Add licenses to see their status overview.',
+        equipmentStatus: 'No equipment recorded yet. Equipment statuses will appear after adding equipment.',
         monthlyExpirations: 'No upcoming expirations. They will appear once licenses have due dates.',
       },
       generator: {
         title: 'Report Generator',
-        description: 'Configure and generate customized reports in JSON, CSV, Excel or PDF format',
+        description: 'Configure and generate custom reports in JSON, CSV, Excel or PDF formats',
       },
       ui: {
-        headerTitle: 'Reports & Statistics',
-        headerSubtitle: 'Generate and view detailed reports on your licenses and equipment in JSON, CSV, Excel, or PDF.',
+        headerTitle: 'Reports and Statistics',
+        headerSubtitle: 'Generate and view detailed reports on your licenses and equipment in JSON, CSV, Excel or PDF formats.',
         glanceLicenses: 'Total Licenses',
         glanceEquipment: 'Total Equipment',
         glanceTotalValue: 'Total Value',
@@ -1567,21 +2058,27 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         autoDownloadNotice: 'The {{format}} file will be downloaded automatically',
       },
       filters: {
-        type: 'Report type',
+        type: 'Report Type',
         typePlaceholder: 'Choose a type',
         client: 'Client',
         clientPlaceholder: 'All clients',
         status: 'Status',
         format: 'Format',
         formatPlaceholder: 'Choose a format',
-        dateFrom: 'Start date',
-        dateTo: 'End date',
+        dateFrom: 'Start Date',
+        dateTo: 'End Date',
+        licenseType: 'License Type',
+        equipmentType: 'Equipment Type',
+        licenseTypePlaceholder: 'All types',
+        equipmentTypePlaceholder: 'All types',
       },
       options: {
         typeLicenses: 'Licenses',
         typeEquipment: 'Equipment',
         statusAll: 'All statuses',
         clientAll: 'All clients',
+        licenseTypeAll: 'All license types',
+        equipmentTypeAll: 'All equipment types',
         statusLicense: {
           active: 'Active',
           expired: 'Expired',
@@ -1591,23 +2088,23 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           active: 'Active',
           obsolete: 'Obsolete',
           bientot_obsolete: 'Soon obsolete',
-          en_maintenance: 'In maintenance',
+          en_maintenance: 'Under maintenance',
           retire: 'Retired',
         },
         formatJson: 'Preview (JSON)',
-        formatCsv: 'CSV download',
-        formatExcel: 'Excel download',
-        formatPdf: 'PDF download',
+        formatCsv: 'Download CSV',
+        formatExcel: 'Download Excel',
+        formatPdf: 'Download PDF',
       },
       actions: {
         reset: 'Reset',
         generate: 'Generate',
         generating: 'Generating...',
         quickTitle: 'Quick Reports',
-        quickSubtitle: 'Download predefined reports in your chosen format',
-        quickExpiredLicenses: 'Expired licenses',
-        quickObsoleteEquipment: 'Obsolete equipment',
-        quickExpiringSoon: 'Licenses expiring soon',
+        quickSubtitle: 'Download predefined reports in your preferred format',
+        quickExpiredLicenses: 'Expired Licenses',
+        quickObsoleteEquipment: 'Obsolete Equipment',
+        quickExpiringSoon: 'Licenses Expiring Soon',
         btnCsv: 'CSV',
         btnExcel: 'Excel',
         btnPdf: 'PDF',
@@ -1619,11 +2116,11 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         expiration: 'Expiration',
         status: 'Status',
         cost: 'Cost',
-        daysUntilExpiry: 'Days remaining',
+        daysUntilExpiry: 'Days Remaining',
         type: 'Type',
         brand: 'Brand',
         obsolescence: 'Obsolescence',
-        daysUntilObsolescence: 'Days remaining',
+        daysUntilObsolescence: 'Days Remaining',
       },
     },
     profile: {
@@ -1702,6 +2199,89 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         edit: 'Edit',
       },
     },
+    notifications: {
+      page: {
+        title: 'Notifications',
+        unreadCount: '{{unread}} unread out of {{total}} notification{{totalPlural}}',
+        tabs: {
+          all: 'All ({{count}})',
+          unread: 'Unread ({{count}})',
+          settings: 'Settings'
+        },
+        actions: {
+          markAllAsRead: 'Mark all as read',
+          filter: 'Filter'
+        },
+        stats: {
+          total: 'Total',
+          unread: 'Unread',
+          licenses: 'Licenses',
+          equipment: 'Equipment'
+        },
+        filters: {
+          searchPlaceholder: 'Search notifications...',
+          typePlaceholder: 'All types',
+          typeOptions: {
+            license_expiry: 'License expiry',
+            equipment_obsolescence: 'Equipment obsolescence',
+            new_unverified_user: 'New unverified user',
+            general: 'General'
+          },
+          statusPlaceholder: 'All statuses',
+          statusOptions: {
+            read: 'Read',
+            unread: 'Unread'
+          }
+        },
+        list: {
+          loading: 'Loading notifications...',
+          empty: 'No notifications',
+          emptyDescription: 'You have no notifications at the moment.',
+          noUnread: 'No unread notifications',
+          actions: {
+            markAsRead: 'Mark as read',
+            markAsUnread: 'Mark as unread',
+            delete: 'Delete',
+            viewDetails: 'Click to view details'
+          },
+          types: {
+            license_expiry: 'License expiry',
+            equipment_obsolescence: 'Equipment obsolescence',
+            new_unverified_user: 'New unverified user',
+            general: 'General'
+          },
+          time: {
+            justNow: 'Just now',
+            minutes: '{{count}} minute ago',
+            minutesPlural: '{{count}} minutes ago',
+            hours: '{{count}} hour ago',
+            hoursPlural: '{{count}} hours ago',
+            days: '{{count}} day ago',
+            daysPlural: '{{count}} days ago'
+          }
+        },
+        pagination: {
+          page: 'Page {{current}} of {{total}}',
+          previous: 'Previous',
+          next: 'Next'
+        },
+        settings: {
+          title: 'Notification settings',
+          emailLabel: 'Email notifications',
+          emailDescription: 'Receive notifications by email',
+          licenseAlertsLabel: 'License expiry alerts',
+          licenseAlertsDescription: 'Days before expiry to receive an alert',
+          equipmentAlertsLabel: 'Equipment obsolescence alerts',
+          equipmentAlertsDescription: 'Days before obsolescence to receive an alert',
+          addButton: '+ Add',
+          saveButton: 'Save settings',
+          saving: 'Saving...',
+          addAlertPrompt: 'Add {{type}} alert (number of days):',
+          daySuffix: 'day{{plural}}',
+          cancel: 'Cancel'
+        }
+      }
+    },
     sidebar: {
       sections: {
         general: 'General',
@@ -1718,6 +2298,7 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         licensesList: 'Licenses list',
         licensesCreate: 'Add a license',
         licenseSuppliers: 'Editors & Vendors',
+        licenseTypes: 'License Types',
         equipment: 'Equipment',
         equipmentList: 'Equipment list',
         equipmentCreate: 'Add equipment',
@@ -1814,7 +2395,22 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         upcomingExpirations: 'Upcoming expirations (6 months)',
         equipmentStatus: 'Equipment status',
         expirationsSeries: 'Expirations',
+        equipmentObsolescence: 'Equipment obsolescence trend (12 months)',
+        equipmentObsolescenceSeries: 'Obsolescence',
+        empty: {
+          equipmentByType: 'No equipment recorded yet. Add equipment to see the distribution by type.',
+          licenseStatus: 'No licenses recorded yet. Add licenses to see their statuses.',
+          upcomingExpirations: 'No upcoming expirations. They will appear once licenses have due dates.',
+          equipmentStatus: 'No equipment recorded yet. Statuses will appear after adding equipment.',
+          equipmentObsolescence: 'No obsolescence expected in the next 12 months.'
+        }
       },
+      clientFilter: {
+        label: 'Filter by client:',
+        placeholder: 'Select a client',
+        allClients: 'All clients'
+      },
+
       alerts: {
         title: 'Recent alerts',
         viewAll: 'View all',
@@ -1840,6 +2436,78 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
         totalValue: 'Total value',
       },
     },
+      licenseTypes: {
+        title: 'License Types Management',
+        subtitle: 'Manage the different license categories',
+        loading: 'Loading...',
+        stats: {
+          total: 'Total types',
+          active: 'Active',
+          inactive: 'Inactive',
+        },
+        search: {
+          placeholder: 'Search by name, code or description...',
+        },
+        buttons: {
+          showInactive: 'Show inactive',
+          hideInactive: 'Hide inactive',
+          newType: 'New type',
+        },
+        table: {
+          columns: {
+            name: 'Name',
+            code: 'Code',
+            description: 'Description',
+            status: 'Status',
+            actions: 'Actions',
+          },
+          empty: 'No types found',
+          actions: {
+            view: 'View',
+            edit: 'Edit',
+            delete: 'Delete',
+          },
+        },
+        status: {
+          active: 'Active',
+          inactive: 'Inactive',
+        },
+        dialogs: {
+          create: {
+            title: 'Create license type',
+            description: 'Create a new license type to organize your licenses.',
+          },
+          edit: {
+            title: 'Edit license type',
+            description: 'Edit the license type information.',
+          },
+          delete: {
+            title: 'Confirm deletion',
+            description: 'Are you sure you want to delete this license type? This action cannot be undone.',
+            cancel: 'Cancel',
+            confirm: 'Delete',
+          },
+        },
+        form: {
+          name: 'Name',
+          code: 'Code',
+          description: 'Description',
+          isActive: 'Active type',
+          actions: {
+            cancel: 'Cancel',
+            create: 'Create',
+            save: 'Save',
+          },
+        },
+        messages: {
+          createSuccess: 'License type created successfully',
+          updateSuccess: 'License type updated successfully',
+          deleteSuccess: 'License type deleted successfully',
+          createError: 'Error creating license type',
+          updateError: 'Error updating license type',
+          deleteError: 'Error deleting license type',
+        },
+      },
     clients: {
       title: 'Client management',
       subtitle: 'Manage your client portfolio efficiently',
@@ -2110,6 +2778,12 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
             all: 'All clients'
           },
           clear: 'Reset',
+          obsolescenceStartLabel: 'Start obsolescence date',
+          obsolescenceEndLabel: 'End obsolescence date',
+          obsolescenceStartPlaceholder: 'Start obsolescence date',
+          obsolescenceEndPlaceholder: 'End obsolescence date',
+          obsolescenceSectionTitle: 'Obsolescence period',
+          obsolescenceSectionDescription: 'Filter equipment by obsolescence date',
         },
         table: {
           headers: {
@@ -2524,12 +3198,24 @@ function getFromPath(tree: TranslationTree, key: string): string | TranslationTr
   }, tree) as string | TranslationTree | undefined
 }
 
-export function translate(language: SupportedLanguage, key: string, fallback?: string): string {
+export function translate(language: SupportedLanguage, key: string, fallback?: string, params?: Record<string, string | number>): string {
   const value = getFromPath(translations[language], key)
+  let result: string
+  
   if (typeof value === 'string') {
-    return value
+    result = value
+  } else {
+    result = fallback ?? key
   }
-  return fallback ?? key
+  
+  // Handle interpolation if params are provided
+  if (params) {
+    Object.entries(params).forEach(([param, paramValue]) => {
+      result = result.replace(new RegExp(`\{\{${param}\}\}`, 'g'), String(paramValue))
+    })
+  }
+  
+  return result
 }
 
 export function getLanguageOptions() {
