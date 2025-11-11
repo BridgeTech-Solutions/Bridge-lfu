@@ -426,6 +426,43 @@
         }
       }
     },
+    "/api/stats/licenses/trends": {
+      "get": {
+        "tags": ["Stats"],
+        "summary": "Tendances d'expiration des licences (12 mois)",
+        "parameters": [
+          { "in": "query", "name": "client_id", "schema": { "type": "string", "format": "uuid" } },
+          { "in": "query", "name": "type_id", "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Séries mensuelles sur 12 mois",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "months": {
+                      "type": "array",
+                      "items": { "type": "object", "properties": { "month": { "type": "string" }, "count": { "type": "integer" } } }
+                    },
+                    "filters": {
+                      "type": "object",
+                      "properties": {
+                        "clientId": { "type": "string", "format": "uuid", "nullable": true },
+                        "typeId": { "type": "string", "format": "uuid", "nullable": true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
 
     "/api/dashboard": { "get": { "tags": ["Dashboard"], "summary": "Données de tableau de bord", "responses": { "200": { "description": "OK" } } } },
     "/api/cron/notifications": { "post": { "tags": ["Notifications"], "summary": "Tâche planifiée: traiter notifications", "responses": { "200": { "description": "OK" } } } }

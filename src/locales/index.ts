@@ -928,17 +928,16 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       charts: {
         equipmentByType: 'Répartition des équipements par type',
         licenseStatus: 'Statut des licences',
-        upcomingExpirations: 'Expirations à venir (6 mois)',
-        equipmentObsolescence: 'Évolution de l\'obsolescence des équipements (12 mois)',
+        upcomingExpirations: 'Expirations à venir (12 mois)',
         equipmentStatus: 'Statut des équipements',
         expirationsSeries: 'Expirations',
-        equipmentObsolescenceSeries: 'Obsolescences',
         empty: {
           equipmentByType: "Aucun équipement enregistré. Ajoutez des équipements pour voir la répartition par type.",
           licenseStatus: "Aucune licence enregistrée. Ajoutez des licences pour visualiser les statuts.",
           upcomingExpirations: "Aucune expiration à venir. Les expirations apparaîtront lorsque des licences auront des dates d'échéance.",
           equipmentStatus: "Aucun équipement enregistré. Les statuts apparaîtront après l'ajout d'équipements.",
           equipmentObsolescence: 'Aucune obsolescence prévue pour les 12 prochains mois.'
+
         }
       },
       clientFilter: {
@@ -1025,9 +1024,18 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           },
         },
         form: {
-          name: 'Nom',
-          code: 'Code',
-          description: 'Description',
+          name: {
+            label: 'Nom',
+            placeholder: 'Ex: Logiciel',
+          },
+          code: {
+            label: 'Code',
+            placeholder: 'Ex: SOFTWARE',
+          },
+          description: {
+            label: 'Description',
+            placeholder: 'Description du type de licence', 
+          },
           isActive: 'Type actif',
           actions: {
             cancel: 'Annuler',
@@ -2392,17 +2400,16 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
       charts: {
         equipmentByType: 'Equipment distribution by type',
         licenseStatus: 'License status',
-        upcomingExpirations: 'Upcoming expirations (6 months)',
+        upcomingExpirations: 'Upcoming expirations (12 months)',
         equipmentStatus: 'Equipment status',
         expirationsSeries: 'Expirations',
-        equipmentObsolescence: 'Equipment obsolescence trend (12 months)',
-        equipmentObsolescenceSeries: 'Obsolescence',
         empty: {
           equipmentByType: 'No equipment recorded yet. Add equipment to see the distribution by type.',
           licenseStatus: 'No licenses recorded yet. Add licenses to see their statuses.',
           upcomingExpirations: 'No upcoming expirations. They will appear once licenses have due dates.',
           equipmentStatus: 'No equipment recorded yet. Statuses will appear after adding equipment.',
           equipmentObsolescence: 'No obsolescence expected in the next 12 months.'
+
         }
       },
       clientFilter: {
@@ -2489,9 +2496,18 @@ const translations: Record<SupportedLanguage, TranslationTree> = {
           },
         },
         form: {
-          name: 'Name',
-          code: 'Code',
-          description: 'Description',
+          name: {
+            label: 'Name', 
+            placeholder: 'Ex: Software', 
+          },
+          code: {
+            label: 'Code', 
+            placeholder: 'Ex: SOFTWARE', 
+          },
+          description: {
+            label: 'Description', 
+            placeholder: 'Description of the license type', 
+          },
           isActive: 'Active type',
           actions: {
             cancel: 'Cancel',

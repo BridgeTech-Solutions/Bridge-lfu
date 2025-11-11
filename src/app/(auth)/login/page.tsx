@@ -128,7 +128,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="relative z-10">
           <p className="text-blue-200 text-sm">
-            © 2025 Bridge LFU. Tous droits réservés.
+            © 2025 Bridge Technologies Solutions. Tous droits réservés.
           </p>
         </div>
       </div>

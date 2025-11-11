@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 const quickStartSteps = [
   {
     title: 'Connexion & profil',
-    description: 'Ouvrez Bridge LFU avec votre email professionnel puis vérifiez vos informations (nom, rôle, entreprise) dans la rubrique Paramètres.'
+    description: 'Ouvrez Bridge LFU avec votre email professionnel puis vérifiez vos informations (nom, rôle, entreprise) dans la rubrique profie.'
   },
   {
     title: 'Identifier les priorités',
@@ -256,7 +256,7 @@ const faq = [
   {
     question: 'Que faire si une information est incorrecte ?',
     answer:
-      'Corrigez-la directement si vous disposez des droits d’édition. Sinon, contactez l’administrateur ou le technicien via email ou en créant une notification dédiée.' 
+      'Corrigez-la directement si vous disposez des droits d’édition. Sinon, contactez l’administrateur ou le technicien via email.' 
   }
 ]
 

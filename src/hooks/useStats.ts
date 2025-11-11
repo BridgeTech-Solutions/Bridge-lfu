@@ -87,6 +87,74 @@ export function useEquipmentTrends(clientId?: string) {
   }
 }
 
+// Hook pour les tendances d'expiration licences (12 mois)
+export function useLicenseTrends(clientId?: string, typeId?: string) {
+  const { user, loading: authLoading } = useAuth()
+
+  const fetchTrends = async (): Promise<Array<{ month: string; count: number }>> => {
+    const url = new URL('/api/stats/licenses/trends', window.location.origin)
+    if (clientId) url.searchParams.set('client_id', clientId)
+    if (typeId) url.searchParams.set('type_id', typeId)
+    const res = await fetch(url.toString(), { credentials: 'include' })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.message || `Erreur ${res.status}`)
+    }
+    const data = await res.json()
+    return (data.months || []) as Array<{ month: string; count: number }>
+  }
+
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['licenseTrends', user?.id, clientId, typeId],
+    queryFn: fetchTrends,
+    enabled: !!user && !authLoading,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  })
+
+  return {
+    months: data || [],
+    loading: isLoading || authLoading,
+    error: isError ? (error as Error).message : null,
+    refetch,
+  }
+}
+
+// Hook coûts par éditeur (période mobile, défaut 30j)
+export function useCosts(params?: { clientId?: string; period?: number; groupBy?: 'editor' }) {
+  const { user, loading: authLoading } = useAuth()
+  const { clientId, period = 30, groupBy = 'editor' } = params || {}
+
+  const fetchCosts = async (): Promise<Array<{ name: string; value: number }>> => {
+    const url = new URL('/api/stats/costs', window.location.origin)
+    if (clientId) url.searchParams.set('client_id', clientId)
+    url.searchParams.set('period', String(period))
+    url.searchParams.set('groupBy', groupBy)
+    const res = await fetch(url.toString(), { credentials: 'include' })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.message || `Erreur ${res.status}`)
+    }
+    const data = await res.json()
+    return (data.data || []) as Array<{ name: string; value: number }>
+  }
+
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['costs', user?.id, clientId, period, groupBy],
+    queryFn: fetchCosts,
+    enabled: !!user && !authLoading,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  })
+
+  return {
+    items: data || [],
+    loading: isLoading || authLoading,
+    error: isError ? (error as Error).message : null,
+    refetch,
+  }
+}
+
 
 // Hook pour les statistiques d'équipements
 export function useEquipmentStats(clientId?: string) {

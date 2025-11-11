@@ -21,8 +21,7 @@ CREATE TYPE user_role AS ENUM ('admin', 'technicien', 'client','unverified');
 -- Statuts des équipements
 CREATE TYPE equipment_status AS ENUM ('actif', 'en_maintenance', 'obsolete','bientot_obsolete', 'retire');
 
--- Types d'équipements
-CREATE TYPE equipment_type AS ENUM ('pc', 'serveur', 'routeur', 'switch', 'imprimante', 'autre');
+
 
 -- Statuts des licences
 CREATE TYPE license_status AS ENUM ('active', 'expired', 'about_to_expire', 'cancelled');

@@ -20,7 +20,6 @@ import { ArrowLeft, Save, Building, User, Mail, Phone, MapPin, Globe, Briefcase 
 import { toast } from 'sonner';
 import { useTranslations } from '@/hooks/useTranslations';
 import { getCountryOptions } from '@/lib/utils/countryData';
-import { getCode } from 'country-list';
 
 interface ClientFormPageProps {
   mode: 'create' | 'edit';
@@ -35,8 +34,8 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
   const clientId = mode === 'edit' ? params?.id as string : null;
   
   const { data: existingClient, isLoading: loadingClient } = useClient(clientId || '');
-    // Initialisation de la liste des pays (une fois au montage)
   const countryOptions = getCountryOptions();
+  
   const { updateClient, isUpdating } = useClientActions({
     onSuccess: () => {
       if (mode === 'edit' && clientId) {
@@ -52,32 +51,36 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
       address: '',
       city: '',
       postalCode: '',
-      country: '',
+      country: 'Cameroun', // Valeur par défaut
       contactEmail: '',
       contactPhone: '',
       contactPerson: '',
-      sector:undefined
+      sector: undefined
     }
   });
 
+  // CORRECTION 1: Utiliser reset() avec les bonnes valeurs
   useEffect(() => {
     if (mode === 'edit' && existingClient) {
-      // Vérifiez que toutes les propriétés nécessaires sont présentes
-      if (existingClient.id) {
-        form.reset({
-          name: existingClient.name || '',
-          address: existingClient.address || '',
-          city: existingClient.city || '',
-          postalCode: existingClient.postal_code || '',
-          country: existingClient.country || 'Cameroun',
-          contactEmail: existingClient.contact_email || '',
-          contactPhone: existingClient.contact_phone || '',
-          contactPerson: existingClient.contact_person || '',
-          sector: existingClient.sector || null  // Utilisez null au lieu de undefined
-        });
-      }
+      console.log('Existing client data:', existingClient); // Debug
+      
+      form.reset({
+        name: existingClient.name || '',
+        address: existingClient.address || '',
+        city: existingClient.city || '',
+        postalCode: existingClient.postal_code || '',
+        country: existingClient.country || 'Cameroun',
+        contactEmail: existingClient.contact_email || '',
+        contactPhone: existingClient.contact_phone || '',
+        contactPerson: existingClient.contact_person || '',
+        // IMPORTANT: Convertir null en undefined pour les Select
+        sector: existingClient.sector || undefined
+      });
+      
+      // Debug pour vérifier les valeurs
+      console.log('Form values after reset:', form.getValues());
     }
-  }, [existingClient, form, mode]);
+  }, [existingClient, mode]);
 
   const requiredPermission = mode === 'create' ? 'create' : 'update';
   if (!can(requiredPermission, 'clients')) {
@@ -170,7 +173,6 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
       <div className="container mx-auto py-8 px-6 max-w-4xl">
-        {/* En-tête */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
             <Button 
@@ -232,6 +234,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                     )}
                   />
 
+                  {/* CORRECTION 2: Secteur - Gestion correcte du Select */}
                   <FormField
                     control={form.control}
                     name="sector"
@@ -241,7 +244,10 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                           <Briefcase className="h-4 w-4" />
                           {t('sections.general.fields.sector.label')}
                         </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value || ''} // CORRECTION: Utiliser '' au lieu de undefined
+                        >
                           <FormControl>
                             <SelectTrigger className="bg-white/80">
                               <SelectValue placeholder={t('sections.general.fields.sector.placeholder')} />
@@ -259,16 +265,23 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                       </FormItem>
                     )}
                   />
+                  
+                  {/* CORRECTION 3: Country - Gestion correcte du Select */}
                   <FormField
                     control={form.control}
                     name="country"
                     render={({ field }) => (
                       <FormItem className="sm:col-span-1">
-                        <FormLabel>{t('sections.general.fields.country.label')}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                        <FormLabel className="flex items-center gap-2">
+                          <Globe className="h-4 w-4" />
+                          {t('sections.general.fields.country.label')}
+                        </FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value || 'Cameroun'} // CORRECTION: Valeur par défaut
+                        >
                           <FormControl>
                             <SelectTrigger className="bg-white/80">
-                              <Globe className="mr-2 h-4 w-4 text-muted-foreground" />
                               <SelectValue placeholder={t('sections.general.fields.country.placeholder')} />
                             </SelectTrigger>
                           </FormControl>
@@ -284,7 +297,6 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                       </FormItem>
                     )}
                   />
-
                 </div>
               </CardContent>
             </Card>
@@ -316,7 +328,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                             placeholder={t('sections.contact.fields.contactPerson.placeholder')}
                             className="bg-white/80"
                             {...field}
-                            value={field.value ?? ""} 
+                            value={field.value || ""} 
                           />
                         </FormControl>
                         <FormMessage />
@@ -339,7 +351,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                             placeholder={t('sections.contact.fields.contactEmail.placeholder')}
                             className="bg-white/80"
                             {...field} 
-                            value={field.value ?? ""}
+                            value={field.value || ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -361,7 +373,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                             placeholder={t('sections.contact.fields.contactPhone.placeholder')}
                             className="bg-white/80"
                             {...field} 
-                            value={field.value ?? ""}
+                            value={field.value || ""}
                           />
                         </FormControl>
                         <FormDescription>
@@ -398,7 +410,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                           placeholder={t('sections.address.fields.address.placeholder')}
                           className="bg-white/80 min-h-[100px]"
                           {...field} 
-                          value={field.value ?? ""}
+                          value={field.value || ""}
                         />
                       </FormControl>
                       <FormMessage />
@@ -418,7 +430,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                             placeholder={t('sections.address.fields.city.placeholder')}
                             className="bg-white/80"
                             {...field} 
-                            value={field.value ?? ""}
+                            value={field.value || ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -437,7 +449,7 @@ export default function ClientFormPage({ mode = 'create' }: ClientFormPageProps)
                             placeholder={t('sections.address.fields.postalCode.placeholder')}
                             className="bg-white/80"
                             {...field} 
-                            value={field.value ?? ""}
+                            value={field.value || ""}
                           />
                         </FormControl>
                         <FormMessage />
