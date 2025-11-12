@@ -606,16 +606,6 @@ export default function LicenseDetailPage() {
                     </p>
                   </div>
                   
-                  {license.cost && (
-                    <div>
-                      <Label className="text-sm font-medium text-gray-500">{t('detail.fields.costPerDay')}</Label>
-                      <p className="text-sm mt-1">
-                        {formatCurrency(
-                          license.cost / Math.ceil((new Date(license.expiry_date).getTime() - new Date(license.purchase_date).getTime()) / (1000 * 60 * 60 * 24))
-                        )}
-                      </p>
-                    </div>
-                  )}
                 </>
               )}
             </CardContent>
